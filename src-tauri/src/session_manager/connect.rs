@@ -1146,18 +1146,15 @@ impl SessionManager {
             store::resolve_sandbox_profile(&settings.sandbox_profile, project_sandbox.as_deref());
         // Multi-root workspace custom profile (#1194) overrides built-in sandbox
         // when capability is extra_write_active / user-managed cover.
-        let sandbox_for_spawn = meta
-            .workspace_id
-            .as_deref()
-            .and_then(crate::workspace_store::spawn_sandbox_for_workspace)
+        let workspace = meta.workspace_id.as_deref()
+            .and_then(crate::workspace_store::get_workspace)
+            .filter(|ws| meta.project_id.as_deref() == Some(ws.primary_project_id.as_str()));
+        let sandbox_for_spawn = workspace.as_ref()
+            .and_then(|ws| crate::workspace_store::spawn_sandbox_for_workspace(&ws.id))
             .unwrap_or(effective_sandbox);
-        if let Some(wid) = meta.workspace_id.as_deref() {
-            if let Some(ws) = crate::workspace_store::get_workspace(wid) {
-                for root in &ws.roots {
-                    crate::path_scope::grant_path(std::path::Path::new(&root.path));
-                }
-            }
-        }
+        let roots = workspace.map(|ws| ws.roots.into_iter()
+            .map(|r| std::path::PathBuf::from(r.path)).collect()).unwrap_or_default();
+        crate::path_scope::set_workspace_grants(&meta.id, roots);
         // One-shot CLI --fork-session: only when meta asks and we have a source id.
         let fork_agent = meta.fork_agent_session
             && resume_agent_sid

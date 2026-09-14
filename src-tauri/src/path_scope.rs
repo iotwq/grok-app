@@ -20,6 +20,22 @@ fn extra_grants() -> &'static RwLock<Vec<PathBuf>> {
     G.get_or_init(|| RwLock::new(Vec::new()))
 }
 
+fn workspace_grants() -> &'static RwLock<std::collections::HashMap<String, Vec<PathBuf>>> {
+    static G: OnceLock<RwLock<std::collections::HashMap<String, Vec<PathBuf>>>> = OnceLock::new();
+    G.get_or_init(|| RwLock::new(std::collections::HashMap::new()))
+}
+
+/// Replace only this session's workspace grants; picked files and other sessions survive.
+pub fn set_workspace_grants(session_id: &str, paths: Vec<PathBuf>) {
+    let mut grants = workspace_grants().write();
+    if paths.is_empty() {
+        grants.remove(session_id);
+    } else {
+        grants.insert(session_id.to_owned(), paths.into_iter()
+            .filter_map(|p| p.canonicalize().ok()).collect());
+    }
+}
+
 /// Rebuild allowlisted roots from the project store + app data + temp.
 /// Call on startup and whenever projects are added / removed / relocated / trusted.
 pub fn refresh_from_store() {
@@ -105,7 +121,8 @@ fn is_allowed_canonical(path: &Path) -> bool {
     if under_root {
         return true;
     }
-    extra_grants()
+    workspace_grants().read().values().flatten().any(|r| path_under_root(path, r))
+        || extra_grants()
         .read()
         .iter()
         .any(|r| path_under_root(path, r))
@@ -190,8 +207,10 @@ mod tests {
             }
         }
         *roots().write() = next;
+        workspace_grants().write().clear();
         *extra_grants().write() = Vec::new();
         f();
+        workspace_grants().write().clear();
         *extra_grants().write() = Vec::new();
         *roots().write() = Vec::new();
     }
@@ -250,6 +269,28 @@ mod tests {
             );
         });
         let _ = fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn workspace_grants_revoke_without_affecting_other_sessions_or_picked_files() {
+        let tmp = std::env::temp_dir().join(format!("grok-workspace-grants-{}", uuid::Uuid::new_v4()));
+        let extra = tmp.join("extra");
+        fs::create_dir_all(&extra).unwrap();
+        let file = extra.join("data");
+        fs::write(&file, "data").unwrap();
+        let picked = tmp.join("picked");
+        fs::write(&picked, "picked").unwrap();
+        with_isolated_roots(&tmp.join("project"), &tmp.join("app"), false, || {
+            grant_path(&picked);
+            set_workspace_grants("a", vec![extra.clone()]);
+            set_workspace_grants("b", vec![extra.clone()]);
+            set_workspace_grants("a", vec![]);
+            assert!(is_allowed(&file));
+            set_workspace_grants("b", vec![]);
+            assert!(!is_allowed(&file));
+            assert!(is_allowed(&picked));
+        });
+        let _ = fs::remove_dir_all(tmp);
     }
 
     #[test]

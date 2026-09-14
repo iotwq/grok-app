@@ -2275,6 +2275,13 @@ pub fn set_session_workspace(
     workspace_capability: Option<String>,
 ) -> Result<SessionMeta, String> {
     update_session_row(id, move |s| {
+        if let Some(wid) = workspace_id.as_deref() {
+            let ws = crate::workspace_store::get_workspace(wid)
+                .ok_or_else(|| "workspace not found".to_string())?;
+            if s.project_id.as_deref() != Some(ws.primary_project_id.as_str()) {
+                return Err("workspace belongs to a different project".into());
+            }
+        }
         s.workspace_id = workspace_id;
         s.workspace_root_snapshot = workspace_root_snapshot;
         s.workspace_capability = workspace_capability;
@@ -2388,6 +2395,10 @@ fn apply_session_project(
             return Ok(s.clone());
         }
         s.project_id = pid;
+        s.workspace_id = None;
+        s.workspace_root_snapshot = None;
+        s.workspace_capability = None;
+        crate::path_scope::set_workspace_grants(id, Vec::new());
         if reset_agent_identity {
             s.agent_session_id = None;
             s.fork_agent_session = false;
@@ -5144,6 +5155,9 @@ mod tests {
                 .unwrap()
                 .workspace_id
                 .is_none());
+            let other = create_session(None, None, false).unwrap();
+            assert!(set_session_workspace(&other.id, Some(workspace.id.clone()), None, None).is_err());
+            assert!(load_sessions_index().iter().find(|s| s.id == other.id).unwrap().workspace_id.is_none());
             workspace_store::delete_workspace(&workspace.id).unwrap();
             assert!(create_session(Some(project.id), None, false)
                 .unwrap()
@@ -5210,6 +5224,9 @@ mod tests {
         meta.worktree_path = Some("/tmp/wt".into());
         meta.worktree_branch = Some("feat".into());
         meta.is_worktree_session = true;
+        meta.workspace_id = Some("old-workspace".into());
+        meta.workspace_root_snapshot = Some("old-roots".into());
+        meta.workspace_capability = Some("extra_write_active".into());
         update_session_meta(&meta).expect("seed");
 
         let moved = move_session_to_project(&meta.id, Some(proj.id.clone())).expect("move");
@@ -5219,6 +5236,9 @@ mod tests {
         assert!(moved.worktree_path.is_none());
         assert!(moved.worktree_branch.is_none());
         assert!(!moved.is_worktree_session);
+        assert!(moved.workspace_id.is_none());
+        assert!(moved.workspace_root_snapshot.is_none());
+        assert!(moved.workspace_capability.is_none());
 
         let same = move_session_to_project(&meta.id, Some(proj.id.clone())).expect("noop");
         assert_eq!(same.project_id.as_deref(), Some(proj.id.as_str()));

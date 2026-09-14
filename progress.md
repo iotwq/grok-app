@@ -109,3 +109,18 @@
 - `docs/llm-wiki/session-continuity.md`：记录新会话绑定规则。
 - `progress.md`：追加本轮记录。
 - 回滚：提交后执行 `git revert <B04提交哈希>`，提交标题为 `fix(workspace): bind saved workspace before first session`。
+
+## 2026-09-15 - Task: B05 移动会话清除旧工作区权限
+### What was done
+- 跨项目移动清除旧工作区；拒绝不匹配绑定，重连不使用历史错误绑定。
+- 工作区目录权限按会话替换和撤销，保留其他会话及单独选文件的授权。
+### Testing
+- Rust 工作区测试 12 项及移动会话回归 1 项通过；覆盖拒绝错绑、旧元数据清除及权限独立撤销。
+### Notes
+- `src-tauri/src/store.rs`：绑定校验、移动清除和回归测试。
+- `src-tauri/src/path_scope.rs`：会话级工作区权限及撤销测试。
+- `src-tauri/src/commands/workspace.rs`：保存成功后更新权限。
+- `src-tauri/src/session_manager/connect.rs`：按匹配项目选择沙箱及权限。
+- `docs/llm-wiki/session-continuity.md`：说明移动后的绑定规则。
+- `progress.md`：追加验证记录。
+- 回滚：`git revert <B05提交哈希>`，提交标题 `fix(workspace): revoke stale bindings when moving chats`。

@@ -464,3 +464,10 @@ before any agent can connect. Only `recentWorkspaceId` whose primary project
 matches the new chat is inherited; orphan chats, other projects and deleted
 workspaces keep single-project behavior. Persist the root snapshot and
 capability together with the workspace ID so reload uses the same binding.
+
+### Moving chats between projects
+
+Changing a chat's project clears its old workspace binding, root snapshot, and capability.
+Workspace bindings must belong to the chat's project; reconnect ignores legacy mismatches.
+Host workspace grants are owned by each session and replaced/revoked independently of
+picked-file grants and other sessions' workspace access.
