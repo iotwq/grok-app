@@ -91,6 +91,7 @@ export function SetupWizard({
   const [officialKey, setOfficialKey] = useState("");
   const [relayBase, setRelayBase] = useState("");
   const [relayKey, setRelayKey] = useState("");
+  const [relayModel, setRelayModel] = useState("");
   /** Default: OpenAI Responses — preferred for modern gateways. */
   const [relayBackend, setRelayBackend] = useState("responses");
 
@@ -334,7 +335,8 @@ export function SetupWizard({
   const saveRelay = useCallback(async () => {
     const base = relayBase.trim();
     const key = relayKey.trim();
-    if (!base || !key) return;
+    const model = relayModel.trim();
+    if (!base || !key || !model) return;
     setAccountBusy(true);
     clearError();
     try {
@@ -343,7 +345,8 @@ export function SetupWizard({
       // spawns with the relay (no full app restart — issue #376).
       await api.providersUpsert({
         id: "relay",
-        model: "default",
+        model,
+        models: [{ id: model, name: model }],
         baseUrl: base,
         name: "Custom relay",
         apiKey: key,
@@ -376,7 +379,7 @@ export function SetupWizard({
     } finally {
       setAccountBusy(false);
     }
-  }, [clearError, relayBase, relayKey, relayBackend, reportError, tr]);
+  }, [clearError, relayBase, relayKey, relayModel, relayBackend, reportError, tr]);
 
   const runOauth = useCallback(async () => {
     setAccountBusy(true);
@@ -783,6 +786,17 @@ export function SetupWizard({
                     onChange={(e) => setRelayKey(e.target.value)}
                   />
                   <label className="setup-field">
+                    <span className="setup-field__label">{tr("prov.modelId")}</span>
+                    <input
+                      className="setup-input"
+                      autoComplete="off"
+                      placeholder={tr("prov.modelPh")}
+                      value={relayModel}
+                      disabled={accountBusy}
+                      onChange={(e) => setRelayModel(e.target.value)}
+                    />
+                  </label>
+                  <label className="setup-field">
                     <span className="setup-field__label">
                       {tr("setup.account.protocol")}
                     </span>
@@ -805,7 +819,7 @@ export function SetupWizard({
                       type="button"
                       className="btn btn--primary"
                       disabled={
-                        accountBusy || !relayBase.trim() || !relayKey.trim()
+                        accountBusy || !relayBase.trim() || !relayKey.trim() || !relayModel.trim()
                       }
                       onClick={() => void saveRelay()}
                     >

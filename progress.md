@@ -1,0 +1,42 @@
+## 2026-09-15 - Task: 排查 macOS 无法对话及影响运行使用的问题
+
+### What was done
+
+- 核对本机 0.2.34 安装包、macOS/CLI 版本与最近运行日志，定位首次中转向导的固定模型值和误报崩溃链路。
+- 审查当前 main 的启动、配置、账号、会话回滚、工作区绑定、辅助工具依赖与社区反馈，形成 10 项分级问题及证据边界。
+- 通过临时隔离交互测试复现 4 项错误行为；仅新增审计文档，不修复产品代码、不修改本机账号配置。
+
+### Testing
+
+- 锁文件安装、生产前端构建、ESLint、项目代码质量门禁通过。
+- 完整前端测试：649 个文件通过、2 个 suite 初始化超时，7516 passed / 6 skipped；两个超时 suite 单 worker 复测 16/16 通过。
+- 临时故障复现 4/4 通过；执行后删除临时源码测试文件，原稿留在 /tmp 供本次诊断复查。
+- Cargo 不可用，未运行 Rust 测试或构建 DMG；未进行真实付费推理或多平台真机验收。
+- 报告中的源码位置、问题数量及相对路径经检查；最终 diff --check 通过。测试成功不代表本次发现的缺陷已修复。
+
+### Notes
+
+- `docs/qa/runtime-audit-2026-09-15.md`：新增故障根因、10 项缺陷、证据等级、验证结果及逐项验收条件。
+- `progress.md`：新建本轮进度记录，后续只追加。
+- 施工基线：`f21ad3f23b229e24a703788196dfef5aa288606c`；产品代码、package.json、pnpm-lock.yaml 未变。
+- 回滚：本轮仅新增两个文档，未追加后续记录前可执行 `rm docs/qa/runtime-audit-2026-09-15.md progress.md`；如后续已有新记录，仅删除本轮新增报告和本条记录，保留后续内容。node_modules/dist 为验证生成的忽略目录，不属于提交内容。
+
+## 2026-09-15 - Task: B01 首次中转配置使用明确模型
+
+### What was done
+
+- 向导要求填写真实模型 ID，保存时同步替换该向导通道的模型目录，避免旧 `default` 目录覆盖新选择。
+- 复用现有模型字段翻译与表单样式；存量用户可在自定义提供商中纠正模型，不猜测迁移值。
+
+### Testing
+
+- SetupWizard 中转交互与 providerModelConfig：11/11 通过。
+- `pnpm typecheck` 通过；未使用用户真实服务发起推理。实际连接验证在 B03 补齐。
+
+### Notes
+
+- `src/components/SetupWizard.tsx`：新增必填模型字段并持久化明确的模型目录。
+- `src/components/SetupWizard.relay.test.tsx`：新增空模型阻止保存、明确模型保存的交互回归。
+- `docs/llm-wiki/setup.md`：说明真实模型要求与存量修复方式。
+- `progress.md`：追加 B01 实现与验证记录。
+- 回滚点：施工前 `f21ad3f2`；本项独立提交标题 `fix(setup): require explicit relay model`，可通过 `git revert <该提交SHA>` 回滚，保留后续独立改动。

@@ -44,6 +44,12 @@ Each mirror is tried multiple times before failing over.
 
 OAuth, official key, relay, import CLI / grok-go. No `window.prompt`.
 
+Relay setup requires an explicit upstream model ID (the same field as Settings
+→ Account → Custom providers). Never synthesize `default`. Saving replaces the
+wizard relay's model catalog with that chosen ID. Existing installs created by
+the old wizard can correct `relay` in Custom providers; do not guess a migration
+model or overwrite a service that genuinely offers a model named `default`.
+
 ### Step 3 — Ready → Enter
 
 Persists `setupWizardCompleted: true`. If account skipped: `authSetupDeferred: true`.
