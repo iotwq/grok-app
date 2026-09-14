@@ -134,6 +134,7 @@ export const ptBRProviders = {
   "prov.officialName": "Grok oficial",
   "prov.officialDesc": "Login oficial / chave de API do Grok Build",
   "prov.officialAuxInject": "Injetar ferramentas oficiais",
+  "prov.officialAuxNodeMissing": "Instale o Node.js 22 ou superior em nodejs.org e verifique novamente. As ferramentas auxiliares oficiais estão indisponíveis; as ferramentas MCP normais continuam ativas.",
   "prov.officialAuxInjectDesc": "Só no principal personalizado (DeepSeek, relays, …). Injeta o MCP official-aux: web_search, todos os x_*, vision_describe, image_gen / image_edit, image_to_video / reference_to_video (Imagine) via credenciais oficiais isoladas. O padrão carrega só official-aux para que MCPs de extensão instáveis não bloqueiem as ferramentas.",
   "prov.officialAuxInjectDisabled": "Indisponível — entre no Grok Build ou cole primeiro uma chave de API oficial.",
   "prov.officialAuxInjectOfficialRoute": "Desativado na assinatura oficial do Grok — Imagine / X / visão nativos permanecem o padrão. Mude para um provedor personalizado para injetar official-aux (evita ferramentas duplicadas).",

@@ -134,6 +134,7 @@ export const jaProviders = {
   "prov.officialName": "公式 Grok",
   "prov.officialDesc": "Grok Build 公式ログイン / API キー",
   "prov.officialAuxInject": "公式ツールを注入",
+  "prov.officialAuxNodeMissing": "nodejs.org から Node.js 22 以降をインストールし、再確認してください。公式補助ツールは利用できませんが、通常の MCP ツールは引き続き有効です。",
   "prov.officialAuxInjectDesc": "カスタムのメインモデルのみ（DeepSeek、リレーなど）。隔離した公式資格情報で MCP official-aux（web_search、すべての x_*、vision_describe、image_gen / image_edit、image_to_video / reference_to_video Imagine）を注入します。既定では official-aux だけを読み込み、不安定な拡張 MCP がツール準備を妨げないようにします。",
   "prov.officialAuxInjectDisabled": "利用不可 — 先に Grok Build でサインインするか、公式 API キーを貼り付けてください。",
   "prov.officialAuxInjectOfficialRoute": "公式 Grok サブスクリプションでは無効です — ネイティブの Imagine / X / ビジョンはそのままです。official-aux を注入するにはカスタムプロバイダーに切り替えてください（ツールの重複を避けます）。",

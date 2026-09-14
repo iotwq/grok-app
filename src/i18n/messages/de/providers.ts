@@ -134,6 +134,7 @@ export const deProviders = {
   "prov.officialName": "Offizielles Grok",
   "prov.officialDesc": "Grok Build offizielles Login / API-Schlüssel",
   "prov.officialAuxInject": "Offizielle Werkzeuge injizieren",
+  "prov.officialAuxNodeMissing": "Installiere Node.js 22 oder neuer von nodejs.org und prüfe erneut. Offizielle Zusatztools sind nicht verfügbar; normale MCP-Tools bleiben aktiviert.",
   "prov.officialAuxInjectDesc": "Nur Custom-Haupt (DeepSeek, Relays, …). Injiziert MCP official-aux: web_search, alle x_*, vision_describe, image_gen / image_edit, image_to_video / reference_to_video (Imagine) über isolierte offizielle Credentials. Standard lädt nur official-aux, damit instabile Extension-MCPs Werkzeuge nicht blockieren.",
   "prov.officialAuxInjectDisabled": "Nicht verfügbar — zuerst mit Grok Build anmelden oder offiziellen API-Schlüssel einfügen.",
   "prov.officialAuxInjectOfficialRoute": "Auf offiziellem Grok-Abo deaktiviert — natives Imagine / X / Vision bleibt Standard. Zu einem Custom-Anbieter wechseln, um official-aux zu injizieren (vermeidet doppelte Werkzeuge).",

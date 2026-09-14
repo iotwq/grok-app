@@ -189,8 +189,11 @@ pub fn status() -> OfficialAuxStatus {
     let has_cli = cli_probe::cli_auth_json_present();
     let disk = secrets::load_secrets_disk_only();
     let has_key = secrets::has_official_key_configured(&disk);
-    let available = has_cli || has_key;
-    let reason = if available {
+    let node_available = which_node().is_some();
+    let available = (has_cli || has_key) && node_available;
+    let reason = if !node_available {
+        "node_missing".into()
+    } else if available {
         if has_cli && has_key {
             "cli_auth_and_api_key".into()
         } else if has_cli {
@@ -1157,6 +1160,9 @@ pub fn mcp_server_acp_entry_reason() -> (Option<serde_json::Value>, &'static str
     if !official_aux_available() {
         return (None, "official aux credentials missing");
     }
+    let Some(node) = which_node() else {
+        return (None, "Node.js 22 or newer is required for official-aux MCP");
+    };
     let home = match ensure_official_aux_home() {
         Ok(h) => h,
         Err(_) => return (None, "ensure official aux home failed"),
@@ -1170,9 +1176,6 @@ pub fn mcp_server_acp_entry_reason() -> (Option<serde_json::Value>, &'static str
     let Some(cli) = probe.path.filter(|p| !p.trim().is_empty()) else {
         return (None, "grok CLI path missing");
     };
-
-    // Prefer node; fall back to `grok` not applicable for MCP protocol.
-    let node = which_node().unwrap_or_else(|| "node".into());
 
     (
         Some(serde_json::json!({
@@ -1191,12 +1194,33 @@ pub fn mcp_server_acp_entry_reason() -> (Option<serde_json::Value>, &'static str
 }
 
 fn which_node() -> Option<String> {
-    for name in ["node", "nodejs"] {
-        if let Ok(out) = process_util::command("which").arg(name).output() {
-            if out.status.success() {
-                let p = String::from_utf8_lossy(&out.stdout).trim().to_string();
-                if !p.is_empty() {
-                    return Some(p);
+    node_in_path(std::ffi::OsStr::new(&process_util::enriched_path_env()?))
+}
+
+fn node_in_path(path: &std::ffi::OsStr) -> Option<String> {
+    #[cfg(windows)]
+    let names = ["node.exe", "nodejs.exe"];
+    #[cfg(not(windows))]
+    let names = ["node", "nodejs"];
+    for dir in std::env::split_paths(path) {
+        for name in names {
+            let candidate = dir.join(name);
+            if !process_util::looks_runnable(&candidate) { continue; }
+            let mut cmd = process_util::command(&candidate);
+            cmd.args(["-e", "process.exit(Number(process.versions.node.split('.')[0]) >= 22 ? 0 : 1)"])
+                .stdin(std::process::Stdio::null()).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null());
+            let Ok(mut child) = cmd.spawn() else { continue; };
+            let deadline = std::time::Instant::now() + std::time::Duration::from_secs(1);
+            loop {
+                match child.try_wait() {
+                    Ok(Some(status)) => {
+                        if status.success() { return Some(candidate.display().to_string()); }
+                        break;
+                    }
+                    Ok(None) if std::time::Instant::now() < deadline => {
+                        std::thread::sleep(std::time::Duration::from_millis(10));
+                    }
+                    _ => { let _ = child.kill(); let _ = child.wait(); break; }
                 }
             }
         }
@@ -1229,7 +1253,7 @@ pub fn should_inject_mcp_for_main() -> bool {
     if !main_route_is_custom() {
         return false;
     }
-    official_aux_available()
+    official_aux_available() && which_node().is_some()
 }
 
 /// When inject is on: only load `official-aux` (default), unless user opts into
@@ -2306,6 +2330,24 @@ pub async fn prepare_x_search_block_async(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(unix)]
+    #[test]
+    fn node_lookup_handles_empty_gui_path_and_skips_broken_runtime() {
+        use std::os::unix::fs::PermissionsExt;
+        let tmp = std::env::temp_dir().join(format!("grok-node-probe-{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(&tmp).unwrap();
+        assert!(node_in_path(tmp.as_os_str()).is_none());
+        let broken = tmp.join("node");
+        fs::write(&broken, "broken executable").unwrap();
+        fs::set_permissions(&broken, fs::Permissions::from_mode(0o755)).unwrap();
+        assert!(node_in_path(tmp.as_os_str()).is_none());
+        let valid = tmp.join("nodejs");
+        fs::write(&valid, "#!/bin/sh\nexit 0\n").unwrap();
+        fs::set_permissions(&valid, fs::Permissions::from_mode(0o755)).unwrap();
+        assert_eq!(node_in_path(tmp.as_os_str()), Some(valid.display().to_string()));
+        fs::remove_dir_all(tmp).unwrap();
+    }
 
     #[test]
     fn dispatch_rejects_unknown() {

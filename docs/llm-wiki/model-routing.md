@@ -90,3 +90,13 @@ ACP `mcpServers` 省略用户 MCP **不够**。Grok CLI 仍会从 agent `config.
 
 - 自定义提供商：`docs/llm-wiki/providers.md`  
 - X 证据轨（产品）：`docs/features/x-search.md`  
+
+### Official auxiliary MCP runtime
+
+The optional official-aux stdio bridge requires Node.js 22+. Host searches the enriched
+GUI PATH (including Homebrew, nvm and Windows Node locations) and verifies that the
+runtime starts. If unavailable, it skips injection and the corresponding native-tool
+blocking hooks, and keeps regular user MCP servers enabled. Settings → Account → Extras
+shows the Node installation requirement and an “Already installed — recheck” action.
+Install from https://nodejs.org/ and recheck, then reconnect the chat. Host CLI-only
+auxiliary jobs retain their credential-based availability; Node gates MCP injection.

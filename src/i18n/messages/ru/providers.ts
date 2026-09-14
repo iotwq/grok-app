@@ -134,6 +134,7 @@ export const ruProviders = {
   "prov.officialName": "Официальный Grok",
   "prov.officialDesc": "Официальный вход Grok Build / API-ключ",
   "prov.officialAuxInject": "Подключать официальные инструменты",
+  "prov.officialAuxNodeMissing": "Установите Node.js 22 или новее с nodejs.org и повторите проверку. Официальные вспомогательные инструменты недоступны; обычные инструменты MCP остаются включёнными.",
   "prov.officialAuxInjectDesc": "Только при пользовательской основной модели. Подключает MCP official-aux с web_search, X-инструментами, vision и Imagine через отдельные официальные учётные данные.",
   "prov.officialAuxInjectDisabled": "Недоступно — сначала войдите в Grok Build или сохраните официальный API-ключ.",
   "prov.officialAuxInjectOfficialRoute": "Для официальной подписки Grok выключено: нативные Imagine / X / vision уже доступны. Переключитесь на пользовательского провайдера, чтобы подключать official-aux без дублирования инструментов.",

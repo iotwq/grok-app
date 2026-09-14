@@ -134,6 +134,7 @@ export const taProviders = {
   "prov.officialName": "அதிகாரப்பூர்வ Grok",
   "prov.officialDesc": "Grok Build அதிகாரப்பூர்வ உள்நுழைவு / API விசை",
   "prov.officialAuxInject": "அதிகாரப்பூர்வ கருவிகளை உட்செலுத்தவும்",
+  "prov.officialAuxNodeMissing": "nodejs.org இலிருந்து Node.js 22 அல்லது புதிய பதிப்பை நிறுவி மீண்டும் சரிபார்க்கவும். அதிகாரப்பூர்வ துணைக் கருவிகள் கிடைக்கவில்லை; வழக்கமான MCP கருவிகள் தொடர்ந்து இயக்கப்படும்.",
   "prov.officialAuxInjectDesc": "தனிப்பயன் பிரதானம் மட்டும் (DeepSeek, relays, ...). MCP அதிகாரப்பூர்வ-ஆக்ஸ்: web_search, அனைத்து x_*, vision_describe, image_gen / image_edit, image_to_video / reference_to_video (Imagine) மூலம் தனிமைப்படுத்தப்பட்ட அதிகாரப்பூர்வ நற்சான்றிதழ்கள். இயல்புநிலையானது அதிகாரப்பூர்வ-ஆக்ஸை மட்டுமே ஏற்றுகிறது, எனவே மெல்லிய நீட்டிப்பு MCPகள் கருவிகளைத் தடுக்காது.",
   "prov.officialAuxInjectDisabled": "கிடைக்கவில்லை — Grok Build உடன் உள்நுழையவும் அல்லது அதிகாரப்பூர்வ API விசையை முதலில் ஒட்டவும்.",
   "prov.officialAuxInjectOfficialRoute": "உத்தியோகபூர்வ Grok சந்தாவில் முடக்கப்பட்டது — நேட்டிவ் இமேஜின் / எக்ஸ் / பார்வை இயல்புநிலையாக இருக்கும். அதிகாரப்பூர்வ-ஆக்ஸை உட்செலுத்த தனிப்பயன் வழங்குநருக்கு மாறவும் (நகல் கருவிகளைத் தவிர்க்கிறது).",

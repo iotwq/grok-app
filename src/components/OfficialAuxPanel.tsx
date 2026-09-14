@@ -30,6 +30,7 @@ export function OfficialAuxPanel({
   const [officialAuxInject, setOfficialAuxInject] = useState(true);
   const [officialAuxWithUserMcp, setOfficialAuxWithUserMcp] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [nodeAvailable, setNodeAvailable] = useState(false);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -40,11 +41,13 @@ export function OfficialAuxPanel({
         setHasOfficialKey(false);
         return;
       }
-      const [list, masked, settings] = await Promise.all([
+      const [list, masked, settings, aux] = await Promise.all([
         api.providersList().catch(() => null),
         api.secretsGetMasked().catch(() => null),
         api.settingsGet().catch(() => null),
+        api.officialAuxStatus(),
       ]);
+      setNodeAvailable(aux.reason !== "node_missing");
       setActiveSource(list?.activeSource === "custom" ? "custom" : "official");
       setHasOfficialKey(!!masked?.hasOfficialKey);
       if (settings) {
@@ -65,7 +68,7 @@ export function OfficialAuxPanel({
   const officialCredsOk = !!(officialAvailable || hasOfficialKey);
   const officialActive = activeSource === "official";
   /** Host only injects on custom main; official subscription uses native tools. */
-  const injectAllowed = officialCredsOk && !officialActive;
+  const injectAllowed = officialCredsOk && !officialActive && nodeAvailable;
 
   const setOfficialAuxInjectPref = async (on: boolean) => {
     if (!api.isTauri() || !injectAllowed) return;
@@ -136,8 +139,15 @@ export function OfficialAuxPanel({
               ? tr("prov.officialAuxInjectDisabled")
               : officialActive
                 ? tr("prov.officialAuxInjectOfficialRoute")
-                : tr("prov.officialAuxInjectDesc")}
+                : !nodeAvailable
+                  ? tr("prov.officialAuxNodeMissing")
+                  : tr("prov.officialAuxInjectDesc")}
           </p>
+          {!nodeAvailable && officialCredsOk && !officialActive ? (
+            <button type="button" className="btn btn--ghost btn--sm" onClick={() => void reload()}>
+              {tr("setup.recheck")}
+            </button>
+          ) : null}
         </div>
         <label className="prov-official-aux__switch">
           <input

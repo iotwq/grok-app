@@ -136,6 +136,7 @@ export const zhProviders = {
   "prov.officialName": "官方 Grok",
   "prov.officialDesc": "Grok Build 官方登录 / API Key",
   "prov.officialAuxInject": "注入官方工具能力",
+  "prov.officialAuxNodeMissing": "请从 nodejs.org 安装 Node.js 22 或更新版本，然后重新检测。官方辅助工具暂不可用，普通 MCP 工具仍保持启用。",
   "prov.officialAuxInjectDesc": "仅自定义主模型（DeepSeek、中转等）生效：注入 MCP official-aux（web_search、全部 x_*、vision_describe、image_gen / image_edit、image_to_video / reference_to_video Imagine），使用隔离官方凭证。默认只加载 official-aux，避免其它 MCP 拖慢工具就绪。",
   "prov.officialAuxInjectDisabled": "不可用 — 请先 Grok 官方登录或填写官方 API Key。",
   "prov.officialAuxInjectOfficialRoute": "当前为官方 Grok 订阅：保持原生 Imagine / X / 识图，不注入 official-aux（避免双轨污染）。切换到自定义提供商后可开启。",

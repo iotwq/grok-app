@@ -134,6 +134,7 @@ export const frProviders = {
   "prov.officialName": "Grok officiel",
   "prov.officialDesc": "Connexion / clé API officielle Grok Build",
   "prov.officialAuxInject": "Injecter les outils officiels",
+  "prov.officialAuxNodeMissing": "Installez Node.js 22 ou ultérieur depuis nodejs.org, puis réessayez. Les outils auxiliaires officiels sont indisponibles ; vos outils MCP habituels restent actifs.",
   "prov.officialAuxInjectDesc": "Principal personnalisé uniquement (DeepSeek, relais, …). Injecte MCP official-aux : web_search, tous les x_*, vision_describe, image_gen / image_edit, image_to_video / reference_to_video (Imagine) via des identifiants officiels isolés. Le défaut charge uniquement official-aux pour que des MCP d’extensions instables ne bloquent pas les outils.",
   "prov.officialAuxInjectDisabled": "Indisponible — connectez-vous avec Grok Build ou collez d’abord une clé API officielle.",
   "prov.officialAuxInjectOfficialRoute": "Désactivé sur l’abonnement Grok officiel — Imagine / X / vision natifs restent le défaut. Passez à un fournisseur personnalisé pour injecter official-aux (évite les outils en double).",

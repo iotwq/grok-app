@@ -134,6 +134,7 @@ export const ukProviders = {
   "prov.officialName": "Офіційний Grok",
   "prov.officialDesc": "Grok Build офіційний логін / ключ API",
   "prov.officialAuxInject": "Підставляти офіційні інструменти",
+  "prov.officialAuxNodeMissing": "Установіть Node.js 22 або новішу версію з nodejs.org і перевірте знову. Офіційні допоміжні інструменти недоступні; звичайні інструменти MCP залишаються ввімкненими.",
   "prov.officialAuxInjectDesc": "Лише користувацький основний (DeepSeek, реле, …). Вводить MCP official-aux: web_search, all x_*, vision_describe, image_gen / image_edit, image_to_video / reference_to_video (Imagine) через окремі офіційні облікові дані. За замовчуванням завантажується лише офіційний допоміжний файл, тому нестабільні MCP розширення не блокують інструменти.",
   "prov.officialAuxInjectDisabled": "Недоступно — спочатку ввійдіть за допомогою Grok Build або вставте офіційний ключ API.",
   "prov.officialAuxInjectOfficialRoute": "Вимкнено в офіційній підписці Grok — оригінальний Imagine / X / vision залишається за замовчуванням. Перейдіть до спеціального провайдер, щоб ввести офіційний aux (уникає дублювання інструментів).",

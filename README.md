@@ -133,7 +133,7 @@ Download installers directly from the official website [grok-app.com](https://gr
 | **Windows (x64)** | `*-setup.exe` / `*-portable.zip` | Setup installer and portable archive |
 | **Linux (x64)** | `AppImage` / `.deb` / `.rpm` | Universal AppImage, Debian/Ubuntu, Fedora/RHEL |
 
-> 💡 **Note**: The application bundle name is **Grok**. Prebuilt packages do not require Node.js, pnpm, or Rust installed on your system.
+> 💡 **Note**: The application bundle name is **Grok**. Prebuilt packages need no build toolchain. Optional official auxiliary MCP tools on custom providers require Node.js 22 or newer from [nodejs.org](https://nodejs.org/); the app detects missing Node and keeps regular MCP tools available.
 
 #### Checksum Verification
 Each release includes a `SHA256SUMS` file. Verify your download with:

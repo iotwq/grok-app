@@ -134,6 +134,7 @@ export const idProviders = {
   "prov.officialName": "Grok resmi",
   "prov.officialDesc": "Masuk / kunci API resmi Grok Build",
   "prov.officialAuxInject": "Suntikkan alat resmi",
+  "prov.officialAuxNodeMissing": "Instal Node.js 22 atau lebih baru dari nodejs.org, lalu periksa lagi. Alat tambahan resmi tidak tersedia; alat MCP biasa tetap aktif.",
   "prov.officialAuxInjectDesc": "Hanya model utama kustom (DeepSeek, relai, …). Menyuntikkan MCP official-aux: web_search, semua x_*, vision_describe, image_gen / image_edit, image_to_video / reference_to_video (Imagine) lewat kredensial resmi terisolasi. Bawaan hanya memuat official-aux agar MCP ekstensi yang goyah tidak memblokir alat.",
   "prov.officialAuxInjectDisabled": "Tidak tersedia — masuk dengan Grok Build atau tempel kunci API resmi terlebih dahulu.",
   "prov.officialAuxInjectOfficialRoute": "Dinonaktifkan pada langganan Grok resmi — Imagine / X / visi native tetap bawaan. Beralih ke penyedia kustom untuk menyuntikkan official-aux (menghindari alat duplikat).",

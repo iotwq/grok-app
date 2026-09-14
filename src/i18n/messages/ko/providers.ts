@@ -134,6 +134,7 @@ export const koProviders = {
   "prov.officialName": "공식 Grok",
   "prov.officialDesc": "Grok Build 공식 로그인 / API 키",
   "prov.officialAuxInject": "공식 도구 주입",
+  "prov.officialAuxNodeMissing": "nodejs.org에서 Node.js 22 이상을 설치한 후 다시 확인하세요. 공식 보조 도구는 사용할 수 없지만 일반 MCP 도구는 계속 활성화됩니다.",
   "prov.officialAuxInjectDesc": "사용자 지정 메인만(DeepSeek, 릴레이, …). MCP official-aux를 주입합니다: web_search, 모든 x_*, vision_describe, image_gen / image_edit, image_to_video / reference_to_video (Imagine), 격리된 공식 자격 증명 사용. 기본값은 official-aux만 불러 불안정한 확장 MCP가 도구를 막지 않게 합니다.",
   "prov.officialAuxInjectDisabled": "사용할 수 없음 — 먼저 Grok Build로 로그인하거나 공식 API 키를 붙여넣으세요.",
   "prov.officialAuxInjectOfficialRoute": "공식 Grok 구독에서는 꺼져 있습니다 — 네이티브 Imagine / X / 비전이 기본입니다. official-aux를 주입하려면 사용자 지정 공급자로 전환하세요(도구 중복 방지).",

@@ -160,3 +160,21 @@
 - `docs/llm-wiki/account.md`：更新退出登录行为。
 - `progress.md`：追加本轮记录。
 - 回滚：`git revert <B08提交哈希>`，提交标题 `fix(account): clear every active auth copy on logout`。
+
+## 2026-09-15 - Task: B09 缺少 Node 时辅助工具不再假就绪
+### What was done
+- 验证 Node 22+ 可启动，使用 GUI 补全路径；缺失时跳过官方 MCP 注入及对应原生工具禁用，普通 MCP 保持可用。
+- 设置显示安装提示和重新检测入口；补齐 15 语言文案与成品依赖说明。
+### Testing
+- Rust official_aux 测试 22 项通过，覆盖空路径、损坏运行时和后续候选。
+- 界面、i18n、设置样式测试 54 项通过；typecheck 通过。界面验证缺失时禁用、重新检测后恢复。
+- 未在全新 macOS 虚拟机或真实付费辅助工具调用中验收。
+### Notes
+- `src-tauri/src/official_aux.rs`：运行时检测、状态和注入门闸。
+- `src/components/OfficialAuxPanel.tsx`：缺失提示与重新检测。
+- `src/components/OfficialAuxPanel.test.tsx`：缺失到恢复的交互回归。
+- `src/i18n/messages/{de,en,es,fil,fr,id,it,ja,ko,pt-BR,ru,ta,uk,zh,zh-TW}/providers.ts`：各语言新增 Node 安装提示。
+- `README.md`、`README_EN.md`：明确可选辅助工具的 Node 依赖。
+- `docs/llm-wiki/model-routing.md`：记录依赖、降级与恢复步骤。
+- `progress.md`：追加本轮记录。
+- 回滚：`git revert <B09提交哈希>`，提交标题 `fix(tools): gate auxiliary MCP on a working Node runtime`。

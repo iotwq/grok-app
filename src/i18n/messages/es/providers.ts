@@ -134,6 +134,7 @@ export const esProviders = {
   "prov.officialName": "Grok oficial",
   "prov.officialDesc": "Inicio de sesión oficial / clave de API de Grok Build",
   "prov.officialAuxInject": "Inyectar herramientas oficiales",
+  "prov.officialAuxNodeMissing": "Instala Node.js 22 o posterior desde nodejs.org y vuelve a comprobar. Las herramientas auxiliares oficiales no están disponibles; las herramientas MCP habituales siguen activas.",
   "prov.officialAuxInjectDesc": "Solo modelo principal personalizado (DeepSeek, relés, …). Inyecta MCP official-aux: web_search, todos los x_*, vision_describe, image_gen / image_edit, image_to_video / reference_to_video (Imagine) con credenciales oficiales aisladas. De forma predeterminada solo carga official-aux para que los MCP de extensiones inestables no bloqueen las herramientas.",
   "prov.officialAuxInjectDisabled": "No disponible — inicia sesión con Grok Build o pega primero una clave de API oficial.",
   "prov.officialAuxInjectOfficialRoute": "Desactivado en la suscripción oficial de Grok — Imagine / X / visión nativos siguen siendo el valor predeterminado. Cambia a un proveedor personalizado para inyectar official-aux (evita herramientas duplicadas).",

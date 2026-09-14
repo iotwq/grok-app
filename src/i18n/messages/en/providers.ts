@@ -136,6 +136,7 @@ export const enProviders = {
   "prov.officialName": "Official Grok",
   "prov.officialDesc": "Grok Build official login / API key",
   "prov.officialAuxInject": "Inject official tools",
+  "prov.officialAuxNodeMissing": "Install Node.js 22 or newer from nodejs.org, then check again. Official auxiliary tools are unavailable; your regular MCP tools remain enabled.",
   "prov.officialAuxInjectDesc": "Custom main only (DeepSeek, relays, …). Injects MCP official-aux: web_search, all x_*, vision_describe, image_gen / image_edit, image_to_video / reference_to_video (Imagine) via isolated official credentials. Default loads only official-aux so flaky extension MCPs do not block tools.",
   "prov.officialAuxInjectDisabled": "Unavailable — sign in with Grok Build or paste an official API key first.",
   "prov.officialAuxInjectOfficialRoute": "Disabled on official Grok subscription — native Imagine / X / vision stay default. Switch to a custom provider to inject official-aux (avoids duplicate tools).",

@@ -134,6 +134,7 @@ export const filProviders = {
   "prov.officialName": "Opisyal na Grok",
   "prov.officialDesc": "Opisyal na login / API key ng Grok Build",
   "prov.officialAuxInject": "I-inject ang mga opisyal na tool",
+  "prov.officialAuxNodeMissing": "I-install ang Node.js 22 o mas bago mula sa nodejs.org, at suriin muli. Hindi magagamit ang opisyal na auxiliary tools; mananatiling aktibo ang karaniwang MCP tools.",
   "prov.officialAuxInjectDesc": "Custom na pangunahing modelo lang (DeepSeek, mga relay, …). Nag-i-inject ng MCP official-aux: web_search, lahat ng x_*, vision_describe, image_gen / image_edit, image_to_video / reference_to_video (Imagine) sa pamamagitan ng isolated na opisyal na kredensyal. Default na naglo-load lang ng official-aux para hindi harangan ng flaky na extension MCP ang mga tool.",
   "prov.officialAuxInjectDisabled": "Hindi available — mag-sign in sa Grok Build o i-paste muna ang opisyal na API key.",
   "prov.officialAuxInjectOfficialRoute": "Naka-disable sa opisyal na subscription ng Grok — native Imagine / X / vision ang default. Lumipat sa custom provider para i-inject ang official-aux (iniiwasan ang dobleng tool).",
