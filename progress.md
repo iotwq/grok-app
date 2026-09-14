@@ -124,3 +124,14 @@
 - `docs/llm-wiki/session-continuity.md`：说明移动后的绑定规则。
 - `progress.md`：追加验证记录。
 - 回滚：`git revert <B05提交哈希>`，提交标题 `fix(workspace): revoke stale bindings when moving chats`。
+
+## 2026-09-15 - Task: B06 回退失败保留对话记录
+### What was done
+- Agent 回退失败、超时或会话未连接时终止本地截断，确认成功才更新历史。
+### Testing
+- Rust rewind 相关测试 13 项通过；新增实际日志保存/读取回归验证三类失败均保留消息、成功才截断。
+### Notes
+- `src-tauri/src/session_manager/journal.rs`：确认后写日志及回归测试。
+- `docs/llm-wiki/session-continuity.md`：记录失败保留历史规则。
+- `progress.md`：追加本轮记录。
+- 回滚：`git revert <B06提交哈希>`，提交标题 `fix(rewind): preserve history when agent rewind fails`。

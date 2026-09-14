@@ -471,3 +471,9 @@ Changing a chat's project clears its old workspace binding, root snapshot, and c
 Workspace bindings must belong to the chat's project; reconnect ignores legacy mismatches.
 Host workspace grants are owned by each session and replaced/revoked independently of
 picked-file grants and other sessions' workspace access.
+
+### Failed rewind preserves history
+
+Timeline rewind requires confirmation from the connected Agent before deleting later
+local messages. RPC failure, timeout, or a disconnected target returns an error and
+preserves the transcript. Reconnect and retry; local-only truncation is not a fallback.

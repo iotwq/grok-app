@@ -14,8 +14,7 @@ use super::*;
 /// Budget for a single agent rewind RPC. `AcpClient::request` already allows
 /// `HANDSHAKE_TIMEOUT_SECS` per method name and `rewind_execute_for` probes
 /// several names, so an unbounded await can park a rewind command for minutes
-/// with the rollback dialog spinning. The local journal is the UI source of
-/// truth, so exceeding the budget degrades to "agent rewind failed" instead.
+/// with the rollback dialog spinning. Failure preserves the local journal.
 const REWIND_AGENT_RPC_BUDGET: std::time::Duration = std::time::Duration::from_secs(8);
 
 impl SessionManager {
@@ -216,8 +215,7 @@ impl SessionManager {
     }
 
     /// Rewind a session to a user-prompt index (keep that turn, drop after).
-    /// Truncates the local journal to the selected prompt. Agent rewind is
-    /// best-effort when this session is the live ACP session (`agent_ok`).
+    /// Truncates the local journal only after the live agent confirms rewind.
     pub async fn rewind_to_prompt_index(
         self: &Arc<Self>,
         app: AppHandle,
@@ -266,8 +264,7 @@ impl SessionManager {
         let mut agent_error: Option<String> = None;
 
         // Agent path only when this is the live session with a real ACP client.
-        // Never abort the whole command on agent rewind failure — local
-        // journal truncate is the UI source of truth (Feature Parity).
+        // Keep the transcript intact when the agent cannot confirm rewind.
         if live_match && backend != "mock_acp" && !AcpClient::use_mock() {
             if let (Some(client), Some(sid)) = (acp, agent_sid) {
                 match tokio::time::timeout(
@@ -288,7 +285,7 @@ impl SessionManager {
                         tracing::warn!(
                             target: "session",
                             error = %e,
-                            "agent rewind failed; applying local journal truncate only"
+                            "agent rewind failed; preserving local journal"
                         );
                     }
                     Err(_) => {
@@ -296,7 +293,7 @@ impl SessionManager {
                         agent_error = Some("agent rewind timed out".into());
                         tracing::warn!(
                             target: "session",
-                            "agent rewind timed out; applying local journal truncate only"
+                            "agent rewind timed out; preserving local journal"
                         );
                     }
                 }
@@ -306,12 +303,12 @@ impl SessionManager {
             }
         } else if !live_match {
             agent_ok = false;
-            agent_error = Some("session not live; local journal only".into());
+            agent_error = Some("session not live; reconnect before rewinding".into());
         }
 
-        let kept = store::truncate_through_user_prompt(&msgs, target_prompt_index)?;
-        let kept_count = kept.len();
-        store::replace_messages(&app_sid, &kept)?;
+        let kept_count = commit_confirmed_rewind(
+            &app_sid, &msgs, target_prompt_index, agent_ok, agent_error.as_deref(),
+        )?;
 
         // Touch meta updated_at for index sort.
         let updated_at = chrono::Utc::now();
@@ -341,5 +338,60 @@ impl SessionManager {
             local_ok: true,
             kept_count,
         })
+    }
+}
+
+/// Keep failure checking and the destructive journal write in one operation.
+fn commit_confirmed_rewind(
+    session_id: &str,
+    messages: &[store::ChatMessageStored],
+    target: u32,
+    agent_ok: bool,
+    agent_error: Option<&str>,
+) -> Result<usize, String> {
+    if !agent_ok {
+        return Err(format!("rewind failed; conversation preserved: {}",
+            agent_error.unwrap_or("agent did not confirm rewind")));
+    }
+    let kept = store::truncate_through_user_prompt(messages, target)?;
+    store::replace_messages(session_id, &kept)?;
+    Ok(kept.len())
+}
+
+#[cfg(test)]
+mod rewind_commit_tests {
+    use super::*;
+
+    #[test]
+    fn failed_rewind_preserves_journal_and_success_truncates() {
+        let _lock = crate::paths::APP_HOME_ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let previous = std::env::var_os("GROK_APP_HOME");
+        let tmp = std::env::temp_dir().join(format!("grok-rewind-{}", uuid::Uuid::new_v4()));
+        struct Restore(std::path::PathBuf, Option<std::ffi::OsString>);
+        impl Drop for Restore {
+            fn drop(&mut self) {
+                match &self.1 {
+                    Some(v) => std::env::set_var("GROK_APP_HOME", v),
+                    None => std::env::remove_var("GROK_APP_HOME"),
+                }
+                let _ = std::fs::remove_dir_all(&self.0);
+            }
+        }
+        let _restore = Restore(tmp.clone(), previous);
+        std::env::set_var("GROK_APP_HOME", &tmp);
+        let messages: Vec<store::ChatMessageStored> = (0..3).map(|i| {
+            serde_json::from_value(serde_json::json!({
+                "id": i.to_string(), "role": "user", "content": format!("prompt {i}"),
+                "createdAt": "2026-09-15T00:00:00Z"
+            })).unwrap()
+        }).collect();
+        store::replace_messages("rewind-test", &messages).unwrap();
+        for error in ["agent not connected", "agent rewind timed out", "unsupported method"] {
+            assert!(commit_confirmed_rewind("rewind-test", &messages, 0, false, Some(error)).is_err());
+            assert_eq!(store::load_messages("rewind-test").len(), 3);
+            assert_eq!(store::load_messages("rewind-test")[2].content, "prompt 2");
+        }
+        assert_eq!(commit_confirmed_rewind("rewind-test", &messages, 0, true, None).unwrap(), 1);
+        assert_eq!(store::load_messages("rewind-test").len(), 1);
     }
 }
