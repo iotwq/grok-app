@@ -1,5 +1,7 @@
 /** ta messages — domain: errors */
 export const taErrors = {
+  "error.deck.model.problem": "மாதிரி கிடைக்கவில்லை",
+  "error.deck.model.cause": "வழங்குநர் இந்த மாதிரியை நிராகரித்தார். வழங்குநர் அமைப்புகளைத் திறந்து ஆதரிக்கப்படும் மாதிரியைத் தேர்ந்தெடுக்கவும்.",
   "error.details": "விவரங்கள்",
   "error.hideDetails": "விவரங்களை மறை",
   "error.action.reconnect": "மீண்டும் இணை",

@@ -4797,6 +4797,15 @@ fn classify_rpc_error(e: &str) -> AgentError {
         return AgentError::new(AgentErrorCode::QuotaExceeded, humanize_quota_reason(e));
     }
     let lower = e.to_lowercase();
+    if lower.contains("model_not_found")
+        || lower.contains("invalid_model")
+        || (lower.contains("model")
+            && ["not found", "not supported", "does not exist", "not available"]
+                .iter()
+                .any(|reason| lower.contains(reason)))
+    {
+        return AgentError::new(AgentErrorCode::NetworkProvider, e);
+    }
     if lower.contains("quota")
         || lower.contains("rate limit")
         || lower.contains("rate_limit")
@@ -4877,6 +4886,16 @@ fn classify_rpc_error(e: &str) -> AgentError {
 #[cfg(test)]
 mod classify_rpc_error_tests {
     use super::*;
+
+    #[test]
+    fn missing_model_is_provider_error_not_process_crash() {
+        for msg in [
+            r#"Internal error (code -32603, data: {"http_status":404,"message":"model_not_found: Model default is not supported"})"#,
+            "The model does not exist",
+        ] {
+            assert_eq!(classify_rpc_error(msg).code, AgentErrorCode::NetworkProvider);
+        }
+    }
 
     #[test]
     fn xai_incorrect_api_key_http_400_is_auth_not_crash() {

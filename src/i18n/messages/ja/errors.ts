@@ -1,5 +1,7 @@
 /** ja messages — domain: errors */
 export const jaErrors = {
+  "error.deck.model.problem": "モデルを利用できません",
+  "error.deck.model.cause": "プロバイダーがこのモデルを拒否しました。プロバイダー設定で対応するモデルを選択してください。",
   "error.details": "詳細",
   "error.hideDetails": "詳細を隠す",
   "error.action.reconnect": "再接続",

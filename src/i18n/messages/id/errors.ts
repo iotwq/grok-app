@@ -1,5 +1,7 @@
 /** id messages — domain: errors */
 export const idErrors = {
+  "error.deck.model.problem": "Model tidak tersedia",
+  "error.deck.model.cause": "Penyedia menolak model ini. Buka Penyedia dan pilih model yang didukung layanan tersebut.",
   "error.details": "Detail",
   "error.hideDetails": "Sembunyikan detail",
   "error.action.reconnect": "Sambungkan ulang",

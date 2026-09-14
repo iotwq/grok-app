@@ -297,3 +297,15 @@ describe("buildErrorDeck", () => {
     ).toBe("MCP_AUTH_FAILED");
   });
 });
+
+describe("unavailable provider models", () => {
+  it("corrects old crash codes and directs users to provider settings", () => {
+    const message = 'Internal error (code -32603, data: {"http_status":404,"message":"model_not_found: Model default is not supported"})';
+    for (const code of ["AGENT_CRASHED", "NETWORK_PROVIDER", null]) {
+      expect(resolveErrorDeckCode(code, message)).toBe("MODEL_UNAVAILABLE");
+    }
+    expect(classifyErrorMessage(message)).toBe("MODEL_UNAVAILABLE");
+    expect(buildErrorDeck("MODEL_UNAVAILABLE", "en").primary.id).toBe("open_providers");
+    expect(resolveErrorDeckCode("AGENT_CRASHED", "Agent process exited")).toBe("AGENT_CRASHED");
+  });
+});

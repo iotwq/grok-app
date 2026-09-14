@@ -1,5 +1,7 @@
 /** ru messages — domain: errors */
 export const ruErrors = {
+  "error.deck.model.problem": "Модель недоступна",
+  "error.deck.model.cause": "Провайдер отклонил эту модель. Откройте настройки провайдеров и выберите поддерживаемую модель.",
   "error.details": "Подробности",
   "error.hideDetails": "Скрыть подробности",
   "error.action.reconnect": "Переподключиться",

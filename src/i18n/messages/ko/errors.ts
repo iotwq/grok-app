@@ -1,5 +1,7 @@
 /** ko messages — domain: errors */
 export const koErrors = {
+  "error.deck.model.problem": "모델을 사용할 수 없습니다",
+  "error.deck.model.cause": "공급자가 이 모델을 거부했습니다. 공급자 설정에서 해당 서비스가 지원하는 모델을 선택하세요.",
   "error.details": "자세히",
   "error.hideDetails": "자세히 숨기기",
   "error.action.reconnect": "다시 연결",

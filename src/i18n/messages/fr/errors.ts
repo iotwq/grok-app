@@ -1,5 +1,7 @@
 /** fr messages — domain: errors */
 export const frErrors = {
+  "error.deck.model.problem": "Modèle indisponible",
+  "error.deck.model.cause": "Le fournisseur a refusé ce modèle. Ouvrez Fournisseurs et choisissez un modèle pris en charge.",
   "error.details": "Détails",
   "error.hideDetails": "Masquer les détails",
   "error.action.reconnect": "Reconnecter",

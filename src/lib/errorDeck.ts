@@ -50,6 +50,7 @@ export type ErrorDeckCode =
   /** Active custom provider route rejected credentials (re-login alone will not fix). */
   | "AUTH_CUSTOM_PROVIDER"
   | "NETWORK_PROVIDER"
+  | "MODEL_UNAVAILABLE"
   | "AGENT_CRASHED"
   | "QUOTA_EXCEEDED"
   /** Transient 429 / “slow down” — not included-usage exhaustion. */
@@ -154,6 +155,14 @@ const DECK: Record<ErrorDeckCode, DeckSpec> = {
     primaryLabel: "error.action.reconnect",
     secondaryId: "open_network",
     secondaryLabel: "error.action.openNetwork",
+  },
+  MODEL_UNAVAILABLE: {
+    problem: "error.deck.model.problem",
+    cause: "error.deck.model.cause",
+    primaryId: "open_providers",
+    primaryLabel: "error.action.openProviders",
+    secondaryId: "dismiss",
+    secondaryLabel: "error.action.dismiss",
   },
   AGENT_CRASHED: {
     problem: "error.deck.crash.problem",
@@ -311,6 +320,7 @@ const AGENT_DECK_CODES: ErrorDeckCode[] = [
   "AUTH_API_KEY",
   "AUTH_CUSTOM_PROVIDER",
   "NETWORK_PROVIDER",
+  "MODEL_UNAVAILABLE",
   "AGENT_CRASHED",
   "QUOTA_EXCEEDED",
   "RATE_LIMITED",
@@ -486,7 +496,14 @@ export function isAuthDeckCode(code: ErrorDeckCode | string | null | undefined):
  * Map free-form error text to a deck code when the host did not emit a stable code.
  * Order: App project gates → MCP OAuth → tool permission → classic four classes.
  */
+function looksLikeUnavailableModel(raw: string | null | undefined): boolean {
+  const s = (raw ?? "").toLowerCase();
+  return s.includes("model_not_found") || s.includes("invalid_model") ||
+    (s.includes("model") && ["not found", "not supported", "does not exist", "not available"].some((reason) => s.includes(reason)));
+}
+
 export function classifyErrorMessage(raw: string | null | undefined): ErrorDeckCode {
+  if (looksLikeUnavailableModel(raw)) return "MODEL_UNAVAILABLE";
   const s = (raw ?? "").toLowerCase();
   if (!s.trim()) return "GENERIC";
 
@@ -685,6 +702,8 @@ export function resolveErrorDeckCode(
   message?: string | null,
   opts?: ErrorDeckResolveOpts,
 ): ErrorDeckCode {
+  // Refine older Hosts that mislabeled a model 404 as a process crash too.
+  if (looksLikeUnavailableModel(message)) return "MODEL_UNAVAILABLE";
   // bwrap/userns text wins even when host still emits AGENT_CRASHED / NETWORK_PROVIDER
   // (stderr may sit after "stream closed" and previously looked like a network flap).
   if (

@@ -259,3 +259,10 @@ preserve the previous generic import behavior.
 ## Sponsorship (L3, future)
 
 Recommended catalog / paid naming sits **above** L2 as templates only. Keys always user-owned. See `docs/分析-Grok-Desktop对照报告.md` §7.
+
+### Unavailable model errors
+
+Model-not-found / unsupported-model RPC failures remain provider errors on the
+Host. The error deck refines their details to `MODEL_UNAVAILABLE`, including
+legacy `AGENT_CRASHED` wrappers, and opens Providers so the user can correct the
+model ID. Bare process-exit errors still use the crash/reconnect path.

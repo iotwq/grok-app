@@ -1,5 +1,7 @@
 /** es messages — domain: errors */
 export const esErrors = {
+  "error.deck.model.problem": "Modelo no disponible",
+  "error.deck.model.cause": "El proveedor rechazó este modelo. Abre Proveedores y elige un modelo compatible con el servicio.",
   "error.details": "Detalles",
   "error.hideDetails": "Ocultar detalles",
   "error.action.reconnect": "Reconectar",

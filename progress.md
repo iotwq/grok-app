@@ -40,3 +40,39 @@
 - `docs/llm-wiki/setup.md`：说明真实模型要求与存量修复方式。
 - `progress.md`：追加 B01 实现与验证记录。
 - 回滚点：施工前 `f21ad3f2`；本项独立提交标题 `fix(setup): require explicit relay model`，可通过 `git revert <该提交SHA>` 回滚，保留后续独立改动。
+
+## 2026-09-15 - Task: B02 模型不可用错误不再误报崩溃
+
+### What was done
+
+- Host 将模型不存在/不支持归为提供商错误，前端为当前及旧 Host 的错误包装显示明确模型提示，主操作打开提供商设置。
+- 保留实际进程退出、401、429、5xx 的恢复路径，补齐 15 种语言。
+
+### Testing
+
+- 错误卡片与国际化目录：58/58 通过；TypeScript 检查通过。
+- 临时 Rust 工具链完成 Host 编译；错误分类回归 9/9 通过。
+
+### Notes
+
+- `src-tauri/src/acp_client.rs`：修正模型错误分类并增加 Host 回归测试。
+- `src/lib/errorDeck.ts`：模型错误卡片及旧错误码修正。
+- `src/lib/errorDeck.test.ts`：验证配置入口与真实崩溃分类。
+- `docs/llm-wiki/providers.md`：说明模型错误的处理方式。
+- `src/i18n/messages/en/errors.ts`：新增模型不可用标题与恢复说明。
+- `src/i18n/messages/de/errors.ts`：新增模型不可用标题与恢复说明。
+- `src/i18n/messages/es/errors.ts`：新增模型不可用标题与恢复说明。
+- `src/i18n/messages/fil/errors.ts`：新增模型不可用标题与恢复说明。
+- `src/i18n/messages/fr/errors.ts`：新增模型不可用标题与恢复说明。
+- `src/i18n/messages/id/errors.ts`：新增模型不可用标题与恢复说明。
+- `src/i18n/messages/it/errors.ts`：新增模型不可用标题与恢复说明。
+- `src/i18n/messages/ja/errors.ts`：新增模型不可用标题与恢复说明。
+- `src/i18n/messages/ko/errors.ts`：新增模型不可用标题与恢复说明。
+- `src/i18n/messages/pt-BR/errors.ts`：新增模型不可用标题与恢复说明。
+- `src/i18n/messages/ru/errors.ts`：新增模型不可用标题与恢复说明。
+- `src/i18n/messages/ta/errors.ts`：新增模型不可用标题与恢复说明。
+- `src/i18n/messages/uk/errors.ts`：新增模型不可用标题与恢复说明。
+- `src/i18n/messages/zh/errors.ts`：新增模型不可用标题与恢复说明。
+- `src/i18n/messages/zh-TW/errors.ts`：新增模型不可用标题与恢复说明。
+- `progress.md`：追加 B02 记录。
+- 回滚：`git revert <fix(errors): distinguish unavailable provider models 的提交SHA>`。

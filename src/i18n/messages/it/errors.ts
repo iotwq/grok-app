@@ -1,5 +1,7 @@
 /** it messages — domain: errors */
 export const itErrors = {
+  "error.deck.model.problem": "Modello non disponibile",
+  "error.deck.model.cause": "Il fornitore ha rifiutato questo modello. Apri Fornitori e scegli un modello supportato dal servizio.",
   "error.details": "Dettagli",
   "error.hideDetails": "Nascondi dettagli",
   "error.action.reconnect": "Riconnetti",

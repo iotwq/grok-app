@@ -1,5 +1,7 @@
 /** de messages — domain: errors */
 export const deErrors = {
+  "error.deck.model.problem": "Modell nicht verfügbar",
+  "error.deck.model.cause": "Der Anbieter hat dieses Modell abgelehnt. Öffne Anbieter und wähle ein unterstütztes Modell.",
   "error.details": "Details",
   "error.hideDetails": "Details ausblenden",
   "error.action.reconnect": "Neu verbinden",

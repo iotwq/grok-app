@@ -1,5 +1,7 @@
 /** uk messages — domain: errors */
 export const ukErrors = {
+  "error.deck.model.problem": "Модель недоступна",
+  "error.deck.model.cause": "Провайдер відхилив цю модель. Відкрийте налаштування провайдерів і виберіть підтримувану модель.",
   "error.details": "Деталі",
   "error.hideDetails": "Сховати деталі",
   "error.action.reconnect": "Підключитися знову",

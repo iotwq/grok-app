@@ -1,5 +1,7 @@
 /** pt-BR messages — domain: errors */
 export const ptBRErrors = {
+  "error.deck.model.problem": "Modelo indisponível",
+  "error.deck.model.cause": "O provedor rejeitou este modelo. Abra Provedores e escolha um modelo compatível com o serviço.",
   "error.details": "Detalhes",
   "error.hideDetails": "Ocultar detalhes",
   "error.action.reconnect": "Reconectar",

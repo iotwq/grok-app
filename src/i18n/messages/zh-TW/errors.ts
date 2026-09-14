@@ -1,5 +1,7 @@
 /** Traditional Chinese messages — domain: errors */
 export const zhTWErrors = {
+  "error.deck.model.problem": "模型無法使用",
+  "error.deck.model.cause": "服務商不支援此模型。請開啟供應商設定，選擇該服務支援的模型。",
   "error.details": "詳情",
   "error.hideDetails": "收合詳情",
   "error.action.reconnect": "重新連線",

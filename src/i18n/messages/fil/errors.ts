@@ -1,5 +1,7 @@
 /** fil messages — domain: errors */
 export const filErrors = {
+  "error.deck.model.problem": "Hindi available ang modelo",
+  "error.deck.model.cause": "Tinanggihan ng provider ang modelong ito. Buksan ang Providers at pumili ng suportadong modelo.",
   "error.details": "Mga detalye",
   "error.hideDetails": "Itago ang mga detalye",
   "error.action.reconnect": "Kumonekta ulit",
