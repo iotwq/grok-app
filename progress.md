@@ -178,3 +178,16 @@
 - `docs/llm-wiki/model-routing.md`：记录依赖、降级与恢复步骤。
 - `progress.md`：追加本轮记录。
 - 回滚：`git revert <B09提交哈希>`，提交标题 `fix(tools): gate auxiliary MCP on a working Node runtime`。
+
+## 2026-09-15 - Task: B10 损坏或挂起 CLI 不再显示就绪
+### What was done
+- 区分成功无版本输出和无法执行、异常退出、探测超时；只保留成功执行的兼容候选。
+- 遇到损坏候选继续寻找正常 CLI，全失败时停留在安装/选择步骤。
+### Testing
+- Rust cli_probe 测试 16 项通过；隔离脚本覆盖正常版本、无输出成功、执行格式错误、非零退出、3 秒超时及多候选回退。
+- 未替换本机 CLI。
+### Notes
+- `src-tauri/src/cli_probe.rs`：执行结果判定及候选回退回归。
+- `docs/llm-wiki/setup.md`：更新就绪判定规则。
+- `progress.md`：追加本轮记录。
+- 回滚：`git revert <B10提交哈希>`，提交标题 `fix(startup): reject CLI candidates that cannot run`。

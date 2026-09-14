@@ -158,3 +158,10 @@ Doctor / Windows day-use checklist may surface related rows but **must not inven
 - Forcing project selection before home.
 - App-side re-implementation of managed-config crypto verification.
 - Claiming silent auto-update for unsigned / local builds (see [desktop-auto-update.md](../desktop-auto-update.md)).
+
+### CLI execution readiness
+
+Executable permission alone is insufficient. Startup probes skip CLI candidates that
+cannot spawn, exit unsuccessfully, or time out. A successful `--version` without a
+banner remains a compatible fallback; a later candidate with a version is preferred.
+If every candidate fails, Setup stays in the CLI installation/selection step.

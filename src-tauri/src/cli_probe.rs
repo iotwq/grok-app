@@ -528,6 +528,11 @@ pub fn read_version_of(path: &Path) -> Option<String> {
 const VERSION_PROBE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(3);
 
 fn read_version(path: &Path) -> Option<String> {
+    probe_version(path).ok().flatten()
+}
+
+/// Success without a banner is compatible; failure to run is not readiness.
+fn probe_version(path: &Path) -> Result<Option<String>, ()> {
     use std::process::Stdio;
     use std::time::Instant;
 
@@ -539,7 +544,7 @@ fn read_version(path: &Path) -> Option<String> {
     // GUI-spawned probes: PATH + HOME + no console window (Windows).
     process_util::apply_cli_env_std(&mut cmd);
 
-    let mut child = cmd.spawn().ok()?;
+    let mut child = cmd.spawn().map_err(|_| ())?;
     let deadline = Instant::now() + VERSION_PROBE_TIMEOUT;
     loop {
         match child.try_wait() {
@@ -560,16 +565,12 @@ fn read_version(path: &Path) -> Option<String> {
                     }
                     s
                 };
-                if status.success() {
-                    let line = stdout.lines().next()?.trim().to_string();
-                    return if line.is_empty() { None } else { Some(line) };
+                if !status.success() {
+                    return Err(());
                 }
-                // Some builds print version on stderr
-                let line = stderr.lines().next()?.trim().to_string();
-                if !line.is_empty() && line.to_ascii_lowercase().contains("grok") {
-                    return Some(line);
-                }
-                return None;
+                let banner = stdout.lines().chain(stderr.lines())
+                    .map(str::trim).find(|line| !line.is_empty()).map(str::to_owned);
+                return Ok(banner);
             }
             Ok(None) => {
                 if Instant::now() >= deadline {
@@ -580,11 +581,15 @@ fn read_version(path: &Path) -> Option<String> {
                     );
                     let _ = child.kill();
                     let _ = child.wait();
-                    return None;
+                    return Err(());
                 }
                 std::thread::sleep(std::time::Duration::from_millis(25));
             }
-            Err(_) => return None,
+            Err(_) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(());
+            }
         }
     }
 }
@@ -604,9 +609,11 @@ fn classify_source(path: &Path, manual_first: bool) -> String {
 
 pub fn probe_cli(manual_path: Option<&str>) -> CliProbeResult {
     let candidates = candidate_paths(manual_path);
+    probe_candidates(&candidates, manual_path.map(|m| !m.trim().is_empty()).unwrap_or(false), cli_auth_json_present())
+}
+
+fn probe_candidates(candidates: &[PathBuf], manual_set: bool, cli_auth_present: bool) -> CliProbeResult {
     let tried: Vec<String> = candidates.iter().map(|p| p.display().to_string()).collect();
-    let cli_auth_present = cli_auth_json_present();
-    let manual_set = manual_path.map(|m| !m.trim().is_empty()).unwrap_or(false);
 
     // Prefer a candidate that both looks runnable AND answers --version.
     let mut fallback: Option<(PathBuf, String)> = None;
@@ -616,7 +623,8 @@ pub fn probe_cli(manual_path: Option<&str>) -> CliProbeResult {
             continue;
         }
         let source = classify_source(path, manual_set && i == 0);
-        if let Some(version) = read_version(path) {
+        let Ok(version) = probe_version(path) else { continue; };
+        if let Some(version) = version {
             let version_supported = cli_version_supported(&version);
             let path_s = path.display().to_string();
             return finish_probe_result(
@@ -634,8 +642,8 @@ pub fn probe_cli(manual_path: Option<&str>) -> CliProbeResult {
         }
     }
 
-    // Runnable file that failed --version still counts as "found" so the user
-    // can try connecting; UI can show missing version.
+    // A successful command without a banner remains compatible. Spawn failures,
+    // nonzero exits and timeouts must never enter this fallback.
     if let Some((path, source)) = fallback {
         return finish_probe_result(
             true,
@@ -700,6 +708,36 @@ fn finish_probe_result(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(unix)]
+    #[test]
+    fn cli_readiness_requires_successful_execution() {
+        use std::os::unix::fs::PermissionsExt;
+        let tmp = std::env::temp_dir().join(format!("grok-cli-readiness-{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(&tmp).unwrap();
+        let script = |name: &str, body: &str| {
+            let path = tmp.join(name);
+            fs::write(&path, body).unwrap();
+            fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).unwrap();
+            path
+        };
+        let good = script("good", "#!/bin/sh\necho 'grok 1.0.25'\n");
+        let quiet = script("quiet", "#!/bin/sh\nexit 0\n");
+        let bad = script("bad", "broken executable");
+        let failed = script("failed", "#!/bin/sh\necho 'grok failure' >&2\nexit 1\n");
+        let hang = script("hang", "#!/bin/sh\nexec /bin/sleep 20\n");
+        for path in [&bad, &failed, &hang] {
+            assert!(!probe_candidates(&[path.clone()], true, false).found);
+        }
+        let silent = probe_candidates(&[quiet.clone()], true, false);
+        assert!(silent.found);
+        assert!(silent.version.is_none());
+        let result = probe_candidates(&[bad, failed, quiet, good.clone()], true, false);
+        assert!(result.found);
+        assert_eq!(result.path.as_deref(), Some(good.to_str().unwrap()));
+        assert_eq!(result.version.as_deref(), Some("grok 1.0.25"));
+        fs::remove_dir_all(tmp).unwrap();
+    }
 
     #[test]
     fn extracts_version_from_common_banners() {
