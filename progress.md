@@ -146,3 +146,17 @@
 - `docs/llm-wiki/providers.md`：记录保留 ID 和旧配置兼容规则。
 - `progress.md`：追加本轮记录。
 - 回滚：`git revert <B07提交哈希>`，提交标题 `fix(providers): preserve official route on alias collisions`；已迁移的渠道仍保留在配置中，不删除密钥。
+
+## 2026-09-15 - Task: B08 退出登录清理全部活动凭据副本
+### What was done
+- CLI 登出无论成功、失败或超时，都清理活动 OAuth 副本，失败明确返回；保留保存的账号和独立 API key。
+- 部分清理失败也回收加载旧凭据的 Agent。
+### Testing
+- Rust account 测试 15 项通过；假 CLI 成功却不删文件时全部活动副本仍被删除，单个清理失败不跳过后续文件。
+- 未退出或修改本机真实账号。
+### Notes
+- `src-tauri/src/account.rs`：有界登出、完整清理及隔离测试。
+- `src-tauri/src/commands/account.rs`：失败时也回收旧 Agent。
+- `docs/llm-wiki/account.md`：更新退出登录行为。
+- `progress.md`：追加本轮记录。
+- 回滚：`git revert <B08提交哈希>`，提交标题 `fix(account): clear every active auth copy on logout`。

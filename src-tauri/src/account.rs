@@ -8,7 +8,7 @@ use std::collections::{BTreeMap, HashSet};
 use std::fs;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::Stdio;
 use std::sync::OnceLock;
 use std::time::Duration;
 
@@ -1967,42 +1967,39 @@ Try another network/VPN, use device-code login, or configure a custom provider i
     }
 }
 
-pub async fn account_logout(manual_cli: Option<&str>) -> Result<AccountProfile, String> {
-    if let Some(cli) = resolve_cli_path(manual_cli) {
-        let res = tokio::task::spawn_blocking(move || {
-            let mut cmd = Command::new(&cli);
-            cmd.arg("logout")
-                .stdout(Stdio::null())
-                .stderr(Stdio::null());
-            crate::process_util::apply_no_window_std(&mut cmd);
-            cmd.status()
-        })
-        .await
-        .map_err(|e| e.to_string())?;
-
-        match res {
-            Ok(st) if st.success() => {
-                info!("account: grok logout ok");
-            }
-            Ok(st) => {
-                warn!("account: grok logout exit {st}; clearing auth.json fallback");
-                let _ = fs::remove_file(auth_json_path());
-                let _ = fs::remove_file(cli_default_auth_json_path());
-            }
-            Err(e) => {
-                warn!("account: grok logout spawn failed: {e}");
-                let _ = fs::remove_file(auth_json_path());
-                let _ = fs::remove_file(cli_default_auth_json_path());
+async fn logout_and_clear_auth(cli: Option<PathBuf>, auth_paths: Vec<PathBuf>) -> Result<(), String> {
+    if let Some(cli) = cli {
+        let mut cmd = tokio::process::Command::new(cli);
+        cmd.arg("logout").stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null())
+            .kill_on_drop(true);
+        crate::process_util::apply_no_window_tokio(&mut cmd);
+        match tokio::time::timeout(std::time::Duration::from_secs(5), cmd.status()).await {
+            Ok(Ok(st)) if st.success() => info!("account: grok logout ok"),
+            result => warn!("account: grok logout failed or timed out: {result:?}; clearing local auth"),
+        }
+    }
+    // The CLI may return success while leaving another GROK_HOME logged in.
+    // Attempt every copy even if one removal fails; never report success then.
+    let mut errors = Vec::new();
+    for path in auth_paths {
+        if let Err(e) = fs::remove_file(&path) {
+            if e.kind() != std::io::ErrorKind::NotFound {
+                errors.push(format!("{}: {e}", path.display()));
             }
         }
-    } else {
-        // No CLI — best-effort wipe of local CLI auth cache only.
-        let _ = fs::remove_file(auth_json_path());
-        let _ = fs::remove_file(cli_default_auth_json_path());
     }
-    // Always drop independent-mode copy so agent cannot keep using old tokens.
-    clear_agent_home_auth();
+    if errors.is_empty() { Ok(()) } else { Err(format!("logout could not clear auth: {}", errors.join("; "))) }
+}
 
+pub async fn account_logout(manual_cli: Option<&str>) -> Result<AccountProfile, String> {
+    let mut paths = vec![auth_json_path(), cli_default_auth_json_path(), agent_home_auth_json_path(),
+        crate::official_aux::official_aux_home().join("auth.json")];
+    if let Some(home) = std::env::var_os("GROK_HOME").filter(|v| !v.is_empty()) {
+        paths.push(PathBuf::from(home).join("auth.json"));
+    }
+    paths.sort();
+    paths.dedup();
+    logout_and_clear_auth(resolve_cli_path(manual_cli).map(PathBuf::from), paths).await?;
     Ok(read_auth_profile())
 }
 
@@ -2027,6 +2024,30 @@ fn open_url(url: &str) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn logout_success_still_removes_all_copies_and_reports_cleanup_failure() {
+        use std::os::unix::fs::PermissionsExt;
+        let tmp = std::env::temp_dir().join(format!("grok-logout-{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(&tmp).unwrap();
+        let cli = tmp.join("grok");
+        fs::write(&cli, "#!/bin/sh\nexit 0\n").unwrap();
+        fs::set_permissions(&cli, fs::Permissions::from_mode(0o755)).unwrap();
+        let paths: Vec<_> = ["cli", "override", "agent", "aux"].iter().map(|name| tmp.join(name)).collect();
+        for path in &paths { fs::write(path, "test-token").unwrap(); }
+        let snapshot = tmp.join("account-snapshot");
+        fs::write(&snapshot, "saved-account").unwrap();
+        logout_and_clear_auth(Some(cli), paths.clone()).await.unwrap();
+        assert!(paths.iter().all(|p| !p.exists()));
+        assert!(snapshot.exists());
+        // A failed removal must not skip the remaining credential copies.
+        fs::create_dir(&paths[0]).unwrap();
+        fs::write(&paths[1], "test-token").unwrap();
+        assert!(logout_and_clear_auth(None, paths.clone()).await.is_err());
+        assert!(!paths[1].exists());
+        fs::remove_dir_all(tmp).unwrap();
+    }
 
     #[test]
     fn parse_billing_accepts_cli_shape() {

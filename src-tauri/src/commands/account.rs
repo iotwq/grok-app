@@ -66,11 +66,10 @@ pub async fn account_logout(
     let manual = manual_cli_path
         .or(settings.manual_cli_path)
         .filter(|s| !s.is_empty());
-    let profile = crate::account::account_logout(manual.as_deref()).await?;
-    // Clear agent-home auth already ran — kill warm agents so they cannot keep
-    // using tokens loaded before logout.
+    let result = crate::account::account_logout(manual.as_deref()).await;
+    // Recycle even after a partial cleanup failure so cached tokens stop running.
     mgr.recycle_all_agents(&app, "account_auth").await;
-    Ok(profile)
+    result
 }
 
 #[tauri::command]

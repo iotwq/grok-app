@@ -217,3 +217,11 @@ follows the existing OS keychain/plaintext fallback policy, participates in
 migration and cache merging, and is stripped from the disk payload when the
 keychain is used. This is storage groundwork for the separate wallpaper provider
 integration; it does not add a source picker or perform a Pexels request.
+
+### Logout verification
+
+Logout bounds the CLI command to five seconds and always removes active OAuth copies
+from canonical CLI home, overridden `GROK_HOME`, main agent-home and official-aux home.
+Missing files are harmless; other removal failures are returned after all copies are
+attempted. Warm agents are recycled even on partial cleanup failure. Saved account
+snapshots and separately configured API keys are retained.
