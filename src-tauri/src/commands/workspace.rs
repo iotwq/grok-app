@@ -2,7 +2,7 @@
 // Included into `commands` — do not re-import Arc/State/SessionManager.
 
 use crate::workspace_store::{
-    self, root_snapshot, WorkspaceCapability, WorkspaceRecord, WorkspaceRoot,
+    self, root_snapshot, WorkspaceRecord, WorkspaceRoot,
 };
 
 #[tauri::command]
@@ -75,13 +75,7 @@ pub async fn session_set_workspace(
         }
         (
             Some(root_snapshot(&ws.roots)),
-            Some(match ws.capability {
-                WorkspaceCapability::None => "none".into(),
-                WorkspaceCapability::ContextOnly => "context_only".into(),
-                WorkspaceCapability::EnforcedRead => "enforced_read".into(),
-                WorkspaceCapability::ExtraWriteActive => "extra_write_active".into(),
-                WorkspaceCapability::Blocked => "blocked".into(),
-            }),
+            Some(ws.capability.session_tag().into()),
         )
     } else {
         (None, None)

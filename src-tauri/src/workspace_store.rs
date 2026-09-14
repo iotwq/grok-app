@@ -46,6 +46,18 @@ pub enum WorkspaceCapability {
     Blocked,
 }
 
+impl WorkspaceCapability {
+    pub fn session_tag(&self) -> &'static str {
+        match self {
+            Self::None => "none",
+            Self::ContextOnly => "context_only",
+            Self::EnforcedRead => "enforced_read",
+            Self::ExtraWriteActive => "extra_write_active",
+            Self::Blocked => "blocked",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct WorkspaceRoot {

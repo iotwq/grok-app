@@ -456,3 +456,11 @@ Old sessions without woven segments may still show tools after the answer body a
 8. Reopening a chat that is streaming in background shows the live spinner / streaming bubble, not an idle-looking finished thread.
 9. Send, then immediately open a new chat in another project → you stay on the new draft when the agent starts executing.
 10. Switch away mid-turn and back → the thread reads user → thinking → tools → answer, with no prompt stranded at the bottom.
+
+### New chats and saved multi-root workspaces
+
+A workspace saved before the first message is bound during `session_create`,
+before any agent can connect. Only `recentWorkspaceId` whose primary project
+matches the new chat is inherited; orphan chats, other projects and deleted
+workspaces keep single-project behavior. Persist the root snapshot and
+capability together with the workspace ID so reload uses the same binding.

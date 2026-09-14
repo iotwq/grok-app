@@ -96,3 +96,16 @@
 - `docs/llm-wiki/setup.md`：记录验证含义、失败保留表单和可跳过行为。
 - `progress.md`：追加 B03 记录。
 - 回滚：`git revert <fix(setup): verify relay before activation 的提交SHA>`。
+
+## 2026-09-15 - Task: B04 新会话继承已保存工作区
+### What was done
+- 创建会话时绑定当前项目对应的最近工作区，并保存根目录快照与能力；其他项目、无项目和已删除工作区不误绑定。
+### Testing
+- Rust 工作区相关测试 11 项通过，覆盖持久化、沙箱选择及不匹配项目。
+### Notes
+- `src-tauri/src/store.rs`：创建时继承匹配工作区并增加回归测试。
+- `src-tauri/src/workspace_store.rs`：统一会话能力标签。
+- `src-tauri/src/commands/workspace.rs`：复用能力标签。
+- `docs/llm-wiki/session-continuity.md`：记录新会话绑定规则。
+- `progress.md`：追加本轮记录。
+- 回滚：提交后执行 `git revert <B04提交哈希>`，提交标题为 `fix(workspace): bind saved workspace before first session`。

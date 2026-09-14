@@ -1959,6 +1959,13 @@ pub fn create_session(
     let project_id = project_id
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty() && s.as_str() != GENERAL_PROJECT_ID);
+    // A workspace saved before the first message belongs to this new session
+    // only when its primary project matches. Never carry it into another project.
+    let workspace = load_settings()
+        .recent_workspace_id
+        .as_deref()
+        .and_then(crate::workspace_store::get_workspace)
+        .filter(|ws| Some(ws.primary_project_id.as_str()) == project_id.as_deref());
     let id = Uuid::new_v4().to_string();
     let now = Utc::now();
     let meta = SessionMeta {
@@ -1986,9 +1993,13 @@ pub fn create_session(
         fork_agent_session: false,
         fork_rewind_prompt_index: None,
         no_ask_user: None,
-        workspace_id: None,
-        workspace_root_snapshot: None,
-        workspace_capability: None,
+        workspace_id: workspace.as_ref().map(|ws| ws.id.clone()),
+        workspace_root_snapshot: workspace
+            .as_ref()
+            .map(|ws| crate::workspace_store::root_snapshot(&ws.roots)),
+        workspace_capability: workspace
+            .as_ref()
+            .map(|ws| ws.capability.session_tag().into()),
     };
     update_sessions_index({
         let meta = meta.clone();
@@ -5063,6 +5074,82 @@ mod tests {
         assert!(drop_last_should_truncate_journal(None));
         assert!(drop_last_should_truncate_journal(Some(true)));
         assert!(!drop_last_should_truncate_journal(Some(false)));
+    }
+
+    #[test]
+    fn new_session_binds_recent_workspace_only_for_matching_project() {
+        with_temp_app_home("new-session-workspace", |home| {
+            use crate::workspace_store::{
+                self, WorkspaceRoot, WorkspaceRootAccess, WorkspaceRootRole,
+            };
+            let mut settings = load_settings();
+            settings.session_data_mode = "independent".into();
+            save_settings(&settings).unwrap();
+            let primary = home.join("primary");
+            let extra = home.join("extra");
+            let other = home.join("other");
+            for dir in [&primary, &extra, &other] {
+                fs::create_dir_all(dir).unwrap();
+            }
+            let project = add_project(primary.display().to_string(), true).unwrap();
+            let other_project = add_project(other.display().to_string(), true).unwrap();
+            let workspace = workspace_store::upsert_workspace(
+                None,
+                "workspace".into(),
+                project.id.clone(),
+                vec![
+                    WorkspaceRoot {
+                        path: primary.display().to_string(),
+                        role: WorkspaceRootRole::Primary,
+                        access: WorkspaceRootAccess::Write,
+                        path_ok: Some(true),
+                    },
+                    WorkspaceRoot {
+                        path: extra.display().to_string(),
+                        role: WorkspaceRootRole::Extra,
+                        access: WorkspaceRootAccess::Write,
+                        path_ok: Some(true),
+                    },
+                ],
+            )
+            .unwrap();
+            settings.recent_workspace_id = Some(workspace.id.clone());
+            save_settings(&settings).unwrap();
+            let session = create_session(Some(project.id.clone()), None, false).unwrap();
+            assert_eq!(session.workspace_id.as_deref(), Some(workspace.id.as_str()));
+            assert_eq!(
+                session.workspace_capability.as_deref(),
+                Some("extra_write_active")
+            );
+            assert!(session
+                .workspace_root_snapshot
+                .as_deref()
+                .unwrap()
+                .contains("extra"));
+            assert!(workspace_store::spawn_sandbox_for_workspace(
+                session.workspace_id.as_deref().unwrap()
+            )
+            .unwrap()
+            .starts_with("app_ws_"));
+            let persisted = load_sessions_index()
+                .into_iter()
+                .find(|s| s.id == session.id)
+                .unwrap();
+            assert_eq!(persisted.workspace_id, session.workspace_id);
+            assert!(create_session(Some(other_project.id), None, false)
+                .unwrap()
+                .workspace_id
+                .is_none());
+            assert!(create_session(None, None, false)
+                .unwrap()
+                .workspace_id
+                .is_none());
+            workspace_store::delete_workspace(&workspace.id).unwrap();
+            assert!(create_session(Some(project.id), None, false)
+                .unwrap()
+                .workspace_id
+                .is_none());
+        });
     }
 
     #[test]
