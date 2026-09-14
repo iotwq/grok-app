@@ -76,3 +76,23 @@
 - `src/i18n/messages/zh-TW/errors.ts`：新增模型不可用标题与恢复说明。
 - `progress.md`：追加 B02 记录。
 - 回滚：`git revert <fix(errors): distinguish unavailable provider models 的提交SHA>`。
+
+## 2026-09-15 - Task: B03 中转验证失败不再显示成功
+
+### What was done
+
+- 保存前按选定协议验证具体模型；验证失败留在可编辑表单，不写入或激活失败配置。
+- 网络异常和 API 拒绝显示错误，可纠正后重试；验证期间锁定表单，账号仍可在空闲时明确跳过。
+
+### Testing
+
+- 中转交互与 setup gate：36/36 通过，覆盖 401、模型不存在、网络错误、Promise 拒绝及重试成功。
+- `pnpm typecheck` 通过；请求参数与先验证后持久化顺序经测试确认。
+
+### Notes
+
+- `src/components/SetupWizard.tsx`：以模型推理验证替换 catalog ping，修正失败及 busy 行为。
+- `src/components/SetupWizard.relay.test.tsx`：验证错误不持久化、不进入成功页，纠正后可继续。
+- `docs/llm-wiki/setup.md`：记录验证含义、失败保留表单和可跳过行为。
+- `progress.md`：追加 B03 记录。
+- 回滚：`git revert <fix(setup): verify relay before activation 的提交SHA>`。

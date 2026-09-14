@@ -343,6 +343,15 @@ export function SetupWizard({
       // Write agent-home config with chosen message format (default Responses).
       // Host recycles warm agents on setAsDefault so the first workbench send
       // spawns with the relay (no full app restart — issue #376).
+      const test = await api.providersTestModel({
+        baseUrl: base,
+        apiKey: key,
+        model,
+        apiBackend: relayBackend,
+      });
+      if (!test.ok) {
+        throw new Error(test.error || tr("prov.testModel.failed"));
+      }
       await api.providersUpsert({
         id: "relay",
         model,
@@ -358,19 +367,7 @@ export function SetupWizard({
       } catch {
         /* soft-fail: config.toml already holds the key */
       }
-      try {
-        const ping = await api.providersPing({ baseUrl: base, apiKey: key });
-        if (ping && (ping as { ok?: boolean }).ok === false) {
-          setStatusMsg(
-            String((ping as { message?: string }).message || "ping failed"),
-          );
-        } else {
-          setStatusMsg(tr("setup.account.ok"));
-        }
-      } catch {
-        // Soft-fail ping — still enter workbench; user can fix URL in Settings.
-        setStatusMsg(tr("setup.account.ok"));
-      }
+      setStatusMsg(tr("setup.account.ok"));
       setAuthOk(true);
       setAccountPanel("menu");
       setStep("ready");
@@ -775,6 +772,7 @@ export function SetupWizard({
                     autoComplete="off"
                     placeholder={tr("setup.account.basePh")}
                     value={relayBase}
+                    disabled={accountBusy}
                     onChange={(e) => setRelayBase(e.target.value)}
                   />
                   <input
@@ -783,6 +781,7 @@ export function SetupWizard({
                     autoComplete="off"
                     placeholder={tr("setup.account.relayKeyPh")}
                     value={relayKey}
+                    disabled={accountBusy}
                     onChange={(e) => setRelayKey(e.target.value)}
                   />
                   <label className="setup-field">
@@ -802,6 +801,7 @@ export function SetupWizard({
                     </span>
                     <Select
                       value={relayBackend}
+                      disabled={accountBusy}
                       onChange={setRelayBackend}
                       options={protocolOptions}
                       aria-label={tr("setup.account.protocol")}
@@ -811,6 +811,7 @@ export function SetupWizard({
                     <button
                       type="button"
                       className="btn btn--ghost"
+                      disabled={accountBusy}
                       onClick={() => setAccountPanel("menu")}
                     >
                       {tr("common.cancel")}
@@ -833,13 +834,13 @@ export function SetupWizard({
                 <div className="setup-busy">
                   <Spinner className="size-4" />
                   {tr("setup.account.busy")}
-                  <button
+                  {accountPanel === "menu" && <button
                     type="button"
                     className="btn btn--ghost btn--sm"
                     onClick={() => void cancelAccountLogin()}
                   >
                     {tr("setup.account.cancelBusy")}
-                  </button>
+                  </button>}
                 </div>
               )}
 

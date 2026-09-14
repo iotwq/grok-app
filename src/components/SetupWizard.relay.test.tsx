@@ -9,7 +9,7 @@ vi.mock("@/lib/api", () => ({
   isTauri: () => false,
   cliInstallCommands: vi.fn().mockResolvedValue(null),
   providersUpsert: vi.fn().mockResolvedValue({}),
-  providersPing: vi.fn().mockResolvedValue({ ok: true }),
+  providersTestModel: vi.fn().mockResolvedValue({ ok: true }),
   secretsSet: vi.fn().mockResolvedValue({}),
 }));
 vi.mock("@/components/WindowControls", () => ({
@@ -44,5 +44,30 @@ describe("first-run relay configuration", () => {
     expect(api.providersUpsert).toHaveBeenCalledWith(expect.objectContaining({
       id: "relay", model: "real-model", models: [{ id: "real-model", name: "real-model" }], setAsDefault: true,
     }));
+    expect(api.providersTestModel).toHaveBeenCalledWith(expect.objectContaining({ model: "real-model", apiBackend: "responses" }));
+    expect(vi.mocked(api.providersTestModel).mock.invocationCallOrder[0]).toBeLessThan(vi.mocked(api.providersUpsert).mock.invocationCallOrder[0]);
+  });
+
+  it.each(["401 Unauthorized", "model_not_found", "network timeout"])("keeps the form editable after %s without claiming success", async (error) => {
+    vi.mocked(api.providersTestModel).mockResolvedValueOnce({ ok: false, error, latencyMs: 1, endpoint: "https://relay.example/v1/responses" });
+    openRelay();
+    fireEvent.change(screen.getByLabelText(tr("prov.modelId")), { target: { value: "real-model" } });
+    fireEvent.click(screen.getByText(tr("setup.account.saveRelay")));
+    await screen.findByRole("alert");
+    expect(api.providersUpsert).not.toHaveBeenCalled();
+    expect(screen.queryByText(tr("setup.ready.title"))).toBeNull();
+    expect((screen.getByText(tr("setup.account.saveRelay")) as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(screen.getByText(tr("setup.account.saveRelay")));
+    await screen.findByText(tr("setup.ready.title"));
+  });
+
+  it("does not treat a rejected probe promise as successful authentication", async () => {
+    vi.mocked(api.providersTestModel).mockRejectedValueOnce(new Error("offline"));
+    openRelay();
+    fireEvent.change(screen.getByLabelText(tr("prov.modelId")), { target: { value: "real-model" } });
+    fireEvent.click(screen.getByText(tr("setup.account.saveRelay")));
+    await screen.findByRole("alert");
+    expect(api.providersUpsert).not.toHaveBeenCalled();
+    expect(screen.queryByText(tr("setup.ready.title"))).toBeNull();
   });
 });

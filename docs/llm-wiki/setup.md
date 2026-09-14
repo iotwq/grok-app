@@ -50,6 +50,13 @@ wizard relay's model catalog with that chosen ID. Existing installs created by
 the old wizard can correct `relay` in Custom providers; do not guess a migration
 model or overwrite a service that genuinely offers a model named `default`.
 
+Saving a relay first runs the existing per-model inference probe using the
+selected protocol. Only a successful probe followed by a successful config
+write marks the account ready. Rejected credentials, unavailable models and
+network errors keep the editable form and do not activate the failed draft;
+the account step can still be explicitly skipped. A catalog ping is not an
+authentication or inference success check.
+
 ### Step 3 — Ready → Enter
 
 Persists `setupWizardCompleted: true`. If account skipped: `authSetupDeferred: true`.
