@@ -266,3 +266,11 @@ Model-not-found / unsupported-model RPC failures remain provider errors on the
 Host. The error deck refines their details to `MODEL_UNAVAILABLE`, including
 legacy `AGENT_CRASHED` wrappers, and opens Providers so the user can correct the
 model ID. Bare process-exit errors still use the crash/reconnect path.
+
+### Official alias collision
+
+`grok` is reserved for the CLI official route; new/edited custom providers must use
+another ID. Switching to official preserves any legacy custom `[model.grok]` under
+`grok-custom` (or a free numbered suffix), including its key, models and sanitizer
+URL. The renamed relay remains selectable; the official default no longer resolves
+back to that relay. Existing legacy relays continue to work until switched.

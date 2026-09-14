@@ -135,3 +135,14 @@
 - `docs/llm-wiki/session-continuity.md`：记录失败保留历史规则。
 - `progress.md`：追加本轮记录。
 - 回滚：`git revert <B06提交哈希>`，提交标题 `fix(rewind): preserve history when agent rewind fails`。
+
+## 2026-09-15 - Task: B07 官方与同名中转路由冲突
+### What was done
+- 自定义渠道禁止占用官方 grok ID；切回官方时将历史同名中转无损重命名并同步本地代理 URL。
+### Testing
+- Rust providers 测试 32 项通过，覆盖保留密钥/模型、重名后缀、代理 URL、再次选择中转及重复切换幂等。
+### Notes
+- `src-tauri/src/providers.rs`：保留官方别名及旧中转迁移、回归测试。
+- `docs/llm-wiki/providers.md`：记录保留 ID 和旧配置兼容规则。
+- `progress.md`：追加本轮记录。
+- 回滚：`git revert <B07提交哈希>`，提交标题 `fix(providers): preserve official route on alias collisions`；已迁移的渠道仍保留在配置中，不删除密钥。

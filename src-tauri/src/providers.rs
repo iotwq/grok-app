@@ -1512,6 +1512,33 @@ pub fn prepare_route_auth_for_agent() {
     }
 }
 
+/// Free the CLI's official alias without discarding a legacy relay or its key.
+fn config_with_official_default(text: &str) -> String {
+    let sections = parse_model_sections(text);
+    let Some(collision) = sections.iter().find(|s| s.id == OFFICIAL_DEFAULT_MODEL && is_custom(&s.fields)) else {
+        return set_models_default(text, OFFICIAL_DEFAULT_MODEL);
+    };
+    let mut id = "grok-custom".to_string();
+    let mut suffix = 2;
+    while sections.iter().any(|s| s.id == id) {
+        id = format!("grok-custom-{suffix}");
+        suffix += 1;
+    }
+    let mut lines: Vec<String> = text.lines().map(str::to_owned).collect();
+    lines[collision.start] = format!("[model.{}]", quote(&id));
+    // Sanitizer URLs contain the owning section id; keep that lookup valid.
+    if let Some(base) = collision.fields.get("base_url") {
+        if crate::relay_stream_proxy::is_local_sanitize_proxy_url(base) {
+            for line in &mut lines[collision.start + 1..collision.end] {
+                if assignment_key_exact(line.trim()) == Some("base_url") {
+                    *line = format!("base_url = {}", quote(&base.replacen("/r/grok/", &format!("/r/{id}/"), 1)));
+                }
+            }
+        }
+    }
+    set_models_default(&lines.join("\n"), OFFICIAL_DEFAULT_MODEL)
+}
+
 /// Switch active route: `official` or `custom` (+ provider_id).
 ///
 /// Completely rebinds agent-home credentials so the next ACP spawn cannot
@@ -1523,7 +1550,10 @@ pub fn activate_provider(
     let source = source.trim().to_ascii_lowercase();
     match source.as_str() {
         "official" => {
-            let result = set_default_model_id(OFFICIAL_DEFAULT_MODEL)?;
+            ensure_agent_home()?;
+            let path = agent_config_toml();
+            write_text(&path, &config_with_official_default(&read_text(&path)))?;
+            let result = list_custom_providers()?;
             // Restore official OAuth into agent-home; drop relay display fields.
             if let Err(e) = crate::account::sync_cli_auth_to_agent_home() {
                 tracing::warn!(target: "providers", "activate official: auth sync: {e}");
@@ -1586,6 +1616,9 @@ pub fn provider_mutation_needs_agent_reload(
 
 pub fn upsert_custom_provider(input: UpsertProviderInput) -> Result<ProvidersListResult, String> {
     let id = sanitize_id(&input.id)?;
+    if id == OFFICIAL_DEFAULT_MODEL {
+        return Err("provider id `grok` is reserved for the official route; choose another id".into());
+    }
     let model = {
         let m = input.model.trim();
         if m.is_empty() {
@@ -2755,6 +2788,40 @@ pub async fn query_provider_balance(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn official_activation_preserves_colliding_relay_and_proxy_route() {
+        let input: UpsertProviderInput = serde_json::from_value(serde_json::json!({
+            "id": " GROK ", "model": "relay-model", "baseUrl": "https://relay.example/v1"
+        })).unwrap();
+        assert!(upsert_custom_provider(input).unwrap_err().contains("reserved"));
+        let config = r#"[models]
+default = "grok"
+[model.grok]
+model = "relay-model"
+api_key = "test-key"
+base_url = "http://127.0.0.1:3456/r/grok/v1"
+app_upstream_base_url = "https://relay.example/v1"
+[model.grok-custom]
+model = "other"
+api_key = "other-key"
+base_url = "https://other.example/v1"
+"#;
+        let repaired = config_with_official_default(config);
+        let list = build_list_result(PathBuf::new(), PathBuf::new(), &repaired);
+        assert_eq!(list.active_source, "official");
+        assert!(list.active_provider_id.is_none());
+        let sections = parse_model_sections(&repaired);
+        let relay = sections.iter().find(|s| s.id == "grok-custom-2").unwrap();
+        assert_eq!(relay.fields.get("api_key").unwrap(), "test-key");
+        assert_eq!(relay.fields.get("model").unwrap(), "relay-model");
+        assert!(relay.fields.get("base_url").unwrap().contains("/r/grok-custom-2/"));
+        let custom = set_models_default(&repaired, "grok-custom-2");
+        let list = build_list_result(PathBuf::new(), PathBuf::new(), &custom);
+        assert_eq!(list.active_source, "custom");
+        assert_eq!(list.active_provider_id.as_deref(), Some("grok-custom-2"));
+        assert_eq!(config_with_official_default(&repaired), repaired);
+    }
 
     #[test]
     fn sanitize_and_endpoint() {
