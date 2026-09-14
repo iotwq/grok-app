@@ -568,8 +568,12 @@ fn probe_version(path: &Path) -> Result<Option<String>, ()> {
                 if !status.success() {
                     return Err(());
                 }
-                let banner = stdout.lines().chain(stderr.lines())
-                    .map(str::trim).find(|line| !line.is_empty()).map(str::to_owned);
+                let banner = stdout
+                    .lines()
+                    .chain(stderr.lines())
+                    .map(str::trim)
+                    .find(|line| !line.is_empty())
+                    .map(str::to_owned);
                 return Ok(banner);
             }
             Ok(None) => {
@@ -609,10 +613,18 @@ fn classify_source(path: &Path, manual_first: bool) -> String {
 
 pub fn probe_cli(manual_path: Option<&str>) -> CliProbeResult {
     let candidates = candidate_paths(manual_path);
-    probe_candidates(&candidates, manual_path.map(|m| !m.trim().is_empty()).unwrap_or(false), cli_auth_json_present())
+    probe_candidates(
+        &candidates,
+        manual_path.map(|m| !m.trim().is_empty()).unwrap_or(false),
+        cli_auth_json_present(),
+    )
 }
 
-fn probe_candidates(candidates: &[PathBuf], manual_set: bool, cli_auth_present: bool) -> CliProbeResult {
+fn probe_candidates(
+    candidates: &[PathBuf],
+    manual_set: bool,
+    cli_auth_present: bool,
+) -> CliProbeResult {
     let tried: Vec<String> = candidates.iter().map(|p| p.display().to_string()).collect();
 
     // Prefer a candidate that both looks runnable AND answers --version.
@@ -623,7 +635,9 @@ fn probe_candidates(candidates: &[PathBuf], manual_set: bool, cli_auth_present: 
             continue;
         }
         let source = classify_source(path, manual_set && i == 0);
-        let Ok(version) = probe_version(path) else { continue; };
+        let Ok(version) = probe_version(path) else {
+            continue;
+        };
         if let Some(version) = version {
             let version_supported = cli_version_supported(&version);
             let path_s = path.display().to_string();
@@ -727,9 +741,9 @@ mod tests {
         let failed = script("failed", "#!/bin/sh\necho 'grok failure' >&2\nexit 1\n");
         let hang = script("hang", "#!/bin/sh\nexec /bin/sleep 20\n");
         for path in [&bad, &failed, &hang] {
-            assert!(!probe_candidates(&[path.clone()], true, false).found);
+            assert!(!probe_candidates(std::slice::from_ref(path), true, false).found);
         }
-        let silent = probe_candidates(&[quiet.clone()], true, false);
+        let silent = probe_candidates(std::slice::from_ref(&quiet), true, false);
         assert!(silent.found);
         assert!(silent.version.is_none());
         let result = probe_candidates(&[bad, failed, quiet, good.clone()], true, false);

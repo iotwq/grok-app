@@ -307,7 +307,11 @@ impl SessionManager {
         }
 
         let kept_count = commit_confirmed_rewind(
-            &app_sid, &msgs, target_prompt_index, agent_ok, agent_error.as_deref(),
+            &app_sid,
+            &msgs,
+            target_prompt_index,
+            agent_ok,
+            agent_error.as_deref(),
         )?;
 
         // Touch meta updated_at for index sort.
@@ -350,8 +354,10 @@ fn commit_confirmed_rewind(
     agent_error: Option<&str>,
 ) -> Result<usize, String> {
     if !agent_ok {
-        return Err(format!("rewind failed; conversation preserved: {}",
-            agent_error.unwrap_or("agent did not confirm rewind")));
+        return Err(format!(
+            "rewind failed; conversation preserved: {}",
+            agent_error.unwrap_or("agent did not confirm rewind")
+        ));
     }
     let kept = store::truncate_through_user_prompt(messages, target)?;
     store::replace_messages(session_id, &kept)?;
@@ -364,7 +370,9 @@ mod rewind_commit_tests {
 
     #[test]
     fn failed_rewind_preserves_journal_and_success_truncates() {
-        let _lock = crate::paths::APP_HOME_ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let _lock = crate::paths::APP_HOME_ENV_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         let previous = std::env::var_os("GROK_APP_HOME");
         let tmp = std::env::temp_dir().join(format!("grok-rewind-{}", uuid::Uuid::new_v4()));
         struct Restore(std::path::PathBuf, Option<std::ffi::OsString>);
@@ -379,19 +387,31 @@ mod rewind_commit_tests {
         }
         let _restore = Restore(tmp.clone(), previous);
         std::env::set_var("GROK_APP_HOME", &tmp);
-        let messages: Vec<store::ChatMessageStored> = (0..3).map(|i| {
-            serde_json::from_value(serde_json::json!({
-                "id": i.to_string(), "role": "user", "content": format!("prompt {i}"),
-                "createdAt": "2026-09-15T00:00:00Z"
-            })).unwrap()
-        }).collect();
+        let messages: Vec<store::ChatMessageStored> = (0..3)
+            .map(|i| {
+                serde_json::from_value(serde_json::json!({
+                    "id": i.to_string(), "role": "user", "content": format!("prompt {i}"),
+                    "createdAt": "2026-09-15T00:00:00Z"
+                }))
+                .unwrap()
+            })
+            .collect();
         store::replace_messages("rewind-test", &messages).unwrap();
-        for error in ["agent not connected", "agent rewind timed out", "unsupported method"] {
-            assert!(commit_confirmed_rewind("rewind-test", &messages, 0, false, Some(error)).is_err());
+        for error in [
+            "agent not connected",
+            "agent rewind timed out",
+            "unsupported method",
+        ] {
+            assert!(
+                commit_confirmed_rewind("rewind-test", &messages, 0, false, Some(error)).is_err()
+            );
             assert_eq!(store::load_messages("rewind-test").len(), 3);
             assert_eq!(store::load_messages("rewind-test")[2].content, "prompt 2");
         }
-        assert_eq!(commit_confirmed_rewind("rewind-test", &messages, 0, true, None).unwrap(), 1);
+        assert_eq!(
+            commit_confirmed_rewind("rewind-test", &messages, 0, true, None).unwrap(),
+            1
+        );
         assert_eq!(store::load_messages("rewind-test").len(), 1);
     }
 }

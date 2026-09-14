@@ -1967,15 +1967,23 @@ Try another network/VPN, use device-code login, or configure a custom provider i
     }
 }
 
-async fn logout_and_clear_auth(cli: Option<PathBuf>, auth_paths: Vec<PathBuf>) -> Result<(), String> {
+async fn logout_and_clear_auth(
+    cli: Option<PathBuf>,
+    auth_paths: Vec<PathBuf>,
+) -> Result<(), String> {
     if let Some(cli) = cli {
         let mut cmd = tokio::process::Command::new(cli);
-        cmd.arg("logout").stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null())
+        cmd.arg("logout")
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
             .kill_on_drop(true);
         crate::process_util::apply_no_window_tokio(&mut cmd);
         match tokio::time::timeout(std::time::Duration::from_secs(5), cmd.status()).await {
             Ok(Ok(st)) if st.success() => info!("account: grok logout ok"),
-            result => warn!("account: grok logout failed or timed out: {result:?}; clearing local auth"),
+            result => {
+                warn!("account: grok logout failed or timed out: {result:?}; clearing local auth")
+            }
         }
     }
     // The CLI may return success while leaving another GROK_HOME logged in.
@@ -1988,12 +1996,23 @@ async fn logout_and_clear_auth(cli: Option<PathBuf>, auth_paths: Vec<PathBuf>) -
             }
         }
     }
-    if errors.is_empty() { Ok(()) } else { Err(format!("logout could not clear auth: {}", errors.join("; "))) }
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(format!(
+            "logout could not clear auth: {}",
+            errors.join("; ")
+        ))
+    }
 }
 
 pub async fn account_logout(manual_cli: Option<&str>) -> Result<AccountProfile, String> {
-    let mut paths = vec![auth_json_path(), cli_default_auth_json_path(), agent_home_auth_json_path(),
-        crate::official_aux::official_aux_home().join("auth.json")];
+    let mut paths = vec![
+        auth_json_path(),
+        cli_default_auth_json_path(),
+        agent_home_auth_json_path(),
+        crate::official_aux::official_aux_home().join("auth.json"),
+    ];
     if let Some(home) = std::env::var_os("GROK_HOME").filter(|v| !v.is_empty()) {
         paths.push(PathBuf::from(home).join("auth.json"));
     }
@@ -2034,11 +2053,18 @@ mod tests {
         let cli = tmp.join("grok");
         fs::write(&cli, "#!/bin/sh\nexit 0\n").unwrap();
         fs::set_permissions(&cli, fs::Permissions::from_mode(0o755)).unwrap();
-        let paths: Vec<_> = ["cli", "override", "agent", "aux"].iter().map(|name| tmp.join(name)).collect();
-        for path in &paths { fs::write(path, "test-token").unwrap(); }
+        let paths: Vec<_> = ["cli", "override", "agent", "aux"]
+            .iter()
+            .map(|name| tmp.join(name))
+            .collect();
+        for path in &paths {
+            fs::write(path, "test-token").unwrap();
+        }
         let snapshot = tmp.join("account-snapshot");
         fs::write(&snapshot, "saved-account").unwrap();
-        logout_and_clear_auth(Some(cli), paths.clone()).await.unwrap();
+        logout_and_clear_auth(Some(cli), paths.clone())
+            .await
+            .unwrap();
         assert!(paths.iter().all(|p| !p.exists()));
         assert!(snapshot.exists());
         // A failed removal must not skip the remaining credential copies.

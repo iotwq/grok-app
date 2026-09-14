@@ -1205,22 +1205,37 @@ fn node_in_path(path: &std::ffi::OsStr) -> Option<String> {
     for dir in std::env::split_paths(path) {
         for name in names {
             let candidate = dir.join(name);
-            if !process_util::looks_runnable(&candidate) { continue; }
+            if !process_util::looks_runnable(&candidate) {
+                continue;
+            }
             let mut cmd = process_util::command(&candidate);
-            cmd.args(["-e", "process.exit(Number(process.versions.node.split('.')[0]) >= 22 ? 0 : 1)"])
-                .stdin(std::process::Stdio::null()).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null());
-            let Ok(mut child) = cmd.spawn() else { continue; };
+            cmd.args([
+                "-e",
+                "process.exit(Number(process.versions.node.split('.')[0]) >= 22 ? 0 : 1)",
+            ])
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null());
+            let Ok(mut child) = cmd.spawn() else {
+                continue;
+            };
             let deadline = std::time::Instant::now() + std::time::Duration::from_secs(1);
             loop {
                 match child.try_wait() {
                     Ok(Some(status)) => {
-                        if status.success() { return Some(candidate.display().to_string()); }
+                        if status.success() {
+                            return Some(candidate.display().to_string());
+                        }
                         break;
                     }
                     Ok(None) if std::time::Instant::now() < deadline => {
                         std::thread::sleep(std::time::Duration::from_millis(10));
                     }
-                    _ => { let _ = child.kill(); let _ = child.wait(); break; }
+                    _ => {
+                        let _ = child.kill();
+                        let _ = child.wait();
+                        break;
+                    }
                 }
             }
         }
@@ -2345,7 +2360,10 @@ mod tests {
         let valid = tmp.join("nodejs");
         fs::write(&valid, "#!/bin/sh\nexit 0\n").unwrap();
         fs::set_permissions(&valid, fs::Permissions::from_mode(0o755)).unwrap();
-        assert_eq!(node_in_path(tmp.as_os_str()), Some(valid.display().to_string()));
+        assert_eq!(
+            node_in_path(tmp.as_os_str()),
+            Some(valid.display().to_string())
+        );
         fs::remove_dir_all(tmp).unwrap();
     }
 

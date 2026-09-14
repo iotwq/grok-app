@@ -5156,8 +5156,15 @@ mod tests {
                 .workspace_id
                 .is_none());
             let other = create_session(None, None, false).unwrap();
-            assert!(set_session_workspace(&other.id, Some(workspace.id.clone()), None, None).is_err());
-            assert!(load_sessions_index().iter().find(|s| s.id == other.id).unwrap().workspace_id.is_none());
+            assert!(
+                set_session_workspace(&other.id, Some(workspace.id.clone()), None, None).is_err()
+            );
+            assert!(load_sessions_index()
+                .iter()
+                .find(|s| s.id == other.id)
+                .unwrap()
+                .workspace_id
+                .is_none());
             workspace_store::delete_workspace(&workspace.id).unwrap();
             assert!(create_session(Some(project.id), None, false)
                 .unwrap()

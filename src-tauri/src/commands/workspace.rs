@@ -1,9 +1,7 @@
 // Multi-root workspace IPC (#1194 MVP-0).
 // Included into `commands` — do not re-import Arc/State/SessionManager.
 
-use crate::workspace_store::{
-    self, root_snapshot, WorkspaceRecord, WorkspaceRoot,
-};
+use crate::workspace_store::{self, root_snapshot, WorkspaceRecord, WorkspaceRoot};
 
 #[tauri::command]
 pub fn workspaces_list() -> Result<Vec<WorkspaceRecord>, String> {
@@ -77,12 +75,18 @@ pub async fn session_set_workspace(
     };
 
     let meta = store::set_session_workspace(&id, wid, snapshot, capability)?;
-    let roots = meta.workspace_id.as_deref()
+    let roots = meta
+        .workspace_id
+        .as_deref()
         .and_then(workspace_store::get_workspace)
-        .map(|ws| ws.roots.into_iter().map(|r| std::path::PathBuf::from(r.path)).collect())
+        .map(|ws| {
+            ws.roots
+                .into_iter()
+                .map(|r| std::path::PathBuf::from(r.path))
+                .collect()
+        })
         .unwrap_or_default();
     crate::path_scope::set_workspace_grants(&id, roots);
-
 
     // Roots change → next turn should not resume a process started without them.
     mgr.invalidate_spawn_flags_for_session(&app, &meta.id, "session_workspace")

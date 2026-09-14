@@ -1515,7 +1515,10 @@ pub fn prepare_route_auth_for_agent() {
 /// Free the CLI's official alias without discarding a legacy relay or its key.
 fn config_with_official_default(text: &str) -> String {
     let sections = parse_model_sections(text);
-    let Some(collision) = sections.iter().find(|s| s.id == OFFICIAL_DEFAULT_MODEL && is_custom(&s.fields)) else {
+    let Some(collision) = sections
+        .iter()
+        .find(|s| s.id == OFFICIAL_DEFAULT_MODEL && is_custom(&s.fields))
+    else {
         return set_models_default(text, OFFICIAL_DEFAULT_MODEL);
     };
     let mut id = "grok-custom".to_string();
@@ -1531,7 +1534,10 @@ fn config_with_official_default(text: &str) -> String {
         if crate::relay_stream_proxy::is_local_sanitize_proxy_url(base) {
             for line in &mut lines[collision.start + 1..collision.end] {
                 if assignment_key_exact(line.trim()) == Some("base_url") {
-                    *line = format!("base_url = {}", quote(&base.replacen("/r/grok/", &format!("/r/{id}/"), 1)));
+                    *line = format!(
+                        "base_url = {}",
+                        quote(&base.replacen("/r/grok/", &format!("/r/{id}/"), 1))
+                    );
                 }
             }
         }
@@ -1617,7 +1623,9 @@ pub fn provider_mutation_needs_agent_reload(
 pub fn upsert_custom_provider(input: UpsertProviderInput) -> Result<ProvidersListResult, String> {
     let id = sanitize_id(&input.id)?;
     if id == OFFICIAL_DEFAULT_MODEL {
-        return Err("provider id `grok` is reserved for the official route; choose another id".into());
+        return Err(
+            "provider id `grok` is reserved for the official route; choose another id".into(),
+        );
     }
     let model = {
         let m = input.model.trim();
@@ -2793,8 +2801,11 @@ mod tests {
     fn official_activation_preserves_colliding_relay_and_proxy_route() {
         let input: UpsertProviderInput = serde_json::from_value(serde_json::json!({
             "id": " GROK ", "model": "relay-model", "baseUrl": "https://relay.example/v1"
-        })).unwrap();
-        assert!(upsert_custom_provider(input).unwrap_err().contains("reserved"));
+        }))
+        .unwrap();
+        assert!(upsert_custom_provider(input)
+            .unwrap_err()
+            .contains("reserved"));
         let config = r#"[models]
 default = "grok"
 [model.grok]
@@ -2815,7 +2826,11 @@ base_url = "https://other.example/v1"
         let relay = sections.iter().find(|s| s.id == "grok-custom-2").unwrap();
         assert_eq!(relay.fields.get("api_key").unwrap(), "test-key");
         assert_eq!(relay.fields.get("model").unwrap(), "relay-model");
-        assert!(relay.fields.get("base_url").unwrap().contains("/r/grok-custom-2/"));
+        assert!(relay
+            .fields
+            .get("base_url")
+            .unwrap()
+            .contains("/r/grok-custom-2/"));
         let custom = set_models_default(&repaired, "grok-custom-2");
         let list = build_list_result(PathBuf::new(), PathBuf::new(), &custom);
         assert_eq!(list.active_source, "custom");

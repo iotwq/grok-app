@@ -191,3 +191,21 @@
 - `docs/llm-wiki/setup.md`：更新就绪判定规则。
 - `progress.md`：追加本轮记录。
 - 回滚：`git revert <B10提交哈希>`，提交标题 `fix(startup): reject CLI candidates that cannot run`。
+
+## 2026-09-15 - Task: 十项运行问题统一验证与交付记录
+### What was done
+- 汇总 B01–B10 的独立修复提交、验证结果和安装包验收边界，保存原始审计报告。
+- 仅整理本轮新增/修改的 Rust 片段；按 Clippy 建议去除回归测试中的两次冗余克隆。
+- 在临时独立 worktree 对照复测唯一失败的局域网测试，确认修复前同样失败；已清理对照 worktree。
+### Testing
+- 前端：653 个测试文件、7,530 项通过；Lint、UI 构建、TypeScript、final 质量门禁均通过。
+- Host 完整测试：1,886 通过、1 忽略、1 失败（局域网镜像请求本机检测地址超时）。当前代码单测重跑及修复前 f21ad3f2 对照均复现同一失败，未声称全套通过。
+- Rust fmt 检查、Clippy all-targets 零警告通过；CLI 回归在清理克隆后再次验证。
+- 依赖结构检查、下载合同 3 项自测、生产依赖审计通过（无已知漏洞）。
+- 未进行已签名 macOS 安装包及真实渠道推理验收；未修改真实账号或安装的 CLI/App。
+### Notes
+- `src-tauri/src/account.rs`、`src-tauri/src/acp_client.rs`、`src-tauri/src/commands/workspace.rs`、`src-tauri/src/official_aux.rs`、`src-tauri/src/path_scope.rs`、`src-tauri/src/providers.rs`、`src-tauri/src/session_manager/connect.rs`、`src-tauri/src/session_manager/journal.rs`、`src-tauri/src/store.rs`：仅整理本轮变更片段格式。
+- `src-tauri/src/cli_probe.rs`：整理本轮片段，测试使用引用切片替代冗余克隆。
+- `docs/qa/runtime-audit-2026-09-15.md`：保存原始审计并追加十项修复和统一验证结果。
+- `progress.md`：追加统一验收记录。
+- 回滚：`git revert <本次验证整理提交哈希>`，标题 `chore(qa): record runtime fixes and validation`；产品行为按各 B01–B10 提交单独 `git revert`。所有修复前回滚点为 `f21ad3f23b229e24a703788196dfef5aa288606c`，未推送远端。

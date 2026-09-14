@@ -4800,9 +4800,14 @@ fn classify_rpc_error(e: &str) -> AgentError {
     if lower.contains("model_not_found")
         || lower.contains("invalid_model")
         || (lower.contains("model")
-            && ["not found", "not supported", "does not exist", "not available"]
-                .iter()
-                .any(|reason| lower.contains(reason)))
+            && [
+                "not found",
+                "not supported",
+                "does not exist",
+                "not available",
+            ]
+            .iter()
+            .any(|reason| lower.contains(reason)))
     {
         return AgentError::new(AgentErrorCode::NetworkProvider, e);
     }
@@ -4893,7 +4898,10 @@ mod classify_rpc_error_tests {
             r#"Internal error (code -32603, data: {"http_status":404,"message":"model_not_found: Model default is not supported"})"#,
             "The model does not exist",
         ] {
-            assert_eq!(classify_rpc_error(msg).code, AgentErrorCode::NetworkProvider);
+            assert_eq!(
+                classify_rpc_error(msg).code,
+                AgentErrorCode::NetworkProvider
+            );
         }
     }
 

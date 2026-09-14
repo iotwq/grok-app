@@ -31,8 +31,13 @@ pub fn set_workspace_grants(session_id: &str, paths: Vec<PathBuf>) {
     if paths.is_empty() {
         grants.remove(session_id);
     } else {
-        grants.insert(session_id.to_owned(), paths.into_iter()
-            .filter_map(|p| p.canonicalize().ok()).collect());
+        grants.insert(
+            session_id.to_owned(),
+            paths
+                .into_iter()
+                .filter_map(|p| p.canonicalize().ok())
+                .collect(),
+        );
     }
 }
 
@@ -121,11 +126,15 @@ fn is_allowed_canonical(path: &Path) -> bool {
     if under_root {
         return true;
     }
-    workspace_grants().read().values().flatten().any(|r| path_under_root(path, r))
-        || extra_grants()
+    workspace_grants()
         .read()
-        .iter()
+        .values()
+        .flatten()
         .any(|r| path_under_root(path, r))
+        || extra_grants()
+            .read()
+            .iter()
+            .any(|r| path_under_root(path, r))
 }
 
 fn path_under_root(path: &Path, root: &Path) -> bool {
@@ -273,7 +282,8 @@ mod tests {
 
     #[test]
     fn workspace_grants_revoke_without_affecting_other_sessions_or_picked_files() {
-        let tmp = std::env::temp_dir().join(format!("grok-workspace-grants-{}", uuid::Uuid::new_v4()));
+        let tmp =
+            std::env::temp_dir().join(format!("grok-workspace-grants-{}", uuid::Uuid::new_v4()));
         let extra = tmp.join("extra");
         fs::create_dir_all(&extra).unwrap();
         let file = extra.join("data");
