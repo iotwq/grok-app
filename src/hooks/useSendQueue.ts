@@ -97,6 +97,8 @@ export function useSendQueue({
   sendQueueByKeyRef.current = sendQueueByKey;
 
   const queueFlushHoldByKeyRef = useRef<Set<string>>(new Set());
+  // The single queue edit dialog owns this pause until it closes.
+  const editingQueueKeyRef = useRef<string | null>(null);
   /** UI-visible hold (ref alone does not re-render). */
   const [flushHold, setFlushHold] = useState(false);
   const flushQueueTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -130,7 +132,7 @@ export function useSendQueue({
   const setHoldForKey = useCallback(
     (key: string, on: boolean) => {
       const holds = queueFlushHoldByKeyRef.current;
-      if (on) holds.add(key);
+      if (on || editingQueueKeyRef.current === key) holds.add(key);
       else holds.delete(key);
       // The strip represents the queue currently on screen only. A failed
       // background queue must not paint/hold this session's composer.
@@ -145,8 +147,10 @@ export function useSendQueue({
   );
 
   const releaseFlushHold = useCallback(() => {
-    setHold(false);
-  }, [setHold]);
+    const key = editingQueueKeyRef.current ?? viewedQueueKey();
+    editingQueueKeyRef.current = null;
+    setHoldForKey(key, false);
+  }, [setHoldForKey, viewedQueueKey]);
 
   const cancelFlushTimer = useCallback(() => {
     if (flushQueueTimerRef.current) {
@@ -506,6 +510,7 @@ export function useSendQueue({
     sessionState,
     sessionId,
     sendQueueByKey,
+    flushHold,
     flush,
     cancelFlushTimer,
     sendInFlightRef,
@@ -527,8 +532,9 @@ export function useSendQueue({
 
   /** Pause auto-flush (e.g. while editing a queued item). */
   const pauseFlush = useCallback(() => {
+    editingQueueKeyRef.current = viewedQueueKey();
     setHold(true);
-  }, [setHold]);
+  }, [setHold, viewedQueueKey]);
 
   return {
     activeQueue,

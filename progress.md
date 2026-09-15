@@ -477,3 +477,17 @@
 - `docs/qa/deep-usage-audit-2026-09-15.md`：追加 B22 修复结果。
 - `progress.md`：追加本项记录。
 - 回滚：`git revert $(git log -1 --format=%H --grep='fix(files): target conflict actions at the original tab')`。
+
+## 2026-09-15 - Task: 修复 B23 编辑队列期间旧消息提前发送
+### What was done
+- 将编辑窗口持有的暂停绑定到原会话，避免回复完成和等待授权状态变化提前放行。
+- 保存/取消后恢复队列，切换对话后关闭编辑也释放正确会话的暂停。
+### Testing
+- 保存、取消及跨会话关闭三项真实组合 hook 回归修复前均失败、修复后通过。
+- 队列/弹窗 41 项测试、定向 ESLint、git diff --check 通过。
+### Notes
+- `src/hooks/useSendQueue.ts`：记录编辑暂停归属，保护暂停并响应解除。
+- `src/hooks/useSendQueue.test.tsx`：忙碌/授权/就绪转换与编辑确认、取消、导航回归。
+- `docs/qa/deep-usage-audit-2026-09-15.md`：追加 B23 修复结果。
+- `progress.md`：追加本项记录。
+- 回滚：`git revert $(git log -1 --format=%H --grep='fix(queue): retain pause while editing a queued prompt')`。
