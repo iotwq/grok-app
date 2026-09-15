@@ -18,6 +18,7 @@ import { TableKit } from "@tiptap/extension-table";
 import Placeholder from "@tiptap/extension-placeholder";
 import { Markdown } from "tiptap-markdown";
 import { Tip } from "@/components/ui/tooltip";
+import { ensureMediaEndpoint, localPathToMediaHttpUrl } from "@/lib/imageSrc";
 import {
   IconBlockquote,
   IconBold,
@@ -54,6 +55,7 @@ export type MarkdownTiptapLabels = {
 
 export type MarkdownTiptapEditorProps = {
   value: string;
+  documentPath?: string;
   onChange: (markdown: string) => void;
   onSave?: () => void;
   disabled?: boolean;
@@ -82,8 +84,45 @@ function looksLikeUrl(text: string): boolean {
   return false;
 }
 
+/** Keep the original Markdown reference in the node; resolve only its display. */
+function editorImage(documentPath?: string) {
+  return Image.extend({
+    addNodeView() {
+      return ({ node }) => {
+        const dom = document.createElement("img");
+        dom.alt = String(node.attrs.alt ?? "");
+        dom.title = String(node.attrs.title ?? "");
+        const source = String(node.attrs.src ?? "");
+        let disposed = false;
+        if (/^(https?:|data:|blob:|\/\/)/i.test(source)) {
+          dom.src = source;
+        } else if (documentPath || /^(\/|[A-Za-z]:[\\/])/.test(source)) {
+          try {
+            const base = new URL("file:///");
+            base.pathname = (documentPath || "/").replace(/\\/g, "/");
+            const url = new URL(source.replace(/\\/g, "/"), base);
+            if (url.protocol === "file:") {
+              const path = decodeURIComponent(url.pathname).replace(/^\/([A-Za-z]:\/)/, "$1");
+              const display = () => {
+                const src = localPathToMediaHttpUrl(path);
+                if (!disposed && src) dom.src = src;
+              };
+              display();
+              void ensureMediaEndpoint().then(display);
+            }
+          } catch {
+            // An unresolved image keeps its alt text and original save reference.
+          }
+        }
+        return { dom, destroy: () => { disposed = true; } };
+      };
+    },
+  }).configure({ inline: true });
+}
+
 export function MarkdownTiptapEditor({
   value,
+  documentPath,
   onChange,
   onSave,
   disabled = false,
@@ -112,7 +151,7 @@ export function MarkdownTiptapEditor({
           rel: "noopener noreferrer",
         },
       }),
-      Image.configure({ inline: true }),
+      editorImage(documentPath),
       TableKit,
       Placeholder.configure({
         placeholder: labels.placeholder,

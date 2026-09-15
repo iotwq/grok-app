@@ -638,6 +638,7 @@ export function ResourcePreviewBody({
               <MarkdownTiptapEditor
                 key={activeTab.id}
                 value={draftText}
+                documentPath={activeTab.absolutePath}
                 onChange={updateActiveDraft}
                 onSave={() => void saveActiveFile()}
                 disabled={!!activeTab.saving}

@@ -2,11 +2,21 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { MarkdownTiptapEditor, type MarkdownTiptapLabels } from "./MarkdownTiptapEditor";
+import { localPathToMediaHttpUrl } from "@/lib/imageSrc";
+
+// TipTap's deferred focus scroll reads Range geometry, which jsdom omits.
+Object.defineProperty(Range.prototype, "getClientRects", { configurable: true, value: () => [] });
+Object.defineProperty(Range.prototype, "getBoundingClientRect", { configurable: true, value: () => new DOMRect() });
+
+vi.mock("@/lib/imageSrc", () => ({
+  ensureMediaEndpoint: async () => null,
+  localPathToMediaHttpUrl: vi.fn((path: string) => `http://127.0.0.1:54321/v1/media?p=${encodeURIComponent(path)}`),
+}));
 
 vi.mock("@/components/ui/tooltip", () => ({
   Tip: ({ children }: { children: React.ReactNode }) => children,
 }));
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.clearAllMocks(); });
 const labels = Object.fromEntries(
   "bold italic strike code h1 h2 h3 bulletList orderedList blockquote link hr linkPlaceholder linkApply placeholder editorAria"
     .split(" ").map((key) => [key, key]),
@@ -34,4 +44,15 @@ it("does not emit a document edit when reloading or reverting content", async ()
   await waitFor(() => view.getByRole("button", { name: "hr" }));
   view.rerender(<MarkdownTiptapEditor value="new\n\n![keep](./keep.png)" onChange={onChange} labels={labels} />);
   expect(onChange).not.toHaveBeenCalled();
+});
+
+it("displays a relative image through media HTTP while saving the original reference", async () => {
+  const onChange = vi.fn();
+  const view = render(<MarkdownTiptapEditor documentPath="/Users/test/docs/report.md" value={'Intro\n\n![plot](../images/plot%20one.png "Plot")'} onChange={onChange} labels={labels} />);
+  const image = await view.findByRole("img", { name: "plot" });
+  expect(image.getAttribute("src")).toBe("http://127.0.0.1:54321/v1/media?p=%2FUsers%2Ftest%2Fimages%2Fplot%20one.png");
+  expect(localPathToMediaHttpUrl).toHaveBeenCalledWith("/Users/test/images/plot one.png");
+  fireEvent.click(view.getByRole("button", { name: "hr" }));
+  expect(onChange.mock.lastCall![0]).toContain("../images/plot%20one.png");
+  expect(onChange.mock.lastCall![0]).not.toContain("127.0.0.1");
 });

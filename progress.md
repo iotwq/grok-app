@@ -537,3 +537,19 @@
 - `docs/qa/deep-usage-audit-2026-09-15.md`：追加 B26 修复结果。
 - `progress.md`：追加本项记录。
 - 回滚：`git revert $(git log -1 --format=%H --grep='fix(preview): render empty drafts without stale fallback')`。
+
+## 2026-09-15 - Task: 补齐 B20 本地图片显示并验证编辑器
+### What was done
+- 本地图片按 Markdown 所在目录解析，仅显示地址使用现有媒体 HTTP，保存保留原引用。
+- 在隔离浏览器验证图片、表格和插入分隔线后的内容保留，关闭验证页与开发服务。
+### Testing
+- 新增相对图片路径、编码空格和原引用保留回归；编辑器与预览共九项通过。
+- 浏览器使用模拟媒体端点，验证真实编辑器布局和序列化，不读取用户图片。
+- 补齐 jsdom Range 测量接口后全量 665 文件、7,593 项通过，无未处理异常；build:ui 和 lint 通过。后续队列收尾将另做最终验证。
+### Notes
+- `src/components/MarkdownTiptapEditor.tsx`：图片节点显示与保存地址分离，复用媒体服务。
+- `src/components/MarkdownTiptapEditor.test.tsx`：本地图片引用回归及测试环境 Range 测量接口。
+- `src/components/resource-viewer/ResourcePreviewBody.tsx`：传入 Markdown 文件绝对路径。
+- `docs/qa/deep-usage-audit-2026-09-15.md`：追加本地图片与浏览器验证。
+- `progress.md`：追加收尾记录。
+- 回滚：`git revert $(git log -1 --format=%H --grep='fix(editor): resolve local images without rewriting markdown')`。
