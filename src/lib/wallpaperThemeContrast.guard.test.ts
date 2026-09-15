@@ -379,7 +379,7 @@ describe("wallpaper theme contrast CSS", () => {
 
   it("nests the workspace chip as a rounded rect inside a uniform inset", () => {
     expect(composerChromeCss).toMatch(
-      /\.composer__chip-shell\s*\{[^}]*--composer-context-pad:\s*4px;[^}]*--composer-context-radius:\s*var\(--menu-radius, 12px\);[^}]*padding:\s*var\(--composer-context-pad\);[^}]*border-radius:\s*var\(--composer-context-radius\)/s,
+      /\.composer__chip-shell\s*\{[^}]*--composer-context-pad:\s*3px;[^}]*--composer-context-radius:\s*var\(--menu-radius, 12px\);[^}]*padding:\s*var\(--composer-context-pad\);[^}]*border-radius:\s*var\(--composer-context-radius\)/s,
     );
     expect(composerChromeCss).not.toMatch(
       /\.composer__chip-shell\s*\{[^}]*padding:\s*4px 10px/s,
@@ -388,7 +388,7 @@ describe("wallpaper theme contrast CSS", () => {
       /\.composer__context-item\s*\{[^}]*border-radius:\s*calc\(\s*var\(--composer-context-radius, 12px\)\s*-\s*var\(--composer-context-pad, 4px\)\s*\)/s,
     );
     expect(composerChromeCss).toMatch(
-      /\.composer\s*\{[^}]*border-radius:\s*var\(--menu-radius, 12px\)/s,
+      /\.composer\s*\{[^}]*border-radius:\s*20px/s,
     );
   });
 

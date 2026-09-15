@@ -687,3 +687,25 @@
 - `progress.md`：追加本轮记录。
 - 回滚：`git revert $(git log -1 --format=%H --grep='style(welcome): use Grok branding and refresh greeting')`；本轮前基线 c96e37da。
 - 仅本地提交，未制作 DMG 或推送发布。
+
+## 2026-09-16 - Task: 制作包含最新修复与首页改版的 macOS 安装包
+### What was done
+- 基于 e45dde79 产品源码制作 Apple Silicon 本地 DMG，纳入此前性能、使用问题修复及首页、输入框与欢迎文案更新。
+- 使用临时 Rust 工具链和 ad-hoc 签名完成打包，保留上一份安装包；未替换运行中的安装版或发布远程版本。
+- 完整验证发现旧样式断言未同步；仅更新测试中间距与圆角预期，产品源码不变。
+### Testing
+- TypeScript、Vite、Rust release、Tauri app/dmg 打包通过。
+- 完整前端测试最终 666 文件、7,601 项全部通过；全量 ESLint、测试修改后定向 ESLint、git diff --check 通过。
+- 原 app 与交付 DMG 内 app 严格签名验证通过，逐文件一致；arm64 与 Info.plist 检查通过。
+- DMG 镜像校验、SHA256 回读通过，安装包 20,466,924 字节；SHA256 为 7ef1bb3b1ea26d0133ef5ab8d89d037489111ecaf1e5bdd326d77e47b2e3c548。
+- 镜像内程序使用独立 GROK_APP_HOME 执行 --sessions 返回 []、退出码 0；前端资产包含 e45dde79 与新欢迎语。
+- 当前安装版正在运行，共用单实例 socket；本轮未做新包完整 GUI 启动或实际模型推理验收。镜像已卸载。
+### Notes
+- `src/lib/wallpaperThemeContrast.guard.test.ts`：将旧间距和圆角断言同步为已实施的新版首页样式。
+- `docs/qa/macos-package-2026-09-16.md`：记录构建来源、验证、签名限制、安装和回滚方式。
+- `dist-installers/Grok_0.2.35_e45dde79_aarch64.dmg`：生成新的 Apple Silicon 安装包，忽略目录内交付物不纳入 Git。
+- `dist-installers/SHA256SUMS-e45dde79.txt`：生成交付包校验清单，忽略目录内交付物不纳入 Git。
+- `src-tauri/target/`、`dist/`：更新编译与打包产物，均不纳入 Git。
+- `progress.md`：追加本轮构建与验证记录。
+- 回滚测试：`git restore --source=e45dde79 -- src/lib/wallpaperThemeContrast.guard.test.ts`；回滚安装版：退出 Grok 后使用保留的 `dist-installers/Grok_0.2.35_ba5e835f_aarch64.dmg` 重新安装。
+- 本地包未进行 Apple 公证；当前任务不包含 Intel 包或公开发布。
