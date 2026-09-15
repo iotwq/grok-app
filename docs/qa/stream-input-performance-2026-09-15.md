@@ -13,6 +13,29 @@
 同时覆盖停止输入后的尾部刷新、结束时立即显示和卸载清理。
 MarkdownChat、streamRenderPolicy、softStreamBuffer 共 24 项通过，定向 ESLint 通过。
 
+## 输入框重复布局
+
+原输入事件先测量高度，受控 value 回传后又测量一次；三次连续输入在绘制前重复测量六次。
+输入、value 回传与换行现共用一帧一次的布局任务。草稿与占位符仍立即更新，
+光标滚动在尺寸更新后执行。中文输入法预编辑期间跳过排队的布局；确认文字后恢复，
+卸载时取消任务。移除普通输入路径重复的空内容序列化。
+
+新增实际编辑器组件回归：同帧连续输入（修复前六次测量，修复后一次）、
+IME 预编辑/确认、卸载、外部草稿增长/清空收缩、Shift+Enter 保留文字。
+现有光标滚动、换行、IME 与新增布局测试共 21 项通过。
+
+## 统一验证
+
+- 全量前端：659 个测试文件、7,561 项通过。
+- `pnpm run build:ui`（TypeScript + Vite）、`pnpm run lint`、`git diff --check` 通过。
+- 隔离浏览器使用真实 MarkdownChat、ComposerEditor 与项目 CSS：12,500 字符起始正文，
+  每 60 ms 增加一段，共 500 段；观察到 101 次正文 DOM 更新，最终完整显示第 500 段。
+  输出期间中英文输入、Shift+Enter 换行及结束后清空草稿正常。
+- 浏览器检查不是安装版 WKWebView 帧率测量；中文文字注入也不替代系统输入法候选窗口实机验证。
+- 临时页面和开发服务已关闭，夹具留在 `/tmp/grok-perf-audit/`；测试/构建/lint 日志
+  分别为 `/tmp/grok-perf-all-tests.log`、`/tmp/grok-perf-build.log`、`/tmp/grok-perf-lint.log`。
+- Rust/协议/模型配置未改动，未进行付费模型调用或重新制作安装包。
+
 ## 验证边界
 
 这次修复针对收到内容之后的显示延迟。既有 CLI 日志中的首 token 等待（约 14–20 秒，

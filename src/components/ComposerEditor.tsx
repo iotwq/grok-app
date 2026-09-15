@@ -1198,8 +1198,9 @@ export const ComposerEditor = memo(function ComposerEditor({
   const focused = useRef(false);
   /** Guard against double paste events (some WebViews fire paste twice). */
   const pasteInFlight = useRef(false);
-  /** Coalesced rAF for post-newline caret pin (key-repeat must not stack). */
-  const newlinePaintRaf = useRef(0);
+  /** Input, controlled-value echoes and newlines share one layout per frame. */
+  const layoutRaf = useRef(0);
+  const scrollAfterResize = useRef(false);
   /**
    * DOM may show typed / IME glyphs before React `value` commits.
    * Track live emptiness so the overlay placeholder never paints over ink.
@@ -1217,10 +1218,19 @@ export const ComposerEditor = memo(function ComposerEditor({
     [editorRef],
   );
 
-  const resize = useCallback(() => {
-    const el = elRef.current;
-    if (!el) return;
-    resizeComposerInput(el);
+  const resize = useCallback((scrollCaret = false) => {
+    if (scrollCaret) scrollAfterResize.current = true;
+    if (layoutRaf.current) return;
+    layoutRaf.current = requestAnimationFrame(() => {
+      layoutRaf.current = 0;
+      const scroll = scrollAfterResize.current;
+      scrollAfterResize.current = false;
+      const el = elRef.current;
+      // Do not move the IME candidate window during preedit.
+      if (!el || composing.current) return;
+      resizeComposerInput(el);
+      if (scroll) scrollComposerCaretIntoView(el);
+    });
   }, []);
 
   /**
@@ -1229,14 +1239,8 @@ export const ComposerEditor = memo(function ComposerEditor({
    * frame leaves sticky residue. Repaint only when Enter is released.
    */
   const scheduleNewlinePaint = useCallback((el: HTMLElement) => {
-    if (newlinePaintRaf.current) cancelAnimationFrame(newlinePaintRaf.current);
-    newlinePaintRaf.current = requestAnimationFrame(() => {
-      newlinePaintRaf.current = 0;
-      if (elRef.current !== el) return;
-      resizeComposerInput(el);
-      scrollComposerCaretIntoView(el);
-    });
-  }, []);
+    if (elRef.current === el) resize(true);
+  }, [resize]);
 
   const emitSlash = useCallback(() => {
     const el = elRef.current;
@@ -1293,10 +1297,11 @@ export const ComposerEditor = memo(function ComposerEditor({
     [onChange, emitSlash, resize, syncDomEmpty],
   );
 
-  // Drop pending newline paint rAF on unmount.
+  // Drop pending input/newline layout on unmount.
   useEffect(() => {
     return () => {
-      if (newlinePaintRaf.current) cancelAnimationFrame(newlinePaintRaf.current);
+      if (layoutRaf.current) cancelAnimationFrame(layoutRaf.current);
+      layoutRaf.current = 0;
     };
   }, []);
 
@@ -1315,10 +1320,9 @@ export const ComposerEditor = memo(function ComposerEditor({
       if (pendingSame != null) {
         if (pendingSame === "end") placeCaretAtEnd(el);
         else placeCaretAtStoredOffset(el, pendingSame);
-        scrollComposerCaretIntoView(el);
         emitSlash();
       }
-      resize();
+      resize(pendingSame != null);
       return;
     }
     if (focused.current && value === lastValue.current) {
@@ -1334,15 +1338,14 @@ export const ComposerEditor = memo(function ComposerEditor({
     const pending = takePendingStoredCaret();
     if (pending === "end" || pending == null) placeCaretAtEnd(el);
     else placeCaretAtStoredOffset(el, pending);
-    scrollComposerCaretIntoView(el);
-    resize();
+    resize(true);
     emitSlash();
   }, [value, resize, emitSlash]);
 
   const onInput = (e: FormEvent<HTMLDivElement>) => {
-    // Hide placeholder as soon as the DOM has glyphs (incl. IME preedit).
-    syncDomEmpty(e.currentTarget);
     if (composing.current) {
+      // Hide placeholder as soon as the DOM has IME preedit glyphs.
+      syncDomEmpty(e.currentTarget);
       // Live pinyin in DOM — update slash filter without committing draft yet.
       // Do not resize/scroll during composition: height/scrollTop churn makes
       // WebView2 IME candidate windows jump to the top of the screen (#1170).
@@ -1648,7 +1651,6 @@ export const ComposerEditor = memo(function ComposerEditor({
               }
               syncDomEmpty(el);
               emitSlash();
-              resizeComposerInput(el);
               scheduleNewlinePaint(el);
             } catch {
               /* browser default */

@@ -402,3 +402,21 @@
 - `docs/qa/stream-input-performance-2026-09-15.md`：记录原因、显示约定与验证边界。
 - `progress.md`：追加本轮记录。
 - 回滚：`git revert $(git log -1 --format=%H --grep='fix(chat): keep streaming markdown paints on schedule')`。未推送或替换安装版。
+
+## 2026-09-15 - Task: 合并提示词输入框重复布局并验证性能修复
+### What was done
+- 输入、受控草稿回传和换行共用每帧一次的尺寸测量，草稿立即提交，滚动在测量后执行。
+- 中文输入法预编辑暂停排队布局，卸载清理任务；减少普通输入路径重复序列化。
+- 完成真实组件的隔离浏览器验证，关闭测试标签与开发服务。
+### Testing
+- 新增连续输入和 IME 测量回归在修复前失败，修复后通过；三次连续输入由六次同步测量减少为下一帧一次。
+- 编辑器换行、IME、光标、布局共 21 项通过；全量前端 659 个文件、7,561 项通过。
+- TypeScript + Vite 构建、全量 ESLint、git diff --check 通过；App/AppWorkbench 行数未增长。
+- 隔离浏览器 12,500 字符起始正文、每 60 ms 一段、500 段持续输出期间出现 101 次正文 DOM 更新，尾部完整；中英文输入、Shift+Enter 和清空正常。
+- 未测安装版 WKWebView 帧率或系统输入法候选窗口；未调整网络、模型或推理强度，未调用真实模型。
+### Notes
+- `src/components/ComposerEditor.tsx`：合并尺寸测量和光标滚动，保留 IME 边界，减少重复序列化。
+- `src/components/ComposerEditor.layout.test.tsx`：连续输入、IME、卸载、增长/收缩和换行回归。
+- `docs/qa/stream-input-performance-2026-09-15.md`：追加输入修复、统一验收与安装版验证边界。
+- `progress.md`：追加本轮记录。
+- 回滚：`git revert $(git log -1 --format=%H --grep='fix(composer): coalesce input layout per animation frame')`。前一项流式修复可独立回滚 bd584a62；未推送、发布或替换安装版。
