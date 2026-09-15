@@ -567,3 +567,18 @@
 - `docs/qa/deep-usage-audit-2026-09-15.md`：追加 B23 入口复核与修复。
 - `progress.md`：追加收尾记录。
 - 回滚：`git revert $(git log -1 --format=%H --grep='fix(queue): separate edit release from ordinary send recovery')`。
+
+## 2026-09-16 - Task: 完成 B20–B26 修复统一验收
+### What was done
+- 汇总七项修复与补充验证，记录提交对应关系、安装版边界及回滚点。
+- 产品源码固定在 6988ee18，验证期间未修改用户文件或调用真实模型。
+### Testing
+- 全量前端 665 文件、7,594 项通过且无未处理异常，新增 33 项回归。
+- pnpm build:ui（TypeScript + Vite）、全量 ESLint、git diff --check 通过；保留既有大分块提示。
+- 隔离浏览器检查图片和表格布局、正文/分隔线修改后的内容保留，以及模拟媒体服务下的本地图片显示；测试页和服务已关闭。
+- App/AppWorkbench 总行数不增长；未修改 Rust、协议、数据库或鉴权，因此未重跑 Rust 套件。
+### Notes
+- `docs/qa/deep-usage-audit-2026-09-15.md`：标明原始审计与修复状态，追加最终验收、提交表和验证边界。
+- `progress.md`：追加统一验收记录。
+- 回滚本次文档：`git revert $(git log -1 --format=%H --grep='docs(qa): record verified deep usage repairs')`；产品按报告所列提交逆序 revert，修复前基线 eb5284eb。
+- 所有改动仅本地提交；未推送、发布、新增 DMG 或替换 /Applications/Grok.app。
