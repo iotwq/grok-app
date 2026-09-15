@@ -17,6 +17,7 @@ import { getComposerCaretOffset } from "@/components/ComposerEditor";
 import { createT, type MessageKey } from "@/i18n";
 import * as api from "@/lib/api";
 import { isMirrorClient } from "@/lib/mirrorTransport";
+import { isSameView, type ViewFocus } from "@/lib/viewFocus";
 import {
   blobToBase64,
   extensionForMime,
@@ -54,6 +55,7 @@ export function useVoiceDictation(opts: {
   sendRef: MutableRefObject<(() => Promise<void>) | null>;
   voiceDictationAutoSendRef: MutableRefObject<boolean>;
   setDraft: Dispatch<SetStateAction<string>>;
+  currentViewFocus: () => ViewFocus;
   sessionState: string;
   refreshSessions: () => void | Promise<void>;
   sttEngine: string;
@@ -68,6 +70,7 @@ export function useVoiceDictation(opts: {
     sendRef,
     voiceDictationAutoSendRef,
     setDraft,
+    currentViewFocus,
     refreshSessions,
     sttEngine,
     sttCustomBaseUrl,
@@ -89,6 +92,13 @@ export function useVoiceDictation(opts: {
   voiceRef.current = voice;
   const voiceGenRef = useRef(0);
   const voiceCaretRef = useRef<number | null>(null);
+  const voiceOriginRef = useRef<ViewFocus | null>(null);
+  const viewEpoch = currentViewFocus().epoch;
+  const isCurrentVoiceResult = useCallback((gen: number) =>
+    voiceResultStillCurrent(gen, voiceGenRef.current) &&
+    voiceOriginRef.current !== null &&
+    isSameView(voiceOriginRef.current, currentViewFocus()),
+  [currentViewFocus]);
 
   const voiceErrorMessage = useCallback(
     (cls: VoiceErrorClass | null | undefined) => {
@@ -173,7 +183,20 @@ export function useVoiceDictation(opts: {
     }
     voiceCaptureRef.current = null;
     voiceCaretRef.current = null;
+    voiceOriginRef.current = null;
     setVoice(reduceVoice(voiceRef.current, { type: "cancel" }));
+  }, [clearVoiceTimers]);
+
+  useEffect(() => {
+    if (voiceOriginRef.current && !isSameView(voiceOriginRef.current, currentViewFocus())) {
+      cancelVoice();
+    }
+  }, [viewEpoch, currentViewFocus, cancelVoice]);
+
+  useEffect(() => () => {
+    voiceGenRef.current += 1;
+    voiceCaptureRef.current?.cancel();
+    clearVoiceTimers();
   }, [clearVoiceTimers]);
 
   useEffect(() => {
@@ -216,16 +239,16 @@ export function useVoiceDictation(opts: {
 
   const finishVoiceTranscribe = useCallback(
     async (blob: Blob, gen: number) => {
-      if (!voiceResultStillCurrent(gen, voiceGenRef.current)) return;
+      if (!isCurrentVoiceResult(gen)) return;
       setVoice((s) => reduceVoice(s, { type: "stop" }));
       try {
         if (blob.size < 256) {
-          if (!voiceResultStillCurrent(gen, voiceGenRef.current)) return;
+          if (!isCurrentVoiceResult(gen)) return;
           applyVoiceFail("no_speech", 4200);
           return;
         }
         const b64 = await blobToBase64(blob);
-        if (!voiceResultStillCurrent(gen, voiceGenRef.current)) return;
+        if (!isCurrentVoiceResult(gen)) return;
         const mime = blob.type || "audio/webm";
         const ext = extensionForMime(mime);
         const res = await api.voiceTranscribe({
@@ -234,13 +257,13 @@ export function useVoiceDictation(opts: {
           mime,
           locale: localeRef.current,
         });
-        if (!voiceResultStillCurrent(gen, voiceGenRef.current)) return;
+        if (!isCurrentVoiceResult(gen)) return;
         if (!res.ok || !res.text?.trim()) {
           const cls = resolveVoiceErrorClass(res.errorClass, res.error);
           applyVoiceFail(cls, 4800);
           return;
         }
-        if (!voiceResultStillCurrent(gen, voiceGenRef.current)) return;
+        if (!isCurrentVoiceResult(gen)) return;
         const caret = voiceCaretRef.current;
         const commit = resolveDictationCommit({
           transcript: res.text!,
@@ -252,6 +275,7 @@ export function useVoiceDictation(opts: {
           return;
         }
         setDraft((d) => {
+          if (!isCurrentVoiceResult(gen)) return d;
           const at =
             caret == null ? d.length : Math.max(0, Math.min(caret, d.length));
           const plan = planTranscriptInsert(d, commit.text, at);
@@ -261,16 +285,16 @@ export function useVoiceDictation(opts: {
         setVoice((s) => reduceVoice(s, { type: "transcribe_ok" }));
         if (commit.kind === "send") {
           window.setTimeout(() => {
-            void sendRef.current?.();
+            if (isCurrentVoiceResult(gen)) void sendRef.current?.();
           }, 0);
         } else if (commit.kind === "send_blocked") {
           notifyRef.current(tr("composer.voiceErr.sendBlocked"), 4800);
         }
       } catch (e) {
-        if (!voiceResultStillCurrent(gen, voiceGenRef.current)) return;
+        if (!isCurrentVoiceResult(gen)) return;
         applyVoiceFail(classifyVoiceError(String(e)), 4800);
       } finally {
-        if (voiceResultStillCurrent(gen, voiceGenRef.current)) {
+        if (isCurrentVoiceResult(gen)) {
           voiceCaptureRef.current = null;
           voiceCaretRef.current = null;
           clearVoiceTimers();
@@ -280,6 +304,7 @@ export function useVoiceDictation(opts: {
     [
       applyVoiceFail,
       clearVoiceTimers,
+      isCurrentVoiceResult,
       localeRef,
       notifyRef,
       sendRef,
@@ -300,10 +325,11 @@ export function useVoiceDictation(opts: {
     if (voiceIsActive(voiceRef.current.phase)) return;
     voiceGenRef.current += 1;
     const gen = voiceGenRef.current;
+    voiceOriginRef.current = currentViewFocus();
     setVoice((s) => reduceVoice(s, { type: "start" }));
     try {
       const handle = await startVoiceCapture();
-      if (gen !== voiceGenRef.current) {
+      if (!isCurrentVoiceResult(gen)) {
         handle.cancel();
         return;
       }
@@ -312,7 +338,7 @@ export function useVoiceDictation(opts: {
       clearVoiceTimers();
       const autoStopAndTranscribe = () => {
         void (async () => {
-          if (!voiceResultStillCurrent(gen, voiceGenRef.current)) return;
+          if (!isCurrentVoiceResult(gen)) return;
           if (voiceRef.current.phase !== "recording") return;
           const cap = voiceCaptureRef.current;
           if (!cap) return;
@@ -324,7 +350,7 @@ export function useVoiceDictation(opts: {
             const blob = await cap.stop();
             await finishVoiceTranscribe(blob, gen);
           } catch (e) {
-            if (!voiceResultStillCurrent(gen, voiceGenRef.current)) return;
+            if (!isCurrentVoiceResult(gen)) return;
             applyVoiceFail(classifyVoiceError(String(e)), 4200);
           }
         })();
@@ -334,7 +360,7 @@ export function useVoiceDictation(opts: {
         VOICE_MAX_RECORD_MS,
       );
     } catch (e) {
-      if (gen !== voiceGenRef.current) return;
+      if (!isCurrentVoiceResult(gen)) return;
       const code =
         e && typeof e === "object" && "code" in e
           ? String((e as { code?: string }).code)
@@ -353,6 +379,8 @@ export function useVoiceDictation(opts: {
     clearVoiceTimers,
     composerInputRef,
     finishVoiceTranscribe,
+    currentViewFocus,
+    isCurrentVoiceResult,
     notifyRef,
     voiceErrorMessage,
     voiceGate.available,
@@ -373,7 +401,7 @@ export function useVoiceDictation(opts: {
       const blob = await cap.stop();
       await finishVoiceTranscribe(blob, gen);
     } catch (e) {
-      if (gen !== voiceGenRef.current) return;
+      if (!isCurrentVoiceResult(gen)) return;
       applyVoiceFail(classifyVoiceError(String(e)), 4200);
       voiceCaptureRef.current = null;
     }
@@ -382,6 +410,7 @@ export function useVoiceDictation(opts: {
     clearVoiceTimers,
     composerInputRef,
     finishVoiceTranscribe,
+    isCurrentVoiceResult,
   ]);
 
   const toggleVoice = useCallback(() => {

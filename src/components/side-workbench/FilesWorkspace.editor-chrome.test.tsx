@@ -173,7 +173,7 @@ for (const action of ["Reload", "Overwrite"] as const) {
     tabMocks.activeTab = codeTab({ id: "viewed-B" });
     tabMocks.conflictTabId = "conflicted-A";
     render(<FilesWorkspace {...baseProps} activePath="B.md" />);
-    await userEvent.click(screen.getByRole("button", { name: action, exact: true }));
+    await userEvent.click(screen.getByRole("button", { name: action }));
     if (action === "Reload") {
       expect(tabMocks.reloadActiveFile).toHaveBeenCalledWith("conflicted-A");
     } else {

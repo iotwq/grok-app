@@ -1934,7 +1934,7 @@ export function AppWorkbench() {
     composerInputRef,
     sendRef,
     voiceDictationAutoSendRef,
-    setDraft,
+    setDraft, currentViewFocus,
     sessionState: session.state,
     refreshSessions,
     sttEngine,

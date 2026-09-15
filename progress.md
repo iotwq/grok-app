@@ -491,3 +491,20 @@
 - `docs/qa/deep-usage-audit-2026-09-15.md`：追加 B23 修复结果。
 - `progress.md`：追加本项记录。
 - 回滚：`git revert $(git log -1 --format=%H --grep='fix(queue): retain pause while editing a queued prompt')`。
+
+## 2026-09-15 - Task: 修复 B24 语音转写跨对话插入与发送
+### What was done
+- 复用现有导航标记，将录音、转写与自动发送绑定到发起视图，离开后取消并忽略旧结果。
+- 清理卸载时的录音资源，保留同一对话的正常听写和自动发送。
+### Testing
+- 三项串对话/草稿与自动发送竞态回归修复前失败，修复后通过。
+- 语音、导航及文件弹窗 61 项测试通过，覆盖发送开关、取消、失败和卸载；TypeScript、定向 ESLint、git diff --check 通过。
+- 模拟音频和转写，不操作麦克风或付费服务；App/AppWorkbench 总行数不增长。
+### Notes
+- `src/hooks/useVoiceDictation.ts`：绑定录音来源视图、校验异步结果、取消与卸载清理。
+- `src/hooks/useVoiceDictation.test.tsx`：新增八项真实 hook 回归。
+- `src/app/AppWorkbench.tsx`：将现有 currentViewFocus 传入语音 hook。
+- `src/components/side-workbench/FilesWorkspace.editor-chrome.test.tsx`：移除本轮 B22 测试中无效的查询选项，修正类型检查错误。
+- `docs/qa/deep-usage-audit-2026-09-15.md`：追加 B24 修复结果。
+- `progress.md`：追加本项记录。
+- 回滚：`git revert $(git log -1 --format=%H --grep='fix(voice): bind dictation results to the originating view')`。
