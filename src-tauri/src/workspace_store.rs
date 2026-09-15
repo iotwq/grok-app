@@ -222,6 +222,10 @@ pub fn upsert_workspace(
                 if primary_count > 1 {
                     return Err("exactly one primary root required".into());
                 }
+                let (project_path, _) = canonicalize_workspace_root(&project.path)?;
+                if !paths_equal(&path, &project_path) {
+                    return Err("primary root does not match project path".into());
+                }
                 // Primary stays write for the main project cwd (single-project write).
                 normalized.push(WorkspaceRoot {
                     path,
@@ -271,6 +275,9 @@ pub fn upsert_workspace(
                 .iter()
                 .position(|w| w.id == existing_id)
                 .ok_or_else(|| "workspace not found".to_string())?;
+            if file.workspaces[idx].primary_project_id != primary_project_id {
+                return Err("workspace primary project cannot be changed".into());
+            }
             let mut record = WorkspaceRecord {
                 id: existing_id,
                 name,

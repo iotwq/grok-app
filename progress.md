@@ -251,3 +251,18 @@
 - `docs/llm-wiki/automations.md`：说明排期兼容规则。
 - `progress.md`：追加记录。
 - 回滚：`git revert $(git log -1 --format=%H --grep='fix(automations): preserve weekly schedule days')`。
+
+## 2026-09-15 - Task: B13 防止工作区异步结果串项目
+### What was done
+- 关闭与重新打开弹窗时使旧请求失效；过期选目录和保存结果不再污染新项目。
+- 后端拒绝主目录不匹配及已有工作区跨项目改绑。
+### Testing
+- 前端受控延迟请求 3 项通过；Host workspace 相关 13 项通过，包括拒绝错误写入、原数据不变和正常重命名；定向 ESLint 通过。
+### Notes
+- `src/hooks/useMultiRootWorkspace.ts`：请求代次、保存项目校验。
+- `src/hooks/useMultiRootWorkspace.test.tsx`：加载、目录选择和保存竞争回归。
+- `src-tauri/src/workspace_store.rs`：写入前检查项目归属及主目录。
+- `src-tauri/src/store.rs`：临时目录存储回归。
+- `docs/llm-wiki/session-continuity.md`：项目隔离约束。
+- `progress.md`：追加记录。
+- 回滚：`git revert $(git log -1 --format=%H --grep='fix(workspaces): discard stale project requests')`。

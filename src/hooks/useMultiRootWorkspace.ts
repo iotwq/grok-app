@@ -3,7 +3,7 @@
  * Keep out of AppWorkbench — pass thin callbacks only.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import * as api from "@/lib/api";
 import type { WorkspaceRecord, WorkspaceRoot } from "@/lib/multiRootWorkspace";
 import {
@@ -28,7 +28,11 @@ export function useMultiRootWorkspace() {
   const [error, setError] = useState<string | null>(null);
   const [writeCapableMode, setWriteCapableMode] = useState(false);
 
+  const generation = useRef(0);
+  useEffect(() => () => { generation.current += 1; }, []);
+
   const close = useCallback(() => {
+    generation.current += 1;
     setOpen(false);
     setTarget(null);
     setDraft(null);
@@ -37,6 +41,8 @@ export function useMultiRootWorkspace() {
   }, []);
 
   const openFor = useCallback(async (next: MultiRootWorkspaceTarget) => {
+    const request = ++generation.current;
+    setDraft(null);
     setTarget(next);
     setOpen(true);
     setError(null);
@@ -44,16 +50,19 @@ export function useMultiRootWorkspace() {
     try {
       try {
         const settings = await api.settingsGet();
+        if (request !== generation.current) return;
         setWriteCapableMode(
           (settings.sessionDataMode || "").toLowerCase() === "independent",
         );
       } catch {
+        if (request !== generation.current) return;
         setWriteCapableMode(false);
       }
       let ws: WorkspaceRecord | null = null;
       if (next.workspaceId) {
         ws = (await api.workspaceGet(next.workspaceId)) ?? null;
       }
+      if (request !== generation.current) return;
       if (!ws) {
         const list = await api.workspacesForProject(next.projectId);
         ws = list[0] ?? null;
@@ -75,17 +84,20 @@ export function useMultiRootWorkspace() {
           updatedAt: new Date().toISOString(),
         };
       }
+      if (request !== generation.current) return;
       setDraft(ws);
     } catch (e) {
+      if (request !== generation.current) return;
       setError(String(e));
       setDraft(null);
     } finally {
-      setBusy(false);
+      if (request === generation.current) setBusy(false);
     }
   }, []);
 
   const addExtraRoot = useCallback(async () => {
-    if (!draft) return;
+    if (!draft || busy) return;
+    const request = generation.current;
     if (extraRoots(draft).length >= MAX_EXTRA_WORKSPACE_ROOTS) {
       setError(`max ${MAX_EXTRA_WORKSPACE_ROOTS}`);
       return;
@@ -94,8 +106,9 @@ export function useMultiRootWorkspace() {
     setError(null);
     try {
       const picked = await api.pickDirectory();
-      if (!picked) return;
+      if (!picked || request !== generation.current) return;
       const validated = await api.workspaceValidateRoot(picked);
+      if (request !== generation.current) return;
       const path = validated.path;
       if (draft.roots.some((r) => r.path === path)) {
         setError("duplicate");
@@ -114,11 +127,11 @@ export function useMultiRootWorkspace() {
         ],
       });
     } catch (e) {
-      setError(String(e));
+      if (request === generation.current) setError(String(e));
     } finally {
-      setBusy(false);
+      if (request === generation.current) setBusy(false);
     }
-  }, [draft]);
+  }, [draft, busy]);
 
   const removeExtraRoot = useCallback(
     (path: string) => {
@@ -147,7 +160,8 @@ export function useMultiRootWorkspace() {
   );
 
   const save = useCallback(async () => {
-    if (!draft || !target) return null;
+    if (!draft || !target || busy || draft.primaryProjectId !== target.projectId) return null;
+    const request = generation.current;
     setBusy(true);
     setError(null);
     try {
@@ -158,23 +172,26 @@ export function useMultiRootWorkspace() {
         primaryProjectId: target.projectId,
         roots,
       });
+      if (request !== generation.current) return null;
       if (target.sessionId) {
         await api.sessionSetWorkspace(target.sessionId, saved.id);
       }
+      if (request !== generation.current) return null;
       try {
         await api.settingsSet({ recentWorkspaceId: saved.id });
       } catch {
         /* soft */
       }
+      if (request !== generation.current) return null;
       setDraft(saved);
       return saved;
     } catch (e) {
-      setError(String(e));
+      if (request === generation.current) setError(String(e));
       return null;
     } finally {
-      setBusy(false);
+      if (request === generation.current) setBusy(false);
     }
-  }, [draft, target]);
+  }, [draft, target, busy]);
 
   const clearBinding = useCallback(async () => {
     if (!target?.sessionId) return;

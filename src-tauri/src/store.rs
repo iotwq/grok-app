@@ -5088,6 +5088,30 @@ mod tests {
     }
 
     #[test]
+    fn workspace_rejects_cross_project_roots_and_reassignment() {
+        with_temp_app_home("workspace-project-guard", |home| {
+            use crate::workspace_store::{self, WorkspaceRoot, WorkspaceRootAccess, WorkspaceRootRole};
+            let a = home.join("a");
+            let b = home.join("b");
+            fs::create_dir_all(&a).unwrap();
+            fs::create_dir_all(&b).unwrap();
+            let pa = add_project(a.display().to_string(), true).unwrap();
+            let pb = add_project(b.display().to_string(), true).unwrap();
+            let roots = vec![WorkspaceRoot {
+                path: a.display().to_string(), role: WorkspaceRootRole::Primary,
+                access: WorkspaceRootAccess::Write, path_ok: Some(true),
+            }];
+            assert!(workspace_store::upsert_workspace(None, "bad".into(), pb.id.clone(), roots.clone()).is_err());
+            let saved = workspace_store::upsert_workspace(None, "a".into(), pa.id.clone(), roots.clone()).unwrap();
+            assert!(workspace_store::upsert_workspace(Some(saved.id.clone()), "bad".into(), pb.id, vec![]).is_err());
+            let unchanged = workspace_store::get_workspace(&saved.id).unwrap();
+            assert_eq!(unchanged.primary_project_id, pa.id);
+            assert_eq!(unchanged.name, "a");
+            assert!(workspace_store::upsert_workspace(Some(saved.id), "renamed".into(), pa.id, roots).is_ok());
+        });
+    }
+
+    #[test]
     fn new_session_binds_recent_workspace_only_for_matching_project() {
         with_temp_app_home("new-session-workspace", |home| {
             use crate::workspace_store::{

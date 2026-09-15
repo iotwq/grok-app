@@ -477,3 +477,7 @@ picked-file grants and other sessions' workspace access.
 Timeline rewind requires confirmation from the connected Agent before deleting later
 local messages. RPC failure, timeout, or a disconnected target returns an error and
 preserves the transcript. Reconnect and retry; local-only truncation is not a fallback.
+
+### 工作区弹窗项目隔离
+
+关闭、重新打开或切换项目后，旧的加载、选目录和保存结果不得覆盖当前草稿或关闭新弹窗。工作区主项目不可改绑，主根目录必须匹配该项目目录；后端在写入前检查。
