@@ -266,3 +266,15 @@
 - `docs/llm-wiki/session-continuity.md`：项目隔离约束。
 - `progress.md`：追加记录。
 - 回滚：`git revert $(git log -1 --format=%H --grep='fix(workspaces): discard stale project requests')`。
+
+## 2026-09-15 - Task: B14 防止自动任务重复提交
+### What was done
+- 保存使用同步提交锁，忙碌期间禁用编辑与关闭；失败就近显示并保留输入，允许重试。
+### Testing
+- 自动任务表单 3 项通过，包括连续点击仅创建一次、忙碌不关闭、失败输入保留和重试成功。
+### Notes
+- `src/components/AutomationsPage.tsx`：提交锁、忙碌反馈、表单错误提示。
+- `src/components/AutomationsPage.test.tsx`：受控失败和重试回归。
+- `docs/llm-wiki/automations.md`：保存交互约束。
+- `progress.md`：追加记录。
+- 回滚：`git revert $(git log -1 --format=%H --grep='fix(automations): prevent duplicate form submissions')`。

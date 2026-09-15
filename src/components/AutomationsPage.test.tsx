@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { AutomationsPage } from './AutomationsPage';
 import * as api from '../lib/api';
 vi.mock('../lib/api', async (original) => ({
@@ -37,4 +37,28 @@ it('lets users select weekdays and keeps at least one selected', async () => {
   expect(initial.disabled).toBe(false);
   fireEvent.click(initial);
   expect(other.disabled).toBe(true);
+});
+
+it('submits Create once while pending and retains input after failure for retry', async () => {
+  vi.mocked(api.automationsList).mockResolvedValue([]);
+  let reject!: (e: Error) => void;
+  vi.mocked(api.automationCreate).mockImplementationOnce(() => new Promise((_, r) => { reject = r; }));
+  render(<AutomationsPage t={t} projects={[]} onAiCreate={() => {}} />);
+  fireEvent.click(await screen.findByText('automations.createManual'));
+  fireEvent.change(screen.getByPlaceholderText('automations.field.titlePh'), { target: { value: 'Test' } });
+  fireEvent.change(screen.getByPlaceholderText('automations.field.promptPh'), { target: { value: 'Report' } });
+  const panel = screen.getByRole('complementary');
+  const create = within(panel).getByRole('button', { name: 'automations.create' });
+  fireEvent.click(create);
+  fireEvent.click(create);
+  expect(api.automationCreate).toHaveBeenCalledTimes(1);
+  expect(create.hasAttribute('disabled')).toBe(true);
+  fireEvent.click(within(panel).getByText('common.cancel'));
+  expect(screen.getByRole('complementary')).toBe(panel);
+  await act(async () => { reject(new Error('disk full')); });
+  expect(within(panel).getByRole('alert').textContent).toContain('disk full');
+  expect((screen.getByPlaceholderText('automations.field.titlePh') as HTMLInputElement).value).toBe('Test');
+  fireEvent.click(within(panel).getByRole('button', { name: 'automations.create' }));
+  await waitFor(() => expect(screen.queryByRole('complementary')).toBeNull());
+  expect(api.automationCreate).toHaveBeenCalledTimes(2);
 });

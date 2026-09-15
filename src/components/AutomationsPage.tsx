@@ -153,6 +153,8 @@ export function AutomationsPage({
   const [query, setQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  const submitting = useRef(false);
+  const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(() =>
     emptyForm(defaultModelId, defaultEffort),
@@ -556,6 +558,8 @@ export function AutomationsPage({
   ]);
 
   const openCreateManual = () => {
+    if (submitting.current) return;
+    setError(null);
     setCreateMenu(false);
     setEditingId(null);
     setForm(emptyForm(defaultModelId, defaultEffort));
@@ -563,6 +567,8 @@ export function AutomationsPage({
   };
 
   const openEdit = (auto: Automation) => {
+    if (submitting.current) return;
+    setError(null);
     setRowMenuId(null);
     setEditingId(auto.id);
     setForm({
@@ -581,11 +587,13 @@ export function AutomationsPage({
   };
 
   const closePanel = () => {
+    if (submitting.current) return;
     setPanelOpen(false);
     setEditingId(null);
   };
 
   const saveForm = async () => {
+    if (submitting.current) return;
     const title = form.title.trim();
     const prompt = form.prompt.trim();
     if (!title) {
@@ -596,6 +604,9 @@ export function AutomationsPage({
       setError(t("automations.errPrompt"));
       return;
     }
+    submitting.current = true;
+    setSaving(true);
+    setError(null);
     const nextRunAt = computeNextRunAt({
       frequency: form.frequency,
       time: form.time,
@@ -621,10 +632,14 @@ export function AutomationsPage({
       } else {
         await api.automationCreate(input);
       }
-      closePanel();
+      setPanelOpen(false);
+      setEditingId(null);
       await refresh();
     } catch (e) {
       setError(String(e));
+    } finally {
+      submitting.current = false;
+      setSaving(false);
     }
   };
 
@@ -917,7 +932,7 @@ export function AutomationsPage({
         </button>
       </div>
 
-      {error && (
+      {error && !panelOpen && (
         <div className="auto-page__error" role="alert">
           {error}
           <button type="button" onClick={() => setError(null)}>
@@ -1646,7 +1661,7 @@ export function AutomationsPage({
         )}
 
       {panelOpen && (
-        <aside className="auto-panel" aria-label={t("automations.formTitle")}>
+        <aside className="auto-panel" aria-label={t("automations.formTitle")} aria-busy={saving}>
           <div className="auto-panel__head">
             <h2>
               {editingId
@@ -1658,12 +1673,14 @@ export function AutomationsPage({
                 type="button"
                 className="chrome-btn"
                 onClick={closePanel}
+                disabled={saving}
               >
                 <IconClose size={16} />
               </button>
             </Tip>
           </div>
-          <div className="auto-panel__body">
+          {error && <div className="auto-page__error" role="alert">{error}</div>}
+          <div className="auto-panel__body" inert={saving}>
             <label className="auto-field">
               <span>{t("automations.field.title")}</span>
               <input
@@ -1775,15 +1792,16 @@ export function AutomationsPage({
             </div>
           </div>
           <div className="auto-panel__foot">
-            <button type="button" className="btn btn--ghost" onClick={closePanel}>
+            <button type="button" className="btn btn--ghost" onClick={closePanel} disabled={saving}>
               {t("common.cancel")}
             </button>
             <button
               type="button"
               className="btn btn--solid"
               onClick={() => void saveForm()}
+              disabled={saving}
             >
-              {editingId ? t("automations.save") : t("automations.create")}
+              {saving ? t("prov.saving") : editingId ? t("automations.save") : t("automations.create")}
             </button>
           </div>
         </aside>
