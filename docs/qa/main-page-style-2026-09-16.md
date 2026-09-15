@@ -43,3 +43,14 @@ git restore --source=9051e234 -- src/styles/chat.part1.css src/styles/chat.part2
 ```
 
 随后重新执行构建验证，并在 `progress.md` 追加回滚记录。
+
+
+## 欢迎区文案更新（2026-09-16）
+
+主页面原 SuperGrok 品牌展示改为 Grok，复用现有 Grok 图标；简体中文欢迎语改为「请开始你的表演」。十五种语言的欢迎语和欢迎动画设置说明同步更新；已有服务商专用标识和账户订阅信息沿用原有展示。
+
+已通过 TypeScript + Vite 构建、改动文件 ESLint、多语言与欢迎动画 44 项测试、git diff --check。隔离浏览器确认品牌与欢迎语显示正确。欢迎动画测试中的旧布局断言同步为前两轮已实施的居中布局和间距；本轮未改变动画行为。新文案仍需重新打包安装才能出现在安装版。
+
+![Grok 与新欢迎语](main-page-style-2026-09-16/welcome-copy.jpg)
+
+本轮回滚：`git revert $(git log -1 --format=%H --grep='style(welcome): use Grok branding and refresh greeting')`；本轮前基线 c96e37da。

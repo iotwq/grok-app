@@ -687,6 +687,17 @@
   transform: translate3d(0, 0, 0);
 }
 
+.composer-welcome-grok {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1.2;
+}
+
 .composer-welcome-prompt {
   width: max-content;
   max-width: calc(100% - 32px);

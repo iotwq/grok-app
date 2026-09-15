@@ -268,7 +268,7 @@ export const idSettings = {
   "settings.theme": "Tema",
   "settings.themeDesc": "Ikuti sistem, atau kunci terang / gelap",
   "settings.welcomeMotion": "Animasi sambutan",
-  "settings.welcomeMotionDesc": "Di chat baru, putar animasi masuk yang mengangkat merek dan menampilkan “Apa yang akan kita lakukan hari ini?”. Konten tetap terlihat saat dinonaktifkan.",
+  "settings.welcomeMotionDesc": "Di chat baru, putar animasi masuk yang mengangkat merek dan menampilkan “Silakan mulai pertunjukanmu.”. Konten tetap terlihat saat dinonaktifkan.",
   "settings.themeSystem": "Sistem",
   "settings.themeLight": "Terang",
   "settings.themeDark": "Gelap",

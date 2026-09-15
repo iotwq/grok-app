@@ -268,7 +268,7 @@ export const jaSettings = {
   "settings.theme": "テーマ",
   "settings.themeDesc": "システムに従うか、ライト / ダークを固定",
   "settings.welcomeMotion": "ウェルカムアニメーション",
-  "settings.welcomeMotionDesc": "新しいチャットで、ブランドが上に移動し「今日は何をしますか？」が現れる入場アニメーションを再生します。オフにしても内容は表示されます。",
+  "settings.welcomeMotionDesc": "新しいチャットで、ブランドが上に移動し「さあ、あなたのショーを始めましょう」が現れる入場アニメーションを再生します。オフにしても内容は表示されます。",
   "settings.themeSystem": "システム",
   "settings.themeLight": "ライト",
   "settings.themeDark": "ダーク",

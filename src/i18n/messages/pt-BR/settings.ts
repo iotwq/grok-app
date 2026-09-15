@@ -268,7 +268,7 @@ export const ptBRSettings = {
   "settings.theme": "Tema",
   "settings.themeDesc": "Seguir o sistema, ou fixar claro / escuro",
   "settings.welcomeMotion": "Animação de boas-vindas",
-  "settings.welcomeMotionDesc": "Em novos chats, reproduza a animação de entrada que eleva a marca e revela “O que vamos fazer hoje?”. O conteúdo continua visível quando desativada.",
+  "settings.welcomeMotionDesc": "Em novos chats, reproduza a animação de entrada que eleva a marca e revela “Que comece o seu show.”. O conteúdo continua visível quando desativada.",
   "settings.themeSystem": "Sistema",
   "settings.themeLight": "Claro",
   "settings.themeDark": "Escuro",

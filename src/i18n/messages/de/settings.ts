@@ -268,7 +268,7 @@ export const deSettings = {
   "settings.theme": "Design",
   "settings.themeDesc": "Dem System folgen oder Hell / Dunkel festlegen",
   "settings.welcomeMotion": "Willkommensanimation",
-  "settings.welcomeMotionDesc": "In neuen Chats die Animation abspielen, bei der die Marke nach oben gleitet und „Was möchtest du heute machen?“ eingeblendet wird. Wenn deaktiviert, bleiben die Inhalte sichtbar.",
+  "settings.welcomeMotionDesc": "In neuen Chats die Animation abspielen, bei der die Marke nach oben gleitet und „Die Bühne gehört dir.“ eingeblendet wird. Wenn deaktiviert, bleiben die Inhalte sichtbar.",
   "settings.themeSystem": "System",
   "settings.themeLight": "Hell",
   "settings.themeDark": "Dunkel",

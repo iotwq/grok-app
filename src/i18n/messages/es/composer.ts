@@ -1,7 +1,7 @@
 /** es messages — domain: composer */
 export const esComposer = {
   "composer.placeholder": "Escribe con libertad…",
-  "composer.welcomePrompt": "¿Qué haremos hoy?",
+  "composer.welcomePrompt": "Que empiece tu espectáculo.",
   "composer.add": "Añadir",
   "composer.commandPanel": "Panel de comandos",
   "composer.addFiles": "Subir archivos",

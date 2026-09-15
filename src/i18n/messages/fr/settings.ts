@@ -268,7 +268,7 @@ export const frSettings = {
   "settings.theme": "Thème",
   "settings.themeDesc": "Suivre le système, ou verrouiller clair / sombre",
   "settings.welcomeMotion": "Animation de bienvenue",
-  "settings.welcomeMotionDesc": "Dans les nouvelles discussions, jouer l’animation d’entrée qui fait monter la marque et révèle « Que faisons-nous aujourd’hui ? ». Le contenu reste visible lorsqu’elle est désactivée.",
+  "settings.welcomeMotionDesc": "Dans les nouvelles discussions, jouer l’animation d’entrée qui fait monter la marque et révèle « Que ton spectacle commence. ». Le contenu reste visible lorsqu’elle est désactivée.",
   "settings.themeSystem": "Système",
   "settings.themeLight": "Clair",
   "settings.themeDark": "Sombre",

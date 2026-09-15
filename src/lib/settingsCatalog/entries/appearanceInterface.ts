@@ -62,6 +62,8 @@ export const APPEARANCE_INTERFACE_ENTRIES: readonly SettingsEntry[] = [
       "新對話動畫",
       "今天做什么",
       "今天做什麼",
+      "请开始你的表演",
+      "請開始你的表演",
     ],
   },
   {

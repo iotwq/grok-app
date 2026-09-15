@@ -291,7 +291,7 @@ export const enSettings = {
   "settings.theme": "Theme",
   "settings.themeDesc": "Follow the system, or lock light / dark",
   "settings.welcomeMotion": "Welcome animation",
-  "settings.welcomeMotionDesc": "In new chats, play the entrance animation that lifts the brand and reveals “What will we do today?”. The content remains visible when disabled.",
+  "settings.welcomeMotionDesc": "In new chats, play the entrance animation that lifts the brand and reveals “Let your show begin.”. The content remains visible when disabled.",
   "settings.themeSystem": "System",
   "settings.themeLight": "Light",
   "settings.themeDark": "Dark",

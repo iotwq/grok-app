@@ -1,7 +1,7 @@
 /** ru messages — domain: composer */
 export const ruComposer = {
   "composer.placeholder": "Пишите свободно…",
-  "composer.welcomePrompt": "Что будем делать сегодня?",
+  "composer.welcomePrompt": "Начни своё выступление.",
   "composer.add": "Добавить",
   "composer.commandPanel": "Панель команд",
   "composer.addFiles": "Загрузить файлы",

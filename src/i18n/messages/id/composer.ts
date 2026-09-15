@@ -1,7 +1,7 @@
 /** id messages — domain: composer */
 export const idComposer = {
   "composer.placeholder": "Ketik bebas…",
-  "composer.welcomePrompt": "Apa yang akan kita lakukan hari ini?",
+  "composer.welcomePrompt": "Silakan mulai pertunjukanmu.",
   "composer.add": "Tambah",
   "composer.commandPanel": "Panel perintah",
   "composer.addFiles": "Unggah berkas",

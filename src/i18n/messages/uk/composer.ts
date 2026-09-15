@@ -1,7 +1,7 @@
 /** uk messages — domain: composer */
 export const ukComposer = {
   "composer.placeholder": "Пишіть вільно…",
-  "composer.welcomePrompt": "Що робитимемо сьогодні?",
+  "composer.welcomePrompt": "Розпочни свій виступ.",
   "composer.add": "Додати",
   "composer.commandPanel": "Панель команд",
   "composer.addFiles": "Завантажити файли",

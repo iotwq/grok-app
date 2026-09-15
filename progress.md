@@ -638,3 +638,52 @@
 - `progress.md`：追加本轮完成与验证记录。
 - 回滚：`git revert $(git log -1 --format=%H --grep='feat(composer): move model picker inside and tuck tools into add menu')`；本轮前基线 df3573af。
 - 仅本地改动，未推送、发布、制作 DMG 或替换 /Applications/Grok.app。
+
+## 2026-09-16 - Task: 主页面品牌改为 Grok 并更新欢迎语
+### What was done
+- 将主页面原 SuperGrok 展示改为 Grok，欢迎语改为「请开始你的表演」。
+- 同步十五种语言的欢迎语、对应动画设置说明，以及新文案的设置搜索词。
+### Testing
+- pnpm build:ui、改动文件 ESLint、git diff --check 通过；构建保留既有大分块提示。
+- 多语言与欢迎动画 2 文件 44 项通过；动画测试内旧布局断言同步为已实施的居中布局，未新增镜像实现的测试。
+- 隔离浏览器实际显示 Grok 和「请开始你的表演」，布局正常；未替换安装版、调用模型或录音。
+### Notes
+- `docs/qa/main-page-style-2026-09-16.md`：追加文案更新与验证、回滚说明。
+- `src/app/WorkbenchComposerColumn.tsx`：主页面用现有 Grok 图标和 Grok 文字替代 SuperGrok 字标。
+- `src/i18n/messages/de/composer.ts`：同步欢迎语文案。
+- `src/i18n/messages/de/settings.ts`：同步欢迎动画说明引用的文案。
+- `src/i18n/messages/en/composer.ts`：同步欢迎语文案。
+- `src/i18n/messages/en/settings.ts`：同步欢迎动画说明引用的文案。
+- `src/i18n/messages/es/composer.ts`：同步欢迎语文案。
+- `src/i18n/messages/es/settings.ts`：同步欢迎动画说明引用的文案。
+- `src/i18n/messages/fil/composer.ts`：同步欢迎语文案。
+- `src/i18n/messages/fil/settings.ts`：同步欢迎动画说明引用的文案。
+- `src/i18n/messages/fr/composer.ts`：同步欢迎语文案。
+- `src/i18n/messages/fr/settings.ts`：同步欢迎动画说明引用的文案。
+- `src/i18n/messages/id/composer.ts`：同步欢迎语文案。
+- `src/i18n/messages/id/settings.ts`：同步欢迎动画说明引用的文案。
+- `src/i18n/messages/it/composer.ts`：同步欢迎语文案。
+- `src/i18n/messages/it/settings.ts`：同步欢迎动画说明引用的文案。
+- `src/i18n/messages/ja/composer.ts`：同步欢迎语文案。
+- `src/i18n/messages/ja/settings.ts`：同步欢迎动画说明引用的文案。
+- `src/i18n/messages/ko/composer.ts`：同步欢迎语文案。
+- `src/i18n/messages/ko/settings.ts`：同步欢迎动画说明引用的文案。
+- `src/i18n/messages/pt-BR/composer.ts`：同步欢迎语文案。
+- `src/i18n/messages/pt-BR/settings.ts`：同步欢迎动画说明引用的文案。
+- `src/i18n/messages/ru/composer.ts`：同步欢迎语文案。
+- `src/i18n/messages/ru/settings.ts`：同步欢迎动画说明引用的文案。
+- `src/i18n/messages/ta/composer.ts`：同步欢迎语文案。
+- `src/i18n/messages/ta/settings.ts`：同步欢迎动画说明引用的文案。
+- `src/i18n/messages/uk/composer.ts`：同步欢迎语文案。
+- `src/i18n/messages/uk/settings.ts`：同步欢迎动画说明引用的文案。
+- `src/i18n/messages/zh-TW/composer.ts`：同步欢迎语文案。
+- `src/i18n/messages/zh-TW/settings.ts`：同步欢迎动画说明引用的文案。
+- `src/i18n/messages/zh/composer.ts`：同步欢迎语文案。
+- `src/i18n/messages/zh/settings.ts`：同步欢迎动画说明引用的文案。
+- `src/lib/settingsCatalog/entries/appearanceInterface.ts`：新欢迎语可检索到对应动画设置。
+- `src/lib/welcomeIntro.guard.test.ts`：将旧间距与下沉布局断言同步为已实施的主页样式。
+- `src/styles/chat.part1.css`：设置 Grok 品牌图文间距与字重，沿用主题色。
+- `docs/qa/main-page-style-2026-09-16/welcome-copy.jpg`：保存本轮主页实际截图。
+- `progress.md`：追加本轮记录。
+- 回滚：`git revert $(git log -1 --format=%H --grep='style(welcome): use Grok branding and refresh greeting')`；本轮前基线 c96e37da。
+- 仅本地提交，未制作 DMG 或推送发布。

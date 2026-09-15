@@ -268,7 +268,7 @@ export const koSettings = {
   "settings.theme": "테마",
   "settings.themeDesc": "시스템을 따르거나 라이트 / 다크를 고정",
   "settings.welcomeMotion": "환영 애니메이션",
-  "settings.welcomeMotionDesc": "새 채팅에서 브랜드가 위로 이동하고 “오늘 무엇을 할까요?”가 나타나는 입장 애니메이션을 재생합니다. 꺼도 콘텐츠는 계속 표시됩니다.",
+  "settings.welcomeMotionDesc": "새 채팅에서 브랜드가 위로 이동하고 “당신의 무대를 시작해 주세요.”가 나타나는 입장 애니메이션을 재생합니다. 꺼도 콘텐츠는 계속 표시됩니다.",
   "settings.themeSystem": "시스템",
   "settings.themeLight": "가볍게",
   "settings.themeDark": "다크",

@@ -268,7 +268,7 @@ export const itSettings = {
   "settings.theme": "Tema",
   "settings.themeDesc": "Aspetto dell’interfaccia dell’app",
   "settings.welcomeMotion": "Animazione di benvenuto",
-  "settings.welcomeMotionDesc": "Nelle nuove chat, riproduci l’animazione d’ingresso che solleva il marchio e mostra «Cosa facciamo oggi?». Se disattivata, i contenuti restano visibili.",
+  "settings.welcomeMotionDesc": "Nelle nuove chat, riproduci l’animazione d’ingresso che solleva il marchio e mostra «Che il tuo spettacolo abbia inizio.». Se disattivata, i contenuti restano visibili.",
   "settings.themeSystem": "Sistema",
   "settings.themeLight": "Chiaro",
   "settings.themeDark": "Scuro",

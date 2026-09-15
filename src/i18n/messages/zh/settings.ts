@@ -291,7 +291,7 @@ export const zhSettings = {
   "settings.theme": "主题",
   "settings.themeDesc": "跟随系统，或固定浅色 / 深色",
   "settings.welcomeMotion": "欢迎动画",
-  "settings.welcomeMotionDesc": "在新对话中播放品牌上移及“今天做什么？”的入场动画；关闭后内容仍会显示。",
+  "settings.welcomeMotionDesc": "在新对话中播放品牌上移及“请开始你的表演”的入场动画；关闭后内容仍会显示。",
   "settings.themeSystem": "跟随系统",
   "settings.themeLight": "浅色",
   "settings.themeDark": "深色",

@@ -40,7 +40,7 @@ import { ComposerRemoteMenu } from "@/components/ComposerRemoteMenu";
 import { ComposerWorktreeMenu } from "@/components/ComposerWorktreeMenu";
 import { AskUserBar } from "@/components/AskUserBar";
 import { PermissionCountdown } from "@/components/PermissionCountdown";
-import { SuperGrokMark } from "@/components/SuperGrokMark";
+import { GrokLogo } from "@/components/GrokLogo";
 import { IconFileDiff, IconGitBranch } from "@/components/icons";
 import { Tip } from "@/components/ui/tooltip";
 import { mapProjectsList, projectDisplayName } from "@/lib/app/sidebarModels";
@@ -285,7 +285,6 @@ type ComposerAttachLabels = {
 
 export function WorkbenchComposerColumn(p: WorkbenchComposerColumnProps) {
   const {
-    account,
     activeProject,
     addProjectFromPicker,
     bindSessionProject,
@@ -406,17 +405,10 @@ export function WorkbenchComposerColumn(p: WorkbenchComposerColumnProps) {
               >
                 <div className="composer-welcome-brand">
                   {welcomeProviderBrandNode ?? (
-                    <SuperGrokMark
-                      kind={welcomeBrandKind}
-                      title={
-                        customRouteActive
-                          ? "SuperGrok"
-                          : account?.billing?.subscriptionTier?.trim() ||
-                            (welcomeBrandKind === "heavy"
-                              ? "SuperGrok Heavy"
-                              : "SuperGrok")
-                      }
-                    />
+                    <span className="composer-welcome-grok">
+                      <GrokLogo size={36} />
+                      <span aria-hidden="true">Grok</span>
+                    </span>
                   )}
                 </div>
                 <div
