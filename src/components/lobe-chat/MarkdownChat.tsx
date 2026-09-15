@@ -395,16 +395,31 @@ export const MarkdownChat = memo(function MarkdownChat({
    * rendering (no plain-pre bare-syntax fallback).
    */
   const [mdSource, setMdSource] = useState(source);
+  const pendingSourceRef = useRef(source);
+  const parseTimerRef = useRef<number | null>(null);
   useEffect(() => {
+    pendingSourceRef.current = source;
     if (!streaming || parseMs <= 0) {
+      if (parseTimerRef.current != null) {
+        window.clearTimeout(parseTimerRef.current);
+        parseTimerRef.current = null;
+      }
       setMdSource(source);
       return;
     }
-    const id = window.setTimeout(() => {
-      setMdSource(source);
+    // Keep the first deadline; restarting it on each chunk starves live paint.
+    if (parseTimerRef.current != null) return;
+    parseTimerRef.current = window.setTimeout(() => {
+      parseTimerRef.current = null;
+      setMdSource(pendingSourceRef.current);
     }, parseMs);
-    return () => window.clearTimeout(id);
   }, [source, streaming, parseMs]);
+  useEffect(() => () => {
+    if (parseTimerRef.current != null) {
+      window.clearTimeout(parseTimerRef.current);
+      parseTimerRef.current = null;
+    }
+  }, []);
   const painted = resolveMarkdownPaintSource(streaming, source, mdSource);
 
   const qFind = findQuery.trim();

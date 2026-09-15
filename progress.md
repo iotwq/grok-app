@@ -387,3 +387,18 @@
 - `docs/qa/macos-package-2026-09-15.md`：来源、验证结果、安装与公证边界。
 - `progress.md`：追加本轮记录。
 - 回滚文档：`git revert $(git log -1 --format=%H --grep='docs(build): record verified macOS repair installer')`；移除产物：`rm dist-installers/Grok_0.2.35_ba5e835f_aarch64.dmg dist-installers/SHA256SUMS-ba5e835f.txt`。未安装覆盖正式 App，未推送、打 tag 或发布。
+
+## 2026-09-15 - Task: 修复流式文字持续到达时界面停止刷新
+### What was done
+- 将 Markdown 流式刷新从反复延期改为固定截止时间读取最新内容，保留长文本解析限频及结束立即展示。
+- 新增持续输出、尾部刷新、结束及卸载的真实组件回归。
+### Testing
+- 三组短/中/长文本持续输出用例修复前均失败，修复后通过。
+- MarkdownChat、streamRenderPolicy、softStreamBuffer 共 24 项通过；定向 ESLint 通过。
+- 模拟时钟验证刷新逻辑，不代表安装版帧率；未调用真实模型。
+### Notes
+- `src/components/lobe-chat/MarkdownChat.tsx`：固定刷新截止时间、最新内容引用和计时器清理。
+- `src/components/lobe-chat/MarkdownChat.test.tsx`：持续分片与结束/卸载回归。
+- `docs/qa/stream-input-performance-2026-09-15.md`：记录原因、显示约定与验证边界。
+- `progress.md`：追加本轮记录。
+- 回滚：`git revert $(git log -1 --format=%H --grep='fix(chat): keep streaming markdown paints on schedule')`。未推送或替换安装版。

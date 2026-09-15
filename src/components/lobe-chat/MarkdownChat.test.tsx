@@ -1,9 +1,9 @@
 /**
  * @vitest-environment jsdom
  */
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { cleanup, render } from "@testing-library/react";
+import { act, cleanup, render } from "@testing-library/react";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import {
@@ -14,7 +14,53 @@ import {
 } from "./MarkdownChat";
 import { MARKDOWN_REHYPE_PLUGINS, MARKDOWN_REMARK_PLUGINS } from "@/lib/markdownMath";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
+
+describe("streaming MarkdownChat", () => {
+  it.each([
+    { length: 0, interval: 60 },
+    { length: 2100, interval: 128 },
+    { length: 12100, interval: 250 },
+  ])("keeps painting $length characters with chunks every $interval ms", ({ length, interval }) => {
+    vi.useFakeTimers();
+    let text = "a".repeat(length) + "seed";
+    const view = render(<MarkdownChat streaming>{text}</MarkdownChat>);
+    let lastPaint = view.container.textContent;
+    for (let i = 0; i < 18; i++) {
+      text += ` chunk${i}`;
+      view.rerender(<MarkdownChat streaming>{text}</MarkdownChat>);
+      act(() => {
+        vi.advanceTimersByTime(interval);
+      });
+      if (i % 3 === 2) {
+        expect(view.container.textContent).not.toBe(lastPaint);
+        lastPaint = view.container.textContent;
+      }
+    }
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+    expect(view.container.textContent).toBe(text);
+  });
+
+  it("shows the final text immediately and cancels pending paints on settle/unmount", () => {
+    vi.useFakeTimers();
+    const view = render(<MarkdownChat streaming>{"first"}</MarkdownChat>);
+    view.rerender(<MarkdownChat streaming>{"first unfinished"}</MarkdownChat>);
+    view.rerender(<MarkdownChat streaming={false}>{"final answer"}</MarkdownChat>);
+    expect(view.container.textContent).toBe("final answer");
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+    expect(view.container.textContent).toBe("final answer");
+    view.rerender(<MarkdownChat streaming>{"next turn"}</MarkdownChat>);
+    view.unmount();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+});
 
 describe("MarkdownChat", () => {
   it("keeps a stable remarkPlugins array", () => {
