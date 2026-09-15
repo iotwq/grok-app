@@ -483,7 +483,11 @@ pub fn compute_next_run_at(
             }
             "weekly" => {
                 if auto.weekdays.is_empty() {
-                    wd == auto.next_run_at.unwrap_or(auto.created_at).with_timezone(&Local).weekday()
+                    wd == auto
+                        .next_run_at
+                        .unwrap_or(auto.created_at)
+                        .with_timezone(&Local)
+                        .weekday()
                 } else {
                     let js = weekday_to_js(wd);
                     auto.weekdays.contains(&js)
@@ -579,20 +583,37 @@ mod tests {
 
     #[test]
     fn weekly_legacy_keeps_anchor_even_when_run_is_delayed() {
-        let anchor = Local.with_ymd_and_hms(2026, 9, 15, 9, 0, 0).unwrap().with_timezone(&Utc);
+        let anchor = Local
+            .with_ymd_and_hms(2026, 9, 15, 9, 0, 0)
+            .unwrap()
+            .with_timezone(&Utc);
         let mut a = sample("weekly", "09:00", vec![]);
         a.created_at = anchor;
         a.next_run_at = Some(anchor);
         for delay in [1, 25] {
             let after = anchor + ChronoDuration::hours(delay);
-            let next = compute_next_run_at(&a, after).unwrap().with_timezone(&Local);
+            let next = compute_next_run_at(&a, after)
+                .unwrap()
+                .with_timezone(&Local);
             assert_eq!(next.weekday(), Weekday::Tue);
             assert_eq!(next.day(), 22);
         }
         a.next_run_at = None;
-        assert_eq!(compute_next_run_at(&a, anchor).unwrap().with_timezone(&Local).day(), 22);
+        assert_eq!(
+            compute_next_run_at(&a, anchor)
+                .unwrap()
+                .with_timezone(&Local)
+                .day(),
+            22
+        );
         a.weekdays = vec![1, 3, 5];
-        assert_eq!(compute_next_run_at(&a, anchor).unwrap().with_timezone(&Local).day(), 16);
+        assert_eq!(
+            compute_next_run_at(&a, anchor)
+                .unwrap()
+                .with_timezone(&Local)
+                .day(),
+            16
+        );
     }
 
     #[test]

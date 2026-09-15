@@ -348,3 +348,22 @@
 - `docs/llm-wiki/dialogs.md`：按钮及目录卡片约定。
 - `progress.md`：追加记录。
 - 回滚：`git revert $(git log -1 --format=%H --grep='fix(appearance): use supported button and card styles')`。
+
+## 2026-09-15 - Task: B11–B19 统一验收与收尾
+### What was done
+- 汇总九项独立修复、交互验证和交付边界，保留审计原文。
+- 收尾修正本轮星期按钮在窄表单中的换行；仅格式化本轮新增 Rust 片段，逐块确认未触及历史代码。
+- 临时 UI 样例已移出仓库，测试标签关闭，窗口尺寸恢复，开发服务停止。
+### Testing
+- 前端全量：658 个文件、7,552 项通过；最后星期换行调整后，表单 3 项定向回归与 TypeScript/UI 构建再次通过。
+- 浏览器：900×600 深浅工作区、外观按钮；真实父子弹窗、Select 方向键/Enter/Esc/Tab；窄表单英文星期七天完整显示并换行。
+- Host 全量：1,888 通过、1 忽略、1 失败。唯一失败是上一轮已在 f21ad3f2 对照复现的局域网镜像地址超时，不声称全套通过。
+- ESLint、Rust fmt、Clippy all-targets 零警告、final 质量门禁、git diff --check 通过；未增长 App/AppWorkbench。
+- 日志位于 /tmp/grok-ux-*.log；未进行签名安装包或真实付费任务验证。
+### Notes
+- `src/components/AutomationsPage.tsx`：星期选择允许换行，避免窄表单横向溢出。
+- `src-tauri/src/automation_runner.rs`、`src-tauri/src/store.rs`：仅整理本轮新增代码格式。
+- `docs/llm-wiki/automations.md`：补充星期布局规则。
+- `docs/qa/ux-logic-audit-2026-09-15.md`：追加九项修复、提交和统一验证结果。
+- `progress.md`：追加收尾记录。
+- 回滚：`git revert $(git log -1 --format=%H --grep='chore(qa): record usability fixes and validation')`；产品修复可按审计表逐项 revert，整轮修复前基线为 `27dbda6f`。未推送远端。

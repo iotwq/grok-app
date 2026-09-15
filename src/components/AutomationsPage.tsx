@@ -1751,7 +1751,7 @@ export function AutomationsPage({
                 />
               </div>
               {form.frequency === "weekly" && (
-                <div className="auto-page__filters" role="group" aria-label={t("automations.freq.weekly")}>
+                <div className="auto-page__filters" style={{ flexWrap: "wrap" }} role="group" aria-label={t("automations.freq.weekly")}>
                   {[0, 1, 2, 3, 4, 5, 6].map((day) => (
                     <button
                       key={day}
