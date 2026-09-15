@@ -449,3 +449,16 @@
 - `docs/qa/deep-usage-audit-2026-09-15.md`：追加 B20 修复结果。
 - `progress.md`：追加本项记录。
 - 回滚：`git revert $(git log -1 --format=%H --grep='fix(editor): preserve markdown images and tables')`，随后 `pnpm install --frozen-lockfile`。
+
+## 2026-09-15 - Task: 修复 B21 外部同名文件身份混淆
+### What was done
+- 外部文件保留完整路径，仅为项目内文件提供相对别名，修复刷新读错和同名标签误复用。
+### Testing
+- 两项缺陷回归修复前失败、修复后通过；验证外部文件刷新/保存、同名文件独立、项目内绝对/相对入口复用。
+- 文件相关 38 项测试、定向 ESLint、git diff --check 通过。
+### Notes
+- `src/components/resource-viewer/useResourceFileTabs.ts`：外部文件标签键保留绝对路径。
+- `src/components/resource-viewer/useResourceFileTabs.test.tsx`：文件身份、刷新和保存回归。
+- `docs/qa/deep-usage-audit-2026-09-15.md`：追加 B21 修复结果。
+- `progress.md`：追加本项记录。
+- 回滚：`git revert $(git log -1 --format=%H --grep='fix(files): keep external file paths distinct')`。

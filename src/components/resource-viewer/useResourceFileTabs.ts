@@ -526,8 +526,9 @@ const openAbsoluteFile = useCallback(
           : await api.fsOpenPath(norm, projectPath);
       }
       const src = await resolvePreviewSrc(r);
-      // Prefer project-relative tab key when file is under project
-      let relKey = r.relativePath || baseName(norm);
+      // Only files under this project may have a project-relative alias.
+      // Absolute reads return a basename in relativePath, even for external files.
+      let relKey = r.absolutePath || norm;
       if (projectPath && r.absolutePath) {
         const root = projectPath.replace(/[/\\]+$/, "").replace(/\\/g, "/");
         const absN = r.absolutePath.replace(/\\/g, "/");
