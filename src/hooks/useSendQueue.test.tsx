@@ -61,3 +61,45 @@ it("releases the edited session's hold when the user closes after navigating awa
   await advance();
   expect(execute).toHaveBeenCalledOnce();
 });
+
+for (const failure of ["false", "throw"] as const) {
+  it(`holds a ${failure} failure until explicit retry, including ready/disconnected transitions`, async () => {
+    const { result, execute, transition } = setup("ready");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    execute.mockImplementation(async () => {
+      if (failure === "throw") throw new Error("send failed");
+      return false;
+    });
+    await advance();
+    expect(result.current.queue.flushHold).toBe(true);
+    for (const state of ["streaming", "ready", "disconnected", "ready"] as const) {
+      transition(state);
+      await advance();
+    }
+    transition("ready", "s2");
+    expect(result.current.queue.flushHold).toBe(false);
+    transition("ready", "s1");
+    await advance();
+    expect(execute).toHaveBeenCalledOnce();
+    expect(result.current.queue.activeQueue).toHaveLength(1);
+    execute.mockResolvedValue(true);
+    act(() => result.current.queue.resumeFlush());
+    await advance();
+    expect(execute).toHaveBeenCalledTimes(2);
+    expect(result.current.queue.activeQueue).toHaveLength(0);
+    expect(result.current.queue.flushHold).toBe(false);
+    warn.mockRestore();
+  });
+}
+
+it("keeps edit pause even if retry is requested while the editor is open", async () => {
+  const { result, transition, execute } = setup();
+  act(() => result.current.edit.openEdit(result.current.queue.activeQueue[0]!));
+  transition("ready");
+  act(() => result.current.queue.resumeFlush());
+  await advance();
+  expect(execute).not.toHaveBeenCalled();
+  act(() => result.current.edit.closeEdit());
+  await advance();
+  expect(execute).toHaveBeenCalledOnce();
+});

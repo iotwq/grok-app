@@ -415,29 +415,23 @@ export function useSendQueue({
           head,
         );
         writeMap(r.byKey);
-        // Hold only while the session is still live/busy. Terminal failures
-        // (error/cancel/disconnect) must release the key so it can recover.
-        const liveAfter = liveHostRef.current;
-        const terminal =
-          liveAfter.state === "ready" ||
-          liveAfter.state === "disconnected" ||
-          !!liveAfter.lastError;
-        setHoldForKey(claimKey, !terminal);
+        // A ready state is also the normal rollback after a failed send.
+        // Keep the message paused until the user explicitly resumes it.
+        setHoldForKey(claimKey, true);
         if (r.dropped > 0) {
           showToast(labels.droppedOldest(r.dropped, SEND_QUEUE_MAX), 3500);
         } else {
           showToast(labels.sendFailed, 3500);
         }
       } catch (e) {
-        // Keep a rejected executeSend from leaving the queue claimed or the
-        // hold permanently wedged. Requeue is idempotent by item id.
+        // Requeue rejected sends once and expose the same explicit retry path.
         const r = requeueAfterFlushFail(
           sendQueueByKeyRef.current,
           claimKey,
           head,
         );
         writeMap(r.byKey);
-        setHoldForKey(claimKey, false);
+        setHoldForKey(claimKey, true);
         console.warn("[send-queue] flush failed", e);
       }
     })();
@@ -455,22 +449,6 @@ export function useSendQueue({
     isSendInFlightForKey,
     isConnectingForKey,
   ]);
-
-  // Clear the viewed key's hold once a real turn is in progress again, and on
-  // terminal/disconnected transitions. Holds for other sessions remain local.
-  const previousSessionStateRef = useRef(sessionState);
-  useEffect(() => {
-    const key = viewedQueueKey();
-    const wasBusy =
-      previousSessionStateRef.current === "streaming" ||
-      previousSessionStateRef.current === "awaiting_permission";
-    const isBusy =
-      sessionState === "streaming" || sessionState === "awaiting_permission";
-    if (isBusy || (wasBusy && !isBusy) || sessionState === "disconnected") {
-      setHoldForKey(key, false);
-    }
-    previousSessionStateRef.current = sessionState;
-  }, [sessionState, sessionId, setHoldForKey, viewedQueueKey]);
 
   // Keep the visible strip in sync when navigation changes without touching
   // another session's hold bit.

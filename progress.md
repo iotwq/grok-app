@@ -508,3 +508,17 @@
 - `docs/qa/deep-usage-audit-2026-09-15.md`：追加 B24 修复结果。
 - `progress.md`：追加本项记录。
 - 回滚：`git revert $(git log -1 --format=%H --grep='fix(voice): bind dictation results to the originating view')`。
+
+## 2026-09-15 - Task: 修复 B25 发送队列失败后自动重试循环
+### What was done
+- 返回失败或异常都将消息放回队列并稳定暂停，停止由就绪/断开状态转换触发的自动重试。
+- 保留现有显式恢复入口，并验证恢复不会绕过仍打开的队列编辑窗口。
+### Testing
+- 返回 false 与抛错的两项回归修复前失败、修复后通过；验证状态转换、导航及重试成功后的队列清空。
+- 队列/弹窗 44 项测试、定向 ESLint、git diff --check 通过。
+### Notes
+- `src/hooks/useSendQueue.ts`：统一失败暂停，删除按会话状态自动清除暂停的 effect。
+- `src/hooks/useSendQueue.test.tsx`：失败保留、显式重试及编辑暂停保护回归。
+- `docs/qa/deep-usage-audit-2026-09-15.md`：追加 B25 修复结果。
+- `progress.md`：追加本项记录。
+- 回滚：`git revert $(git log -1 --format=%H --grep='fix(queue): wait for explicit retry after send failures')`。
