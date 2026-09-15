@@ -105,7 +105,7 @@ export function AppearanceChromeCard() {
             </div>
             <button
               type="button"
-              className="btn ghost sm"
+              className="btn btn--ghost btn--sm"
               id="settings-anchor-appearanceReset"
               onClick={() => setResetOpen(true)}
             >

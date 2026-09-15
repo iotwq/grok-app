@@ -331,3 +331,20 @@
 - `docs/llm-wiki/dialogs.md`：下拉键盘契约。
 - `progress.md`：追加记录。
 - 回滚：`git revert $(git log -1 --format=%H --grep='fix(select): support keyboard navigation inside dialogs')`。
+
+## 2026-09-15 - Task: B19 恢复工作区和外观按钮样式
+### What was done
+- 工作区主次按钮、外观重置小按钮改用实际存在的变体，目录卡片复用实心设置卡片。
+- 清理临时验证页、恢复浏览器尺寸并关闭测试标签。
+### Testing
+- 原组件 + 原 CSS 在 900×600 深浅主题均完成视觉检查：主按钮有强调色，次按钮有边框，目录卡片有实心背景，四个附加目录可滚动且底部操作可达。
+- 真实 AppearanceChromeCard 恢复按钮深浅主题已检查；Esc 关闭子弹窗后焦点回到恢复按钮。
+- 真实浏览器 Select 验证：方向键跳过禁用项、Enter 保存 Beta、Tab 回到弹窗关闭按钮、Esc 仅收起菜单并返回触发按钮。
+- 临时样例全为模拟数据，未修改用户偏好或真实项目；夹具留于 /tmp/grok-ux-fixes/。
+### Notes
+- `src/components/MultiRootWorkspaceModal.tsx`：既有按钮变体和实心卡片。
+- `src/components/settings/AppearanceChromeCard.tsx`：恢复默认小按钮样式。
+- `src/components/settings/AppearanceSection.tsx`：字体重置小按钮样式。
+- `docs/llm-wiki/dialogs.md`：按钮及目录卡片约定。
+- `progress.md`：追加记录。
+- 回滚：`git revert $(git log -1 --format=%H --grep='fix(appearance): use supported button and card styles')`。

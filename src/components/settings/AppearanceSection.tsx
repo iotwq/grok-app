@@ -942,7 +942,7 @@ export function AppearanceSection() {
                 />
                 <button
                   type="button"
-                  className="btn ghost sm"
+                  className="btn btn--ghost btn--sm"
                   onClick={() => onResetUiFont?.()}
                 >
                   {t("settings.fontReset")}
@@ -990,7 +990,7 @@ export function AppearanceSection() {
                 </label>
                 <button
                   type="button"
-                  className="btn ghost sm"
+                  className="btn btn--ghost btn--sm"
                   onClick={() => onResetTerminalFont?.()}
                 >
                   {t("settings.fontReset")}

@@ -66,7 +66,7 @@ export function MultiRootWorkspaceModal({
           {onClearBinding ? (
             <button
               type="button"
-              className="btn ghost"
+              className="btn btn--ghost"
               disabled={busy}
               onClick={onClearBinding}
             >
@@ -75,7 +75,7 @@ export function MultiRootWorkspaceModal({
           ) : null}
           <button
             type="button"
-            className="btn ghost"
+            className="btn btn--ghost"
             disabled={busy}
             onClick={onClose}
           >
@@ -83,7 +83,7 @@ export function MultiRootWorkspaceModal({
           </button>
           <button
             type="button"
-            className="btn primary"
+            className="btn btn--primary"
             disabled={busy || !draft}
             onClick={onSave}
           >
@@ -130,7 +130,7 @@ export function MultiRootWorkspaceModal({
       </label>
       <div className="field">
         <span className="field-label">{tr("workspace.multiRoot.primary")}</span>
-        <div className="menu-panel glass-panel" style={{ padding: "10px 12px" }}>
+        <div className="settings-card" style={{ padding: "10px 12px" }}>
           <div style={{ fontWeight: 600 }}>{projectName}</div>
           <div className="muted" style={{ fontSize: 12, wordBreak: "break-all" }}>
             {primary?.path ?? "—"}
@@ -158,7 +158,7 @@ export function MultiRootWorkspaceModal({
           </span>
           <button
             type="button"
-            className="btn ghost"
+            className="btn btn--ghost"
             disabled={busy || !draft || atCap}
             onClick={onAddRoot}
           >
@@ -174,7 +174,7 @@ export function MultiRootWorkspaceModal({
             {extras.map((r) => (
               <li
                 key={r.path}
-                className="menu-panel glass-panel"
+                className="settings-card"
                 style={{
                   padding: "10px 12px",
                   marginBottom: 8,
@@ -227,7 +227,7 @@ export function MultiRootWorkspaceModal({
                 </div>
                 <button
                   type="button"
-                  className="btn ghost"
+                  className="btn btn--ghost"
                   disabled={busy}
                   onClick={() => onRemoveRoot(r.path)}
                 >
