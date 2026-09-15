@@ -367,3 +367,23 @@
 - `docs/qa/ux-logic-audit-2026-09-15.md`：追加九项修复、提交和统一验证结果。
 - `progress.md`：追加收尾记录。
 - 回滚：`git revert $(git log -1 --format=%H --grep='chore(qa): record usability fixes and validation')`；产品修复可按审计表逐项 revert，整轮修复前基线为 `27dbda6f`。未推送远端。
+
+## 2026-09-15 - Task: 制作包含运行与交互修复的 macOS 安装包
+### What was done
+- 从干净源码 ba5e835f 制作 Apple Silicon release app/dmg，文件名附带提交号，与旧 0.2.35 安装包区分。
+- 发现默认本地包仅有链接器签名后，以 Tauri 临时签名重新封装并验证；生成 SHA256 清单和构建说明。
+- 从交付镜像复制应用，以独立数据启动到主界面；清理测试进程和挂载，恢复窗口位置记录。
+### Testing
+- TypeScript、Vite、Rust release 编译与 app/dmg 打包通过。
+- Mach-O arm64、Info.plist、原 App 与镜像内 App 的 strict codesign 校验、DMG 校验均通过。
+- 实际包启动到主界面，检测到 Grok Build CLI 1.0.25，持续运行超过两分钟未退出；未登录或执行真实付费会话。
+- SHA256：aca48a7d25fda51d9dfd84d8e5b186b2be753948cb21ce88bd0765fe5e6590ae。
+- 无 Apple Developer ID 证书，未公证；未将临时签名完整性验证称为 Apple 信任验证。
+### Notes
+- `dist-installers/Grok_0.2.35_ba5e835f_aarch64.dmg`：本地 ARM64 安装包，20,455,415 字节，git 忽略。
+- `dist-installers/SHA256SUMS-ba5e835f.txt`：包哈希，git 忽略。
+- `src-tauri/target/aarch64-apple-darwin/release/bundle/`：原始 app/dmg 构建产物，git 忽略。
+- `docs/BUILD.md`：补充本地临时签名重新打包与校验命令。
+- `docs/qa/macos-package-2026-09-15.md`：来源、验证结果、安装与公证边界。
+- `progress.md`：追加本轮记录。
+- 回滚文档：`git revert $(git log -1 --format=%H --grep='docs(build): record verified macOS repair installer')`；移除产物：`rm dist-installers/Grok_0.2.35_ba5e835f_aarch64.dmg dist-installers/SHA256SUMS-ba5e835f.txt`。未安装覆盖正式 App，未推送、打 tag 或发布。

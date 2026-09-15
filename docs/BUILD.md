@@ -171,6 +171,18 @@ src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Grok.app
 双击 `.dmg` 安装，或直接运行 `.app`。  
 通知 / Dock 等依赖正式 `.app` 的能力在 **安装包或 `.app` 产物** 上验证，不要用 `tauri dev` 裸二进制当生产行为。
 
+### 本地未公证包的签名完整性
+
+没有 Apple Developer ID 证书时，本地编译可能只留下链接器的临时签名，整个 `.app` 的资源封装校验不通过。已有 release 二进制可用临时签名重新打包，无须重复编译：
+
+```bash
+APPLE_SIGNING_IDENTITY=- pnpm exec tauri bundle --target aarch64-apple-darwin --bundles app,dmg
+codesign --verify --deep --strict --verbose=2 src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Grok.app
+hdiutil verify src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/Grok_*.dmg
+```
+
+Intel 包使用 `x86_64-apple-darwin`。临时签名只保证包内完整性，不是 Developer ID 签名或 Apple 公证；分发后 Gatekeeper 仍可能要求用户在系统“隐私与安全性”中允许打开。正式发布仍按 release 文档配置证书和公证。
+
 `build:win` 在 macOS 上等价于：
 
 ```bash
