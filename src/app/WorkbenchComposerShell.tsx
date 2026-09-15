@@ -25,15 +25,18 @@ import { type PermissionPolicyId } from "@/lib/grokCatalog";
 import { removeRecentPrompt } from "@/lib/recentPromptHistory";
 import { queuePreviewText, shouldEnqueueSend } from "@/lib/sendQueue";
 import { canType } from "@/lib/session";
-import { resolveVoiceMicChrome, voiceMicLabelMessageKey } from "@/lib/voiceDictation";
+import { resolveVoiceMicChrome, voiceIsActive, voiceMicLabelMessageKey } from "@/lib/voiceDictation";
 import { createPortal } from "react-dom";
+import type { ReactNode } from "react";
 import type { WorkbenchComposerColumnProps } from "@/app/WorkbenchComposerColumn";
 
 /**
  * The shell receives the composer column's full prop bag via `{...p}`
  * spread; reusing its type keeps the seam compiler-checked end to end.
  */
-export type WorkbenchComposerShellProps = WorkbenchComposerColumnProps;
+export type WorkbenchComposerShellProps = WorkbenchComposerColumnProps & {
+  modelControl?: ReactNode;
+};
 
 export function WorkbenchComposerShell(p: WorkbenchComposerShellProps) {
   const {
@@ -96,6 +99,7 @@ export function WorkbenchComposerShell(p: WorkbenchComposerShellProps) {
     liveVoiceOpen,
     locale,
     mode,
+    modelControl,
     onComposerContextMenu,
     onComposerDraftChange,
     onComposerKeyDown,
@@ -172,6 +176,14 @@ export function WorkbenchComposerShell(p: WorkbenchComposerShellProps) {
     voiceDictationAutoSend,
     voiceGate,
   } = p;
+  const micChrome = resolveVoiceMicChrome({
+    phase: voice.phase,
+    gateAvailable: voiceGate.available,
+    autoSend: voiceDictationAutoSend,
+    liveVoiceOpen,
+    canType: canType(session.state),
+  });
+  const micLabel = tr(voiceMicLabelMessageKey(micChrome.labelKind));
   return (
             <div
               ref={composerShellRef}
@@ -422,6 +434,40 @@ export function WorkbenchComposerShell(p: WorkbenchComposerShellProps) {
                     panelRef={composerPlusPanelRef}
                     locale={locale}
                     entries={composerMenuEntries}
+                    tools={!phoneLayout && !liveSlash.present ? (
+                      <>
+                        <button
+                          type="button"
+                          className="composer-plus__tool"
+                          aria-pressed={
+                            sideWorkbench.tabs.some((t) => t.kind === "skills") &&
+                            !layout.asideCollapsed
+                          }
+                          onClick={() => {
+                            closeComposerMenu();
+                            openSideSkillsPanel();
+                          }}
+                        >
+                          <IconSkills size={16} />
+                          {tr("composer.skillsPicker")}
+                        </button>
+                        <Tip label={micLabel}>
+                          <button
+                            type="button"
+                            className="composer-plus__tool"
+                            disabled={!micChrome.interactive}
+                            aria-pressed={micChrome.ariaPressed}
+                            onClick={() => {
+                              closeComposerMenu();
+                              toggleVoice();
+                            }}
+                          >
+                            <IconMic size={16} />
+                            {voiceIsActive(voice.phase) ? micLabel : tr("composer.voice")}
+                          </button>
+                        </Tip>
+                      </>
+                    ) : undefined}
                     filterQuery={
                       liveSlash.present ? slashFilterQuery : undefined
                     }
@@ -634,28 +680,6 @@ export function WorkbenchComposerShell(p: WorkbenchComposerShellProps) {
                   </button>
                 </Tip>
                 {!phoneLayout ? (
-                  <Tip label={tr("composer.skillsPicker")}>
-                    <button
-                      type="button"
-                      className={
-                        "icon-btn" +
-                        (sideWorkbench.tabs.some((t) => t.kind === "skills") &&
-                        !layout.asideCollapsed
-                          ? " is-open"
-                          : "")
-                      }
-                      aria-label={tr("composer.skillsPicker")}
-                      aria-pressed={
-                        sideWorkbench.tabs.some((t) => t.kind === "skills") &&
-                        !layout.asideCollapsed
-                      }
-                      onClick={() => openSideSkillsPanel()}
-                    >
-                      <IconSkills size={18} />
-                    </button>
-                  </Tip>
-                ) : null}
-                {!phoneLayout ? (
                   <>
                     <ComposerAccessMenu
                       mode={mode}
@@ -789,19 +813,9 @@ export function WorkbenchComposerShell(p: WorkbenchComposerShellProps) {
                   label={tr("composer.clearDraft")}
                 />
                 <span className="composer__spacer" />
-                {/* Dictation (mic): always visible for auth soft-fail; Live Voice entry separate. */}
-                {(() => {
-                  const micChrome = resolveVoiceMicChrome({
-                    phase: voice.phase,
-                    gateAvailable: voiceGate.available,
-                    autoSend: voiceDictationAutoSend,
-                    liveVoiceOpen,
-                    canType: canType(session.state),
-                  });
-                  const micLabel = tr(
-                    voiceMicLabelMessageKey(micChrome.labelKind),
-                  );
-                  return (
+                {modelControl}
+                {/* Keep stop/cancel reachable while dictation is active. */}
+                {phoneLayout || voiceIsActive(voice.phase) ? (
                     <Tip label={micLabel}>
                       <button
                         type="button"
@@ -825,8 +839,7 @@ export function WorkbenchComposerShell(p: WorkbenchComposerShellProps) {
                         <IconMic size={16} />
                       </button>
                     </Tip>
-                  );
-                })()}
+                ) : null}
                 <ComposerSendCluster
                   attachmentsLength={attachments.length + quotes.length}
                   effectiveCanStop={effectiveCanStop}

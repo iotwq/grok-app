@@ -814,7 +814,16 @@
   }
 }
 
-/* Chrome chips keep labels: they are no longer in the crowded input row. */
+/* The model label remains visible beside Send, truncating long provider IDs. */
+.cmm--compact {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.cmm--model.cmm--compact .cmm__trigger {
+  max-width: 100%;
+}
+
 .composer__model-bar .cmm--model .cmm__trigger-text--full {
   display: inline;
 }

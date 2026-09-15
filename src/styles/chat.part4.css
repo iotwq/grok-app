@@ -407,6 +407,37 @@
   flex-shrink: 0;
 }
 
+.composer-plus__tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px 6px 8px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.composer-plus__tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.composer-plus__tool:hover:not(:disabled),
+.composer-plus__tool[aria-pressed="true"] {
+  background: var(--menu-hover, var(--bg-hover));
+  color: var(--text-primary);
+}
+
+.composer-plus__tool:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .composer-plus__chip {
   display: inline-flex;
   align-items: center;

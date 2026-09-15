@@ -342,6 +342,8 @@ function MenuShell({
 /* ---------- Model + effort ---------- */
 
 export interface ComposerModelMenuProps {
+  /** Input-row placement must shrink without expanding its parent on open. */
+  compact?: boolean;
   modelId: string;
   effort: string;
   /** Live selectable models only (from Host catalog). */
@@ -556,6 +558,7 @@ function EffortStopPicker({
 }
 
 export function ComposerModelMenu({
+  compact = false,
   modelId,
   effort,
   models = GROK_BUILD_MODELS,
@@ -794,17 +797,17 @@ export function ComposerModelMenu({
     <MenuShell
       menu={modelMenu}
       className={
-        "cmm--model" + (activeStop?.accent === "ultra" ? " cmm--extra" : "")
+        "cmm--model" + (compact ? " cmm--compact" : "") + (activeStop?.accent === "ultra" ? " cmm--extra" : "")
       }
       panelClassName={
         "cmm__pop--model" + (pane === "advanced" ? " cmm__pop--hub" : "")
       }
       tipClassName="ui-tip--flat"
-      pinParent
+      pinParent={!compact}
       triggerIcon={<IconBolt size={14} />}
       triggerText={triggerText}
       triggerShort={eLabel}
-      widthCandidates={widthCandidates}
+      widthCandidates={compact ? undefined : widthCandidates}
       ariaLabel={labels.model}
       title={`${labels.model}: ${modelLabel} · ${labels.effort}: ${eLabel}`}
     >
@@ -1383,4 +1386,3 @@ export function ComposerAccessMenu({
     </MenuShell>
   );
 }
-

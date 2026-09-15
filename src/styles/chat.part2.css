@@ -6,8 +6,7 @@
   max-width: none;
 }
 
-/* Desktop composer chrome: workspace cluster left, model/effort right.
- * Each cluster is a content-sized chip-shell — not a full-width bar. */
+/* Desktop workspace chrome remains above the input; model/effort is inside. */
 .composer__chrome {
   pointer-events: none;
   display: flex;
@@ -70,17 +69,13 @@
 }
 
 .composer__model-bar {
-  flex: 0 0 auto;
-  width: max-content;
-  max-width: 100%;
-  margin-left: auto;
+  display: flex;
+  align-items: center;
+  flex: 0 1 auto;
+  min-width: 40px;
+  max-width: min(260px, 45%);
   box-sizing: border-box;
-  justify-content: center;
-}
-
-.composer__model-bar:has(.is-open) {
-  width: 280px;
-  max-width: 280px;
+  margin-right: 4px;
 }
 
 .composer__chip-shell .cmm__trigger {

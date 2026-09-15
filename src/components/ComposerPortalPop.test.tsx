@@ -283,10 +283,11 @@ describe("composer chip portal pops", () => {
     expect(pop!.style.zIndex).toBe(String(FLOATING_MENU_Z_INDEX));
   });
 
-  it("model chip keeps dialog semantics and aria-controls wiring", async () => {
+  it.each([false, true])("model chip keeps dialog semantics without resizing compact toolbar (%s)", async (compact) => {
     const user = userEvent.setup();
     render(
       <ComposerModelMenu
+        compact={compact}
         modelId="test-model"
         effort="high"
         labels={{
@@ -310,6 +311,8 @@ describe("composer chip portal pops", () => {
     );
 
     const trigger = screen.getByRole("button", { name: "Model" });
+    const parent = trigger.closest(".cmm")!.parentElement!;
+    const parentWidth = parent.style.width;
     expect(trigger.getAttribute("aria-haspopup")).toBe("dialog");
     await user.click(trigger);
 
@@ -324,6 +327,10 @@ describe("composer chip portal pops", () => {
     expect(pop!.id).not.toBe("");
     expect(trigger.getAttribute("aria-controls")).toBe(pop!.id);
     expect(trigger.getAttribute("aria-expanded")).toBe("true");
+    if (compact) {
+      expect(parent.style.width).toBe(parentWidth);
+      expect(trigger.style.minWidth).toBe("");
+    }
   });
 
   it("opens a combined model menu with an effort slider and Advanced", async () => {

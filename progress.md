@@ -608,3 +608,33 @@
 - 未推送、发布或替换运行中的安装版，本轮没有制作 DMG。
 
 - 截图格式核对：浏览器实际返回 JPEG，上述本轮截图最终文件名为 `docs/qa/main-page-style-2026-09-16/dark.jpg` 和 `docs/qa/main-page-style-2026-09-16/light.jpg`（不是 PNG）；验收文档链接已同步。
+
+## 2026-09-16 - Task: 精简输入框工具栏并将模型选择移入右下角
+### What was done
+- 将模型／推理强度选择放入输入框右下角、发送按钮左侧，展开菜单不再撑宽父容器。
+- 将语音输入与查找技能收进「＋」菜单，保留配置提示、已安装技能调用和语音活动中的停止／取消入口。
+- 同步产品布局规范与实测截图；手机入口和语音快捷键沿用现有方式。
+### Testing
+- pnpm build:ui、pnpm lint、git diff --check 通过；保留既有大分块提示。
+- 六个相关测试文件 109 项通过；语音菜单改为 Tab + Space 激活的测试加强后，控件六项复验通过。
+- 实际隔离浏览器检查深浅色主页、添加菜单、技能面板打开与收起、语音未配置提示，以及 720×500 模型菜单和子菜单；模型与发送控件位置正常，浮层有背景且未裁切。
+- App/AppWorkbench 未修改，总计 13,472 行。没有调用真实语音／模型服务；未执行 Rust 套件或安装包真机回归。
+### Notes
+- `src/app/WorkbenchComposerColumn.tsx`：通过插槽把原模型菜单移入输入框。
+- `src/app/WorkbenchComposerShell.tsx`：收纳技能／语音入口，保留活动语音控制并摆放模型插槽。
+- `src/components/ComposerModelMenu.tsx`：增加工具栏紧凑模式，取消该模式下固定宽度与父级展开。
+- `src/components/ComposerPlusPanel.tsx`：承载菜单顶部可选工具按钮组。
+- `src/styles/chat.part2.css`：输入框内模型容器的自适应宽度。
+- `src/styles/chat.part4.css`：菜单顶部工具按钮样式。
+- `src/styles/chat.part6.css`：紧凑模型菜单允许收缩并保留可读标签。
+- `src/app/WorkbenchComposerShell.controls.test.tsx`：增加工具入口、键盘激活、活动语音控制及互斥回归。
+- `src/components/ComposerPortalPop.test.tsx`：验证紧凑模型菜单不撑宽父容器，保留 portal 语义。
+- `src/lib/composerColumn.guard.test.ts`：将旧外部模型条和旧圆角断言同步为当前布局规范。
+- `docs/llm-wiki/dialogs.md`：追加桌面输入框工具布局规范。
+- `docs/qa/composer-controls-2026-09-16.md`：记录使用方式、验证范围、截图和回滚命令。
+- `docs/qa/main-page-style-2026-09-16/controls-dark.jpg`：本轮实际深色界面截图。
+- `docs/qa/main-page-style-2026-09-16/controls-light.jpg`：本轮实际浅色界面截图。
+- `docs/qa/main-page-style-2026-09-16/controls-tools.jpg`：本轮实际更多功能菜单截图。
+- `progress.md`：追加本轮完成与验证记录。
+- 回滚：`git revert $(git log -1 --format=%H --grep='feat(composer): move model picker inside and tuck tools into add menu')`；本轮前基线 df3573af。
+- 仅本地改动，未推送、发布、制作 DMG 或替换 /Applications/Grok.app。

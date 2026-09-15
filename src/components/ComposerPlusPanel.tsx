@@ -285,6 +285,7 @@ export function ComposerPlusPanel({
   style,
   panelRef,
   entries,
+  tools,
   filterQuery,
   kindFilter = "all",
   onKindFilterChange,
@@ -309,6 +310,8 @@ export function ComposerPlusPanel({
   panelRef?: Ref<HTMLDivElement | null>;
   /** Sole list of selectable items — same array the host uses for keyboard. */
   entries: ComposerPlusEntry[];
+  /** Optional toolbar buttons; tab navigation is separate from slash options. */
+  tools?: ReactNode;
   /** Live filter string (shown in header when non-empty). */
   filterQuery?: string;
   /** Active kind chip (`all` when browsing full catalog). */
@@ -444,6 +447,11 @@ export function ComposerPlusPanel({
       data-kind-filter={kindFilter}
       style={style}
     >
+      {tools ? (
+        <div className="composer-plus__tools" role="group" aria-label={tr("composer.add")}>
+          {tools}
+        </div>
+      ) : null}
       {q ? (
         <div className="composer-plus__filter" aria-live="polite">
           <span className="composer-plus__filter-label">/</span>

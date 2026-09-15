@@ -612,7 +612,7 @@ export function WorkbenchComposerColumn(p: WorkbenchComposerColumnProps) {
                 (!!sessionChangesSummary || !!gitDirtySummary);
               const showContextBar =
                 showComposerProjectRow || showChangesChips;
-              // Desktop: workspace cluster left, model/effort right.
+              // Desktop keeps the workspace above the input.
               // Phone keeps model/access in PhoneComposerToolsSheet.
               const showComposerChrome = !phoneLayout;
               return (
@@ -928,11 +928,17 @@ export function WorkbenchComposerColumn(p: WorkbenchComposerColumnProps) {
                 ) : null}
               </div>
             ) : null}
+            </div>
+            ) : null}
+            <WorkbenchComposerShell
+              {...p}
+              modelControl={!phoneLayout ? (
               <div
-                className="composer__model-bar composer__chip-shell"
+                className="composer__model-bar"
                 aria-label={tr("composer.model")}
               >
                 <ComposerModelMenu
+                  compact
                   locale={locale}
                   modelId={modelId}
                   effort={effort}
@@ -981,9 +987,8 @@ export function WorkbenchComposerColumn(p: WorkbenchComposerColumnProps) {
                   onEffort={handleEffortPick}
                 />
               </div>
-            </div>
-            ) : null}
-            <WorkbenchComposerShell {...p} />
+              ) : null}
+            />
             <MultiRootWorkspaceModal
               open={multiRoot.open}
               locale={locale}
