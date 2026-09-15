@@ -67,9 +67,20 @@ function parseTime(hhmm: string): { h: number; m: number } | null {
   return { h, m: min };
 }
 
+/** Preserve the scheduled weekday for legacy weekly tasks without explicit days. */
+export function weeklyDays(
+  auto: Pick<Automation, "weekdays"> & Partial<Pick<Automation, "nextRunAt" | "createdAt">>,
+  from = new Date(),
+): number[] {
+  if (auto.weekdays.length) return auto.weekdays;
+  const anchor = new Date(auto.nextRunAt || auto.createdAt || from);
+  return [Number.isNaN(anchor.getTime()) ? from.getDay() : anchor.getDay()];
+}
+
 /** Compute next run after `from` (default: now). Returns ISO string. */
 export function computeNextRunAt(
-  auto: Pick<Automation, "frequency" | "time" | "weekdays" | "enabled">,
+  auto: Pick<Automation, "frequency" | "time" | "weekdays" | "enabled"> &
+    Partial<Pick<Automation, "nextRunAt" | "createdAt">>,
   from: Date = new Date(),
 ): string | null {
   if (!auto.enabled) return null;
@@ -93,7 +104,7 @@ export function computeNextRunAt(
     }
     if (freq === "weekly") {
       const days =
-        auto.weekdays?.length > 0 ? auto.weekdays : [from.getDay()];
+        weeklyDays(auto, from);
       if (days.includes(dow)) return d.toISOString();
       continue;
     }

@@ -138,3 +138,7 @@
 - [x] **AUTO-HEADLESS A2 one-shot**：`--fire-due-schedules` / 助手脚本 `fire-due-schedules.sh`；`fire_due_once` 复用 runner 路径；无到期/CLI 软失败；退出码 0（非 KeepAlive）；诚实矩阵 + UI 文案；纯 helpers + 单测
 - [ ] 与 CLI scheduler 双向同步（可选 P2）
 - [ ] 无 UI 进程的真正 headless runner（可选 P2；当前明确不做假宣称；A2 仅为 one-shot 助手）
+
+### 每周排期
+
+手动表单展示本地化星期多选，至少保留一天，编辑必须保留原星期。历史 weekly 空星期按 nextRunAt（缺失时 createdAt）的本地星期排期，延迟补跑不可变成每天或改变星期；尚未存储的新任务默认当天。

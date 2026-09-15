@@ -75,3 +75,12 @@ describe("automations schedule helpers", () => {
     expect(parseScheduledUserContent("普通消息")).toBeNull();
   });
 });
+
+it("keeps legacy weekly anchors across delayed runs and respects explicit days", () => {
+  const anchor = new Date(2026, 8, 15, 9).toISOString();
+  const auto = { frequency: "weekly", time: "09:00", weekdays: [], enabled: true, createdAt: anchor, nextRunAt: anchor };
+  for (const from of [new Date(2026, 8, 15, 10), new Date(2026, 8, 16, 10)]) {
+    expect(new Date(computeNextRunAt(auto, from)!).getDate()).toBe(22);
+  }
+  expect(new Date(computeNextRunAt({ ...auto, weekdays: [1, 3, 5] }, new Date(2026, 8, 15, 10))!).getDate()).toBe(16);
+});

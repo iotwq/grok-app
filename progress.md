@@ -237,3 +237,17 @@
 - `docs/llm-wiki/dialogs.md`：记录键盘规则。
 - `progress.md`：追加修复记录。
 - 回滚：`git revert $(git log -1 --format=%H --grep='fix(dialogs): honor focused cancel actions on Enter')`。
+
+## 2026-09-15 - Task: B12 修复每周排期与星期丢失
+### What was done
+- 每周表单支持星期多选并保留编辑值，旧任务按原定日期的星期继续排期，前后端规则一致。
+### Testing
+- 前端排期与表单 8 项通过；Host automation_runner 8 项通过，覆盖延迟补跑和历史空星期；TypeScript 通过。
+### Notes
+- `src/components/AutomationsPage.tsx`：保存、编辑和本地化星期选择。
+- `src/components/AutomationsPage.test.tsx`：保留星期及至少一天的交互回归。
+- `src/lib/automations.ts`、`src/lib/automations.test.ts`：稳定星期锚点及回归。
+- `src-tauri/src/automation_runner.rs`：每周空星期回退及 Host 回归。
+- `docs/llm-wiki/automations.md`：说明排期兼容规则。
+- `progress.md`：追加记录。
+- 回滚：`git revert $(git log -1 --format=%H --grep='fix(automations): preserve weekly schedule days')`。

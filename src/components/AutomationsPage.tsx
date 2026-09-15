@@ -9,6 +9,7 @@ import { createPortal } from "react-dom";
 import * as api from "@/lib/api";
 import {
   computeNextRunAt,
+  weeklyDays,
   formatNextRunRelative,
   formatScheduleSummary,
   type Automation,
@@ -42,6 +43,7 @@ import {
   type AutomationsInboxItem,
 } from "@/lib/automationsInbox";
 import { formatRelativeTime } from "@/lib/accountUi";
+import { intlLocale } from "@/i18n";
 import { Select } from "@/components/Select";
 import { GlassModal } from "@/components/GlassModal";
 import {
@@ -109,6 +111,7 @@ type FormState = {
   effort: string;
   frequency: string;
   time: string;
+  weekdays: number[];
   notify: string;
   enabled: boolean;
 };
@@ -121,6 +124,7 @@ const emptyForm = (modelId: string, effort: string): FormState => ({
   effort,
   frequency: "daily",
   time: "09:00",
+  weekdays: [new Date().getDay()],
   notify: "all",
   enabled: true,
 });
@@ -569,6 +573,7 @@ export function AutomationsPage({
       effort: auto.effort || defaultEffort,
       frequency: auto.frequency || "daily",
       time: auto.time || "09:00",
+      weekdays: weeklyDays(auto),
       notify: auto.notify || "all",
       enabled: auto.enabled,
     });
@@ -594,7 +599,7 @@ export function AutomationsPage({
     const nextRunAt = computeNextRunAt({
       frequency: form.frequency,
       time: form.time,
-      weekdays: [],
+      weekdays: form.weekdays,
       enabled: form.enabled,
     });
     const input: api.AutomationInputDto = {
@@ -606,7 +611,7 @@ export function AutomationsPage({
       effort: form.effort || null,
       frequency: form.frequency,
       time: form.time,
-      weekdays: [],
+      weekdays: form.weekdays,
       notify: form.notify,
       nextRunAt,
     };
@@ -1728,6 +1733,27 @@ export function AutomationsPage({
                   aria-label={t("automations.field.frequency")}
                 />
               </div>
+              {form.frequency === "weekly" && (
+                <div className="auto-page__filters" role="group" aria-label={t("automations.freq.weekly")}>
+                  {[0, 1, 2, 3, 4, 5, 6].map((day) => (
+                    <button
+                      key={day}
+                      type="button"
+                      className={`btn ${form.weekdays.includes(day) ? "btn--solid" : "btn--ghost"}`}
+                      aria-pressed={form.weekdays.includes(day)}
+                      disabled={form.weekdays.length === 1 && form.weekdays.includes(day)}
+                      onClick={() => setForm((f) => ({
+                        ...f,
+                        weekdays: f.weekdays.includes(day)
+                          ? f.weekdays.filter((d) => d !== day)
+                          : [...f.weekdays, day].sort(),
+                      }))}
+                    >
+                      {new Intl.DateTimeFormat(intlLocale(locale), { weekday: "short" }).format(new Date(2026, 8, 13 + day))}
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="auto-field auto-field--row">
                 <span>{t("automations.field.time")}</span>
                 <Select
