@@ -1015,7 +1015,9 @@ export function WorkbenchComposerColumn(p: WorkbenchComposerColumnProps) {
               onClearBinding={
                 multiRoot.target?.sessionId
                   ? () => {
-                      void multiRoot.clearBinding().then(() => multiRoot.close());
+                      void multiRoot.clearBinding().then((cleared) => {
+                        if (cleared) multiRoot.close();
+                      });
                     }
                   : undefined
               }

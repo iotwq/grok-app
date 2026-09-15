@@ -193,17 +193,21 @@ export function useMultiRootWorkspace() {
     }
   }, [draft, target, busy]);
 
-  const clearBinding = useCallback(async () => {
-    if (!target?.sessionId) return;
+  const clearBinding = useCallback(async (): Promise<boolean> => {
+    if (!target?.sessionId || busy) return false;
+    const request = generation.current;
     setBusy(true);
+    setError(null);
     try {
       await api.sessionSetWorkspace(target.sessionId, null);
+      return request === generation.current;
     } catch (e) {
-      setError(String(e));
+      if (request === generation.current) setError(String(e));
+      return false;
     } finally {
-      setBusy(false);
+      if (request === generation.current) setBusy(false);
     }
-  }, [target]);
+  }, [target, busy]);
 
   useEffect(() => {
     if (!open) return;

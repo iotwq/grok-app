@@ -62,3 +62,18 @@ it("does not bind or close a new dialog after a stale save resolves", async () =
   expect(result.current.open).toBe(true);
   expect(result.current.draft?.id).toBe("b");
 });
+
+it("keeps detach errors visible and closes only after a successful retry", async () => {
+  vi.mocked(api.workspaceGet).mockResolvedValue(ws("a"));
+  vi.mocked(api.sessionSetWorkspace).mockRejectedValueOnce(new Error("storage failed")).mockResolvedValueOnce(undefined);
+  const { result } = renderHook(() => useMultiRootWorkspace());
+  await act(async () => { await result.current.openFor(target("a")); });
+  const detach = async () => { if (await result.current.clearBinding()) result.current.close(); };
+  await act(detach);
+  expect(result.current.open).toBe(true);
+  expect(result.current.error).toContain("storage failed");
+  expect(result.current.busy).toBe(false);
+  await act(detach);
+  expect(result.current.open).toBe(false);
+  expect(result.current.error).toBeNull();
+});

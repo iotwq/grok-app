@@ -481,3 +481,5 @@ preserves the transcript. Reconnect and retry; local-only truncation is not a fa
 ### 工作区弹窗项目隔离
 
 关闭、重新打开或切换项目后，旧的加载、选目录和保存结果不得覆盖当前草稿或关闭新弹窗。工作区主项目不可改绑，主根目录必须匹配该项目目录；后端在写入前检查。
+
+解除会话工作区绑定仅在 Host 成功后关闭弹窗；失败必须保留错误和重试入口，过期结果不得关闭新项目弹窗。

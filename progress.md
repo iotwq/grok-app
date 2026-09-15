@@ -290,3 +290,16 @@
 - `docs/llm-wiki/dialogs.md`：未匹配值约定。
 - `progress.md`：追加记录。
 - 回滚：`git revert $(git log -1 --format=%H --grep='fix(select): display unmatched values honestly')`。
+
+## 2026-09-15 - Task: B16 保留解除绑定失败提示
+### What was done
+- 解除绑定返回明确成功结果，失败时保持弹窗与错误；重试开始清除旧错误，过期结果不影响新项目。
+### Testing
+- 工作区 Hook 4 项通过，包括失败后可见、恢复可操作及重试成功才关闭。
+### Notes
+- `src/hooks/useMultiRootWorkspace.ts`：明确返回结果与过期保护。
+- `src/app/WorkbenchComposerColumn.tsx`：只在成功后关闭。
+- `src/hooks/useMultiRootWorkspace.test.tsx`：失败重试回归。
+- `docs/llm-wiki/session-continuity.md`：失败交互规则。
+- `progress.md`：追加记录。
+- 回滚：`git revert $(git log -1 --format=%H --grep='fix(workspaces): keep detach failures visible')`。
