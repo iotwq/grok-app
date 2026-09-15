@@ -110,8 +110,6 @@ export function useAppDialogs() {
       return () => window.clearTimeout(t);
     }
     // Confirm: focus primary action so keyboard users land on Confirm.
-    // Enter is also handled globally below so it still confirms if focus
-    // sits on Cancel / close (needed for multi-step YOLO Enter spam).
     if (appDialog.kind === "confirm") {
       const t = window.setTimeout(() => {
         confirmBtnRef.current?.focus();
@@ -136,13 +134,17 @@ export function useAppDialogs() {
   useEffect(() => {
     if (!appDialog) return;
     const onKey = (e: KeyboardEvent) => {
-      // Confirm dialogs: Enter always accepts (including chained YOLO steps).
-      // Capture phase + preventDefault so we don't double-fire with a focused
-      // submit button's native activation. Escape is handled by installDialogFocus.
+      // Only the focused primary action confirms; Cancel/close retain native keys.
       if (e.key !== "Enter" && e.key !== "NumpadEnter") return;
       if (e.isComposing || e.altKey || e.ctrlKey || e.metaKey) return;
       const dialog = appDialogRef.current;
       if (!dialog || dialog.kind !== "confirm") return;
+      if (e.repeat) {
+        e.preventDefault();
+        return;
+      }
+      const confirm = confirmBtnRef.current;
+      if (!confirm || confirm.disabled || e.target !== confirm) return;
       e.preventDefault();
       e.stopPropagation();
       const run = dialog.onConfirm;

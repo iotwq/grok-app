@@ -225,3 +225,15 @@
 - `progress.md`：追加本轮审计记录。
 - 临时修改的 `src-tauri/src/automation_runner.rs` 已精确恢复；临时 `src/uxAudit.temp.test.tsx`、`src/uxAudit.temp.tsx`、`ux-audit.temp.html` 均已移出仓库，不进入交付。
 - 回滚：`git revert <本轮文档提交哈希>`，提交标题 `docs(qa): record usability and logic audit findings`；审计基线 `b922a2c0`。
+
+## 2026-09-15 - Task: B11 修复确认框 Enter 误操作
+### What was done
+- Enter 尊重取消/关闭按钮焦点，仅在确认按钮上执行确认；阻止长按连续确认。
+### Testing
+- useAppDialogs 与 a11yFocus 定向测试：14 项通过（/tmp/grok-b11.log）。
+### Notes
+- `src/hooks/useAppDialogs.ts`：限制键盘确认目标与重复事件。
+- `src/hooks/useAppDialogs.test.tsx`：覆盖取消、关闭、确认、长按和输入法。
+- `docs/llm-wiki/dialogs.md`：记录键盘规则。
+- `progress.md`：追加修复记录。
+- 回滚：`git revert $(git log -1 --format=%H --grep='fix(dialogs): honor focused cancel actions on Enter')`。

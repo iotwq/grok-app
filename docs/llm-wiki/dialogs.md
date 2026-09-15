@@ -212,3 +212,7 @@ setAppDialog({
 - `src/components/ExtensionsPanel.tsx` — Settings → Extensions 全页技能 / MCP 管理  
 - `src/components/AutomationsPage.tsx` — 子页面自建删除确认范例  
 - `src/i18n/messages.ts` — `common.cancel` / `common.confirm` / `common.close` 等  
+
+## 确认框键盘行为
+
+Enter 只执行当前焦点按钮的动作；取消、关闭不可触发确认。确认按钮忽略长按重复 Enter 与输入法组合事件，避免连续确认。
