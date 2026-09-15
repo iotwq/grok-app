@@ -209,3 +209,19 @@
 - `docs/qa/runtime-audit-2026-09-15.md`：保存原始审计并追加十项修复和统一验证结果。
 - `progress.md`：追加统一验收记录。
 - 回滚：`git revert <本次验证整理提交哈希>`，标题 `chore(qa): record runtime fixes and validation`；产品行为按各 B01–B10 提交单独 `git revert`。所有修复前回滚点为 `f21ad3f23b229e24a703788196dfef5aa288606c`，未推送远端。
+
+## 2026-09-15 - Task: 第二轮使用逻辑与外观审计
+### What was done
+- 在已修复 B01–B10 的基线上继续审计，确认 B11–B19 共 9 类问题（4 项 P1、5 项 P2），记录触发条件、用户影响、源码依据和最小修复方向。
+- 用受控异步请求、模拟 API、真实组件键盘事件和后端日期计算复现；检查工作区弹窗深浅主题与最小窗口，排除未出现的裁切问题。
+- 清理临时复现脚本、页面及服务，恢复浏览器尺寸；后端临时测试文件按字节恢复至 HEAD，未修改产品行为或真实用户数据。
+### Testing
+- 临时前端复现测试 10/10 断言成立，验证的是当前缺陷存在，不是修复验收。
+- 临时 Host weekly 排期复现 1/1 断言成立：每周空星期被排至次日。
+- 浏览器原组件与 CSS：900×600 深浅主题的按钮样式缺失已确认；滚动和底部操作可达性正常。
+- 临时脚本副本及日志留在 `/tmp/grok-ux-audit/`、`/tmp/grok-ux-audit-repro.log`、`/tmp/grok-ux-audit-rust.log`；未跑真实付费推理、创建真实定时任务或改变账号权限。
+### Notes
+- `docs/qa/ux-logic-audit-2026-09-15.md`：新增第二轮问题清单、复现与验收边界。
+- `progress.md`：追加本轮审计记录。
+- 临时修改的 `src-tauri/src/automation_runner.rs` 已精确恢复；临时 `src/uxAudit.temp.test.tsx`、`src/uxAudit.temp.tsx`、`ux-audit.temp.html` 均已移出仓库，不进入交付。
+- 回滚：`git revert <本轮文档提交哈希>`，提交标题 `docs(qa): record usability and logic audit findings`；审计基线 `b922a2c0`。
