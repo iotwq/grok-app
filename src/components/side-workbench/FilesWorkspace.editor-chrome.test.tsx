@@ -13,6 +13,8 @@ const tabMocks = vi.hoisted(() => ({
   activeTab: null as FileTab | null,
   activeTabEditable: false,
   saveActiveFile: vi.fn(),
+  reloadActiveFile: vi.fn(),
+  conflictTabId: null as string | null,
   revertActiveDraft: vi.fn(),
   toggleActiveEditMode: vi.fn(),
   hideToolbarSeen: null as boolean | null,
@@ -56,9 +58,9 @@ vi.mock("@/components/resource-viewer/useResourceFileTabs", () => ({
     discardTabId: null,
     setDiscardTabId: vi.fn(),
     closeTabForced: vi.fn(),
-    conflictTabId: null,
+    conflictTabId: tabMocks.conflictTabId,
     setConflictTabId: vi.fn(),
-    reloadActiveFile: vi.fn(),
+    reloadActiveFile: tabMocks.reloadActiveFile,
   }),
 }));
 
@@ -95,6 +97,8 @@ afterEach(() => {
   tabMocks.activeTabEditable = false;
   tabMocks.hideToolbarSeen = null;
   tabMocks.saveActiveFile.mockReset();
+  tabMocks.reloadActiveFile.mockReset();
+  tabMocks.conflictTabId = null;
   tabMocks.revertActiveDraft.mockReset();
   tabMocks.toggleActiveEditMode.mockReset();
 });
@@ -163,3 +167,17 @@ describe("FilesWorkspace editor chrome", () => {
     expect(tabMocks.hideToolbarSeen).toBe(false);
   });
 });
+
+for (const action of ["Reload", "Overwrite"] as const) {
+  it(`binds conflict ${action} to the conflicted tab instead of the viewed tab`, async () => {
+    tabMocks.activeTab = codeTab({ id: "viewed-B" });
+    tabMocks.conflictTabId = "conflicted-A";
+    render(<FilesWorkspace {...baseProps} activePath="B.md" />);
+    await userEvent.click(screen.getByRole("button", { name: action, exact: true }));
+    if (action === "Reload") {
+      expect(tabMocks.reloadActiveFile).toHaveBeenCalledWith("conflicted-A");
+    } else {
+      expect(tabMocks.saveActiveFile).toHaveBeenCalledWith({ force: true, tabId: "conflicted-A" });
+    }
+  });
+}

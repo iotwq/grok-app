@@ -462,3 +462,18 @@
 - `docs/qa/deep-usage-audit-2026-09-15.md`：追加 B21 修复结果。
 - `progress.md`：追加本项记录。
 - 回滚：`git revert $(git log -1 --format=%H --grep='fix(files): keep external file paths distinct')`。
+
+## 2026-09-15 - Task: 修复 B22 文件冲突操作对象错位
+### What was done
+- 将冲突覆盖和重载绑定到冲突标签 ID，允许用户在保存等待期间切换文件而不误操作其他草稿。
+### Testing
+- 延迟保存后切换标签的覆盖/重载回归修复前均失败，修复后通过；确认 B 草稿和 mtime 未被更改。
+- 两项实际弹窗按钮接线回归通过，相关文件 hook/工作区/编辑栏共 11 项通过；定向 ESLint、git diff --check 通过。
+### Notes
+- `src/components/resource-viewer/useResourceFileTabs.ts`：读写允许显式指定目标标签。
+- `src/components/resource-viewer/useResourceFileTabs.test.tsx`：冲突期间切换文件回归。
+- `src/components/side-workbench/FilesWorkspace.tsx`：弹窗传递冲突标签 ID。
+- `src/components/side-workbench/FilesWorkspace.editor-chrome.test.tsx`：实际重载与覆盖按钮接线回归。
+- `docs/qa/deep-usage-audit-2026-09-15.md`：追加 B22 修复结果。
+- `progress.md`：追加本项记录。
+- 回滚：`git revert $(git log -1 --format=%H --grep='fix(files): target conflict actions at the original tab')`。

@@ -56,3 +56,31 @@ it("reuses project-relative and absolute opens of the same project file", async 
   await act(async () => { await result.current.reloadActiveFile(); });
   expect(api.fsReadFile).toHaveBeenCalledWith("/project", "readme.md");
 });
+
+for (const action of ["overwrite", "reload"] as const) {
+  it(`resolves ${action} on the conflicted file after switching tabs`, async () => {
+    const { result } = setup();
+    await act(async () => { await result.current.openFile("A.md"); });
+    const idA = result.current.activeId!;
+    act(() => result.current.updateActiveDraft("edited A"));
+    let rejectWrite!: (error: Error) => void;
+    vi.mocked(api.fsWriteFile).mockImplementationOnce(() => new Promise((_, reject) => { rejectWrite = reject; }));
+    let save!: Promise<void>;
+    act(() => { save = result.current.saveActiveFile(); });
+    await act(async () => { await result.current.openFile("B.md"); });
+    act(() => result.current.updateActiveDraft("edited B"));
+    await act(async () => { rejectWrite(new Error("CONFLICT: changed on disk")); await save; });
+    expect(result.current.conflictTabId).toBe(idA);
+    vi.mocked(api.fsWriteFile).mockResolvedValue({ absolutePath: "/project/A.md", relativePath: "A.md", mtimeMs: 20, size: 8 });
+    await act(async () => {
+      if (action === "overwrite") await result.current.saveActiveFile({ force: true, tabId: result.current.conflictTabId });
+      else await result.current.reloadActiveFile(result.current.conflictTabId);
+    });
+    if (action === "overwrite") expect(api.fsWriteFile).toHaveBeenLastCalledWith("/project", "A.md", "edited A", null);
+    else expect(api.fsReadFile).toHaveBeenLastCalledWith("/project", "A.md");
+    expect(result.current.activeTab?.absolutePath).toBe("/project/B.md");
+    expect(result.current.activeTab?.draftText).toBe("edited B");
+    expect(result.current.activeTab?.mtimeMs).toBe(10);
+    expect(result.current.tabs.find((tab) => tab.id === idA)?.draftText).toBe(action === "overwrite" ? "edited A" : "A.md");
+  });
+}

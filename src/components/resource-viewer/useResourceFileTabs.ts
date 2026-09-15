@@ -211,8 +211,8 @@ const toggleActiveEditMode = useCallback(() => {
   );
 }, [activeId]);
 
-const reloadActiveFile = useCallback(async () => {
-  const tab = tabs.find((t) => t.id === activeId);
+const reloadActiveFile = useCallback(async (tabId: string | null = activeId) => {
+  const tab = tabs.find((t) => t.id === tabId);
   if (!tab || tab.tabKind === "url" || !api.isTauri()) return;
   setTabs((prev) =>
     prev.map((t) =>
@@ -248,8 +248,9 @@ const reloadActiveFile = useCallback(async () => {
 }, [activeId, projectPath, sshAlias, tabs, tr]);
 
 const saveActiveFile = useCallback(
-  async (opts?: { force?: boolean }) => {
-    const tab = tabs.find((t) => t.id === activeId);
+  async (opts?: { force?: boolean; tabId?: string | null }) => {
+    const tabId = opts?.tabId === undefined ? activeId : opts.tabId;
+    const tab = tabs.find((t) => t.id === tabId);
     if (!tab || tab.tabKind === "url" || tab.draftText == null) return;
     if (!api.isTauri()) {
       setError(tr("resources.saveFailed"));

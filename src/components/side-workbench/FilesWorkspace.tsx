@@ -934,7 +934,7 @@ export function FilesWorkspace({
               className="btn btn--ghost"
               onClick={() => {
                 setConflictTabId(null);
-                void reloadActiveFile();
+                void reloadActiveFile(conflictTabId);
               }}
             >
               {tr("resources.conflictReload")}
@@ -944,7 +944,7 @@ export function FilesWorkspace({
               className="btn btn--primary"
               onClick={() => {
                 setConflictTabId(null);
-                void saveActiveFile({ force: true });
+                void saveActiveFile({ force: true, tabId: conflictTabId });
               }}
             >
               {tr("resources.conflictOverwrite")}
