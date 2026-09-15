@@ -27,7 +27,7 @@ it('lets users select weekdays and keeps at least one selected', async () => {
   render(<AutomationsPage t={t} projects={[]} onAiCreate={() => {}} />);
   fireEvent.click(await screen.findByText('automations.createManual'));
   fireEvent.click(screen.getByLabelText('automations.field.frequency'));
-  fireEvent.click(await screen.findByRole('button', { name: 'automations.freq.weekly' }));
+  fireEvent.click(await screen.findByRole('option', { name: 'automations.freq.weekly' }));
   const buttons = screen.getByRole('group', { name: 'automations.freq.weekly' }).querySelectorAll('button');
   expect(buttons).toHaveLength(7);
   const initial = [...buttons].find(b => b.getAttribute('aria-pressed') === 'true')!;

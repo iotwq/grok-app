@@ -21,7 +21,7 @@ export function listFocusable(root: ParentNode | null | undefined): HTMLElement[
     (root as Element).querySelectorAll<HTMLElement>(FOCUSABLE_SEL),
   );
   return nodes.filter((el) => {
-    if (el.hasAttribute("disabled")) return false;
+    if (el.hasAttribute("disabled") || el.getAttribute("tabindex") === "-1") return false;
     if (el.getAttribute("aria-hidden") === "true") return false;
     // offsetParent null for display:none (except fixed); still allow fixed.
     const style =
@@ -122,6 +122,17 @@ export function isTypingTarget(el: EventTarget | null | undefined): boolean {
   return false;
 }
 
+/** Select listboxes are portaled outside their owning dialog. */
+function inDialogPopup(root: ParentNode | null | undefined, target: Node | null): boolean {
+  const triggers = root?.querySelectorAll<HTMLElement>('[aria-expanded="true"][aria-controls]') ?? [];
+  for (const trigger of triggers) {
+    const id = trigger.getAttribute("aria-controls");
+    const popup = id ? document.getElementById(id) : null;
+    if (popup?.getAttribute("role") === "listbox" && popup.contains(target)) return true;
+  }
+  return false;
+}
+
 type DialogLayer = { getRoot: () => ParentNode | null | undefined };
 const dialogLayers: DialogLayer[] = [];
 const handledDialogKeys = new WeakSet<KeyboardEvent>();
@@ -182,7 +193,7 @@ export function installDialogFocus(
   let focusTimer: number | undefined;
   if (initialFocus !== "none" && typeof window !== "undefined") {
     focusTimer = window.setTimeout(() => {
-      if (topDialog() !== layer) return;
+      if (topDialog() !== layer || inDialogPopup(getRoot(), document.activeElement)) return;
       if (typeof initialFocus === "function") {
         const el = initialFocus();
         if (el && typeof el.focus === "function") {
@@ -196,6 +207,7 @@ export function installDialogFocus(
 
   const onKey = (e: KeyboardEvent) => {
     if (topDialog() !== layer || e.defaultPrevented || handledDialogKeys.has(e)) return;
+    if (inDialogPopup(getRoot(), e.target as Node)) return;
     if (e.key === "Escape" && onEscape) {
       handledDialogKeys.add(e);
       e.preventDefault();

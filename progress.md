@@ -315,3 +315,19 @@
 - `docs/llm-wiki/dialogs.md`：顶层焦点规则。
 - `progress.md`：追加记录。
 - 回滚：`git revert $(git log -1 --format=%H --grep='fix(dialogs): route keyboard events to the top layer')`。
+
+## 2026-09-15 - Task: B18 补齐下拉键盘导航与弹窗协作
+### What was done
+- 下拉菜单自动聚焦可用项，支持方向键、首尾、选择、取消及 Tab 离开；焦点与实际值分离，禁用项不可选择。
+- 弹窗识别自己控制的 portal 菜单，不抢菜单键盘或初始焦点；Tab 继续遵守弹窗边界。
+### Testing
+- Select、叠加弹窗、自动任务表单与焦点工具 21 项通过，包括捕获/冒泡两种弹窗监听、未知值、禁用项、焦点恢复与 Tab 边界。
+- TypeScript 与定向 ESLint 通过（菜单初始焦点竞争补丁在统一检查再次验证）。
+### Notes
+- `src/components/Select.tsx`：键盘交互、单一可 Tab 选项及 ARIA。
+- `src/lib/a11yFocus.ts`：所属菜单事件归属，排除负 tabindex。
+- `src/components/Select.test.tsx`：真实弹窗键盘回归。
+- `src/components/AutomationsPage.test.tsx`：按正确 option 角色选择星期频率。
+- `docs/llm-wiki/dialogs.md`：下拉键盘契约。
+- `progress.md`：追加记录。
+- 回滚：`git revert $(git log -1 --format=%H --grep='fix(select): support keyboard navigation inside dialogs')`。
