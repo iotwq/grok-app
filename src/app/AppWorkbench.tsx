@@ -7369,7 +7369,7 @@ export function AppWorkbench() {
     activeQueue: sendQueue.activeQueue,
     updateItem: sendQueue.updateItem,
     pauseFlush: sendQueue.pauseFlush,
-    releaseFlushHold: sendQueue.releaseFlushHold,
+    releaseFlushHold: sendQueue.releaseEditPause,
     clearQueue: sendQueue.clearQueue,
   });
 

@@ -553,3 +553,17 @@
 - `docs/qa/deep-usage-audit-2026-09-15.md`：追加本地图片与浏览器验证。
 - `progress.md`：追加收尾记录。
 - 回滚：`git revert $(git log -1 --format=%H --grep='fix(editor): resolve local images without rewriting markdown')`。
+
+## 2026-09-15 - Task: 补齐 B23 普通发送与编辑暂停入口隔离
+### What was done
+- 将普通发送的失败恢复与编辑窗口关闭区分，防止同一对话其他发送动作意外放行正在修改的消息。
+### Testing
+- 新增交叉入口回归修复前失败、修复后通过；队列/弹窗 45 项通过。
+- 定向 ESLint、git diff --check 通过；App/AppWorkbench 总行数仍不增长。
+### Notes
+- `src/hooks/useSendQueue.ts`：独立暴露编辑暂停释放入口。
+- `src/hooks/useSendQueue.test.tsx`：普通发送解除失败暂停时保留编辑保护的回归。
+- `src/app/AppWorkbench.tsx`：队列编辑窗口接入专用释放入口。
+- `docs/qa/deep-usage-audit-2026-09-15.md`：追加 B23 入口复核与修复。
+- `progress.md`：追加收尾记录。
+- 回滚：`git revert $(git log -1 --format=%H --grep='fix(queue): separate edit release from ordinary send recovery')`。

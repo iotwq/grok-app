@@ -147,6 +147,10 @@ export function useSendQueue({
   );
 
   const releaseFlushHold = useCallback(() => {
+    setHold(false);
+  }, [setHold]);
+
+  const releaseEditPause = useCallback(() => {
     const key = editingQueueKeyRef.current ?? viewedQueueKey();
     editingQueueKeyRef.current = null;
     setHoldForKey(key, false);
@@ -528,6 +532,7 @@ export function useSendQueue({
     dropSessions,
     migrateDraft,
     releaseFlushHold,
+    releaseEditPause,
     pauseFlush,
     resumeFlush,
     shouldEnqueue: (state: SessionState, conn: boolean) =>

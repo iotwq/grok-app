@@ -19,7 +19,7 @@ function setup(state: SessionState = "streaming") {
     labels: { sendFailed: "failed", droppedOldest: () => "dropped" } };
   const hook = renderHook(({ state, sessionId }: { state: SessionState; sessionId: string }) => {
     const queue = useSendQueue({ ...opts, sessionState: state, sessionId });
-    const edit = useQueueEditDialog({ tr, showToast: opts.showToast, ...queue });
+    const edit = useQueueEditDialog({ tr, showToast: opts.showToast, ...queue, releaseFlushHold: queue.releaseEditPause });
     return { queue, edit };
   }, { initialProps: { state, sessionId: "s1" } });
   function transition(nextState: SessionState, sessionId = "s1") {
@@ -99,6 +99,19 @@ it("keeps edit pause even if retry is requested while the editor is open", async
   act(() => result.current.queue.resumeFlush());
   await advance();
   expect(execute).not.toHaveBeenCalled();
+  act(() => result.current.edit.closeEdit());
+  await advance();
+  expect(execute).toHaveBeenCalledOnce();
+});
+
+it("does not release the editor's pause when an ordinary composer send clears a failure hold", async () => {
+  const { result, transition, execute } = setup();
+  act(() => result.current.edit.openEdit(result.current.queue.activeQueue[0]!));
+  transition("ready");
+  act(() => result.current.queue.releaseFlushHold());
+  await advance();
+  expect(execute).not.toHaveBeenCalled();
+  expect(result.current.queue.flushHold).toBe(true);
   act(() => result.current.edit.closeEdit());
   await advance();
   expect(execute).toHaveBeenCalledOnce();
