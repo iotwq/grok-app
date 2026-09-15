@@ -26,7 +26,7 @@
  * height and matches --menu-radius (dropdown). Inner chip = shell − pad
  * so hover fill is concentric with the outer corner. */
 .composer__chip-shell {
-  --composer-context-pad: 4px;
+  --composer-context-pad: 3px;
   --composer-context-radius: var(--menu-radius, 12px);
   pointer-events: auto;
   display: flex;
@@ -39,10 +39,10 @@
   min-height: calc(28px + 2 * var(--composer-context-pad));
   padding: var(--composer-context-pad);
   border-radius: var(--composer-context-radius);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid transparent;
   position: relative;
   background: transparent;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
+  box-shadow: none;
   color: var(--text-secondary);
 }
 
@@ -491,29 +491,27 @@ button.composer__context-item {
 .composer-wrap--float .composer {
   pointer-events: auto;
   box-shadow:
-    0 1px 0 rgba(0, 0, 0, 0.04),
-    0 8px 28px rgba(0, 0, 0, 0.12),
-    0 2px 8px rgba(0, 0, 0, 0.06);
+    0 2px 4px rgba(0, 0, 0, 0.04),
+    0 12px 32px -12px rgba(0, 0, 0, 0.24);
 }
 
 [data-theme="light"] .composer-wrap--float .composer {
   box-shadow:
-    0 1px 0 rgba(0, 0, 0, 0.04),
-    0 10px 32px rgba(0, 0, 0, 0.08),
-    0 2px 6px rgba(0, 0, 0, 0.04);
+    0 2px 4px rgba(0, 0, 0, 0.02),
+    0 12px 32px -12px rgba(0, 0, 0, 0.12);
 }
 
 .composer {
   position: relative;
   width: 100%;
   max-width: var(--chat-width-max, 800px);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border-strong);
   background: transparent;
-  border-radius: var(--menu-radius, 12px);
-  padding: 10px 12px 10px;
+  border-radius: 20px;
+  padding: 14px 16px 12px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
   transition:
     border-color 160ms ease,
@@ -521,6 +519,10 @@ button.composer__context-item {
   /* Size container for compact chips (Codex-style) */
   container-type: inline-size;
   container-name: composer;
+}
+
+.composer:focus-within {
+  border-color: color-mix(in srgb, var(--text-secondary) 45%, var(--border-strong));
 }
 
 .composer::before {

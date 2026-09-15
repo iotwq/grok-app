@@ -582,3 +582,29 @@
 - `progress.md`：追加统一验收记录。
 - 回滚本次文档：`git revert $(git log -1 --format=%H --grep='docs(qa): record verified deep usage repairs')`；产品按报告所列提交逆序 revert，修复前基线 eb5284eb。
 - 所有改动仅本地提交；未推送、发布、新增 DMG 或替换 /Applications/Grok.app。
+
+## 2026-09-16 - Task: 调整主页面为更简洁的 Codex 风格
+### What was done
+- 将新会话欢迎语与输入框集中居中，优化侧栏分组、导航留白、顶栏和账号区视觉层次。
+- 输入框改用柔和圆角、轻阴影与焦点边框；较矮桌面窗口收起品牌标识，为长输入保留空间。
+- 保留主题、透明度、功能入口及现有设置，保存深浅色实际预览与验收说明。
+### Testing
+- pnpm build:ui、pnpm lint、git diff --check 通过；构建保留既有大分块提示。
+- 输入布局、浮层、宽度、底部避让、输入行数、侧栏密度、窗口布局、流式样式等 8 文件 63 项测试通过。
+- 隔离浏览器实测 1280×720 深浅色主页、820×620 多行输入、720×500 十二行输入，以及模型/添加菜单和草稿清空确认框；控件可见、菜单未裁切，测试草稿已清理。
+- App/AppWorkbench 未改，总行数 13,472；未增加渲染动画或模糊层。没有真实后端回合、安装包、手机和逐一皮肤实测，不将浏览器验证视为这些场景验收。
+### Notes
+- `src/styles/chat.part1.css`：欢迎区集中布局、短窗口适配和选择条间距。
+- `src/styles/chat.part2.css`：输入框圆角、边框、阴影、内边距与中性焦点样式。
+- `src/styles/settings.part5.css`：主页面顶栏减弱分割线、标题增强字重。
+- `src/styles/sidebar.part1b.css`：项目分组标签字号与对比度。
+- `src/styles/sidebar.part2.css`：当前会话字重。
+- `src/styles/sidebar.part4.css`：导航留白与圆角、账号区边界。
+- `docs/qa/main-page-style-2026-09-16.md`：记录设计、验收范围、截图和回滚命令。
+- `docs/qa/main-page-style-2026-09-16/dark.png`：实际深色主页截图。
+- `docs/qa/main-page-style-2026-09-16/light.png`：实际浅色主页截图。
+- `progress.md`：追加本轮记录。
+- 样式回滚：`git restore --source=9051e234 -- src/styles/chat.part1.css src/styles/chat.part2.css src/styles/settings.part5.css src/styles/sidebar.part1b.css src/styles/sidebar.part2.css src/styles/sidebar.part4.css`；保留文档历史并追加回滚记录。
+- 未推送、发布或替换运行中的安装版，本轮没有制作 DMG。
+
+- 截图格式核对：浏览器实际返回 JPEG，上述本轮截图最终文件名为 `docs/qa/main-page-style-2026-09-16/dark.jpg` 和 `docs/qa/main-page-style-2026-09-16/light.jpg`（不是 PNG）；验收文档链接已同步。

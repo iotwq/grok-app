@@ -72,9 +72,9 @@
   height: 28px;
   padding: 0 8px 0 0;
   border-radius: var(--radius-md);
-  color: var(--text-tertiary);
-  font-size: 11px;
-  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
   letter-spacing: 0.02em;
   text-align: left;
 }

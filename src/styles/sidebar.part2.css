@@ -233,6 +233,7 @@ html[data-sidebar-density="compact"] .tree-date-group__head {
 .tree-l3--active {
   background: var(--bg-active);
   color: var(--text-primary);
+  font-weight: 500;
 }
 
 .tree-l3--archived {
