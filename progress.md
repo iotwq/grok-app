@@ -420,3 +420,16 @@
 - `docs/qa/stream-input-performance-2026-09-15.md`：追加输入修复、统一验收与安装版验证边界。
 - `progress.md`：追加本轮记录。
 - 回滚：`git revert $(git log -1 --format=%H --grep='fix(composer): coalesce input layout per animation frame')`。前一项流式修复可独立回滚 bd584a62；未推送、发布或替换安装版。
+
+## 2026-09-15 - Task: 深度审计剩余使用逻辑与内容一致性问题
+### What was done
+- 围绕文件编辑和预览、发送队列、语音转写检查真实操作结果，确认 7 项新问题并记录触发步骤、影响、代码依据和修复验收标准。
+- 排除模型切换丢失高级配置的疑点；本轮只审计，未修复产品代码或替换已安装软件。
+### Testing
+- 在临时目录引用真实组件/hook，模拟文件接口、发送与转写结果；5 个测试文件、9 个诊断用例通过，含 Markdown 内容损坏、错文件刷新/覆盖、队列提前发送/重复失败、语音跨对话和空草稿预览。
+- “诊断用例通过”表示确认缺陷存在，不表示修复完成。结果见 `/private/tmp/grok-deep-audit/results.log`；未写用户文件、操作麦克风或调用付费模型。
+- `git diff --check` 通过；仅新增审计文档、追加本日志，无需产品构建或全量测试。
+### Notes
+- `docs/qa/deep-usage-audit-2026-09-15.md`：记录 B20–B26、复现结果、验证边界及排除项。
+- `progress.md`：追加本轮审计记录，不改写历史。
+- 回滚：本轮基线为 `eb5284eb` 且开工时工作区干净；尚无后续修改时执行 `git restore -- progress.md`，并执行 `rm docs/qa/deep-usage-audit-2026-09-15.md`。未提交、推送或发布。
