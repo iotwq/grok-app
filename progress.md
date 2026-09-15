@@ -278,3 +278,15 @@
 - `docs/llm-wiki/automations.md`：保存交互约束。
 - `progress.md`：追加记录。
 - 回滚：`git revert $(git log -1 --format=%H --grep='fix(automations): prevent duplicate form submissions')`。
+
+## 2026-09-15 - Task: B15 修复下拉框错误显示模型
+### What was done
+- 已移除或未匹配的选项显示真实保存值，不再伪装成第一个可用模型。
+### Testing
+- Select 与自动任务表单 6 项通过，覆盖未知值、空值、正常选择；上一任务测试参数清理后 TypeScript 通过。
+### Notes
+- `src/components/Select.tsx`：删除误导性的首项回退。
+- `src/components/Select.test.tsx`：真实值展示与主动选择回归。
+- `docs/llm-wiki/dialogs.md`：未匹配值约定。
+- `progress.md`：追加记录。
+- 回滚：`git revert $(git log -1 --format=%H --grep='fix(select): display unmatched values honestly')`。

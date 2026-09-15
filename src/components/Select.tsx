@@ -41,7 +41,7 @@ export function Select({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLUListElement>(null);
   const listId = useId();
-  const selected = options.find((o) => o.value === value) ?? options[0];
+  const selected = options.find((o) => o.value === value);
   const menuPlacement: FloatingPlacement =
     placement ?? (variant === "chip" ? "auto" : "down");
 
