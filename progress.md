@@ -303,3 +303,15 @@
 - `docs/llm-wiki/session-continuity.md`：失败交互规则。
 - `progress.md`：追加记录。
 - 回滚：`git revert $(git log -1 --format=%H --grep='fix(workspaces): keep detach failures visible')`。
+
+## 2026-09-15 - Task: B17 修复 Esc 同时关闭多层弹窗
+### What was done
+- 仅顶层弹窗接收键盘和初始焦点，同一 Esc 只消费一次；子层关闭后回到父层操作按钮。
+### Testing
+- 焦点工具、真实叠加 GlassModal 与确认框共 16 项通过；覆盖反向注册、逐层关闭与焦点恢复。
+### Notes
+- `src/lib/a11yFocus.ts`：共享层栈、事件归属及焦点恢复。
+- `src/components/GlassModal.focus.test.tsx`：真实叠层和注册顺序回归。
+- `docs/llm-wiki/dialogs.md`：顶层焦点规则。
+- `progress.md`：追加记录。
+- 回滚：`git revert $(git log -1 --format=%H --grep='fix(dialogs): route keyboard events to the top layer')`。

@@ -122,6 +122,14 @@ export function isTypingTarget(el: EventTarget | null | undefined): boolean {
   return false;
 }
 
+type DialogLayer = { getRoot: () => ParentNode | null | undefined };
+const dialogLayers: DialogLayer[] = [];
+const handledDialogKeys = new WeakSet<KeyboardEvent>();
+
+function topDialog(): DialogLayer | undefined {
+  return dialogLayers[dialogLayers.length - 1];
+}
+
 export type InstallDialogFocusOptions = {
   /** Escape closes / cancels. */
   onEscape?: () => void;
@@ -161,9 +169,20 @@ export function installDialogFocus(
       ? (document.activeElement as HTMLElement | null)
       : null;
 
+  const layer = { getRoot };
+  dialogLayers.push(layer);
+  // React child effects may register first; use mounted portal order.
+  // Preserve this order through cleanup, when React has already cleared refs.
+  dialogLayers.sort((a, b) => {
+    const root = a.getRoot() as Node | null;
+    const other = b.getRoot() as Node | null;
+    if (!root || !other || typeof root.compareDocumentPosition !== "function") return 0;
+    return root.compareDocumentPosition(other) & 4 ? -1 : 1;
+  });
   let focusTimer: number | undefined;
   if (initialFocus !== "none" && typeof window !== "undefined") {
     focusTimer = window.setTimeout(() => {
+      if (topDialog() !== layer) return;
       if (typeof initialFocus === "function") {
         const el = initialFocus();
         if (el && typeof el.focus === "function") {
@@ -176,7 +195,9 @@ export function installDialogFocus(
   }
 
   const onKey = (e: KeyboardEvent) => {
+    if (topDialog() !== layer || e.defaultPrevented || handledDialogKeys.has(e)) return;
     if (e.key === "Escape" && onEscape) {
+      handledDialogKeys.add(e);
       e.preventDefault();
       e.stopPropagation();
       onEscape();
@@ -190,15 +211,23 @@ export function installDialogFocus(
   }
 
   return () => {
+    const wasTop = topDialog() === layer;
+    const index = dialogLayers.indexOf(layer);
+    if (index !== -1) dialogLayers.splice(index, 1);
     if (focusTimer != null && typeof window !== "undefined") {
       window.clearTimeout(focusTimer);
     }
     if (typeof document !== "undefined") {
       document.removeEventListener("keydown", onKey, capture);
     }
-    if (restoreFocus && prev && typeof prev.focus === "function") {
+    if (restoreFocus && wasTop) {
       try {
-        prev.focus();
+        const remaining = topDialog()?.getRoot();
+        if (prev && prev.isConnected !== false && (!remaining || rootContains(remaining, prev))) {
+          prev.focus();
+        } else if (remaining) {
+          focusFirst(remaining);
+        }
       } catch {
         /* ignore */
       }
