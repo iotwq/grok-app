@@ -13,6 +13,8 @@ import {
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
+import Image from "@tiptap/extension-image";
+import { TableKit } from "@tiptap/extension-table";
 import Placeholder from "@tiptap/extension-placeholder";
 import { Markdown } from "tiptap-markdown";
 import { Tip } from "@/components/ui/tooltip";
@@ -97,6 +99,7 @@ export function MarkdownTiptapEditor({
     immediatelyRender: false,
     extensions: [
       StarterKit.configure({
+        link: false,
         heading: { levels: [1, 2, 3] },
         // Keep hard breaks available; Markdown extension serializes them.
       }),
@@ -109,6 +112,8 @@ export function MarkdownTiptapEditor({
           rel: "noopener noreferrer",
         },
       }),
+      Image.configure({ inline: true }),
+      TableKit,
       Placeholder.configure({
         placeholder: labels.placeholder,
       }),
@@ -147,7 +152,7 @@ export function MarkdownTiptapEditor({
 
   useEffect(() => {
     if (!editor) return;
-    editor.setEditable(!disabled);
+    editor.setEditable(!disabled, false);
   }, [editor, disabled]);
 
   // External value (revert / reload / tab switch content) → editor
@@ -159,7 +164,7 @@ export function MarkdownTiptapEditor({
       lastEmitted.current = value;
       return;
     }
-    editor.commands.setContent(value);
+    editor.commands.setContent(value, { emitUpdate: false });
     lastEmitted.current = value;
   }, [value, editor]);
 

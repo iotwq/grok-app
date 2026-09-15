@@ -759,6 +759,27 @@ html[data-theme="light"] .rp-code-editor .cm-editor {
   margin-bottom: 0;
 }
 
+.rp-md-editor__prose img {
+  max-width: 100%;
+  height: auto;
+}
+
+.rp-md-editor__prose table {
+  border-collapse: collapse;
+  margin: 0.7em 0;
+}
+
+.rp-md-editor__prose th,
+.rp-md-editor__prose td {
+  border: 1px solid var(--border-subtle);
+  padding: 6px 10px;
+  vertical-align: top;
+}
+
+.rp-md-editor__prose th {
+  background: var(--bg-hover);
+}
+
 .rp-md-editor__prose h1,
 .rp-md-editor__prose h2,
 .rp-md-editor__prose h3 {

@@ -433,3 +433,19 @@
 - `docs/qa/deep-usage-audit-2026-09-15.md`：记录 B20–B26、复现结果、验证边界及排除项。
 - `progress.md`：追加本轮审计记录，不改写历史。
 - 回滚：本轮基线为 `eb5284eb` 且开工时工作区干净；尚无后续修改时执行 `git restore -- progress.md`，并执行 `rm docs/qa/deep-usage-audit-2026-09-15.md`。未提交、推送或发布。
+
+## 2026-09-15 - Task: 修复 B20 Markdown 编辑丢失图片与表格
+### What was done
+- 为现有可视化编辑补齐图片与表格节点，保持图片 URL、标题及表格结构，配套现有主题样式。
+- 加载/撤销与权限切换不再回传为用户编辑，避免改写未操作的草稿。
+### Testing
+- 两项真实组件回归修复前失败，修复后通过；验证图片标题与路径、表格单元格、无关正文及外部加载回调。
+- 定向 ESLint、git diff --check 通过；依赖通过 pnpm 更新，仅增加两个相同版本的 TipTap 扩展。
+### Notes
+- `src/components/MarkdownTiptapEditor.tsx`：补齐图片/表格、消除重复 Link，并关闭外部同步的更新事件。
+- `src/components/MarkdownTiptapEditor.test.tsx`：内容保留与重载回归。
+- `src/styles/composer.part3.css`：图片宽度与表格边框样式。
+- `package.json`、`pnpm-lock.yaml`：固定新增扩展为 3.31.3，与现有 TipTap 一致。
+- `docs/qa/deep-usage-audit-2026-09-15.md`：追加 B20 修复结果。
+- `progress.md`：追加本项记录。
+- 回滚：`git revert $(git log -1 --format=%H --grep='fix(editor): preserve markdown images and tables')`，随后 `pnpm install --frozen-lockfile`。
