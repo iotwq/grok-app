@@ -40,12 +40,12 @@ export function HtmlBrowser({
   html,
   className = "",
 }: HtmlBrowserProps) {
-  const [doc, setDoc] = useState<string>(html?.trim() ? html : "");
+  const [doc, setDoc] = useState<string>(html ?? "");
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(!html?.trim() && !!absolutePath);
+  const [loading, setLoading] = useState(html == null && !!absolutePath);
 
   useEffect(() => {
-    if (html?.trim()) {
+    if (html != null) {
       setDoc(html);
       setError(null);
       setLoading(false);
@@ -84,11 +84,11 @@ export function HtmlBrowser({
     );
   }
 
-  if (error || !doc) {
+  if (error) {
     return (
       <div className={"rp-preview-browser rp-preview-browser--msg " + className}>
         <div className="rp-preview__msg" role="alert">
-          {error || "Empty HTML"}
+          {error}
         </div>
       </div>
     );

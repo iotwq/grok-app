@@ -603,7 +603,7 @@ export function ResourcePreviewBody({
     const codePreviewBody = (() => {
       if (preview.kind === "json") {
         try {
-          return JSON.stringify(JSON.parse(draftText || "{}"), null, 2);
+          return JSON.stringify(JSON.parse(draftText), null, 2);
         } catch {
           return draftText;
         }
@@ -681,7 +681,7 @@ export function ResourcePreviewBody({
           <OverlayScroll className="rp-editor__preview-scroll">
             <div className="rp-editor__preview-body rp-preview__md">
               <MarkdownPreview locale={locale}>
-                {draftText || preview.text || ""}
+                {draftText}
               </MarkdownPreview>
             </div>
           </OverlayScroll>
@@ -689,7 +689,7 @@ export function ResourcePreviewBody({
           <HtmlBrowser
             title={preview.name}
             absolutePath={preview.absolutePath || null}
-            html={draftText || preview.text}
+            html={draftText}
           />
         ) : (
           <div className="rp-editor__code-preview">

@@ -522,3 +522,18 @@
 - `docs/qa/deep-usage-audit-2026-09-15.md`：追加 B25 修复结果。
 - `progress.md`：追加本项记录。
 - 回滚：`git revert $(git log -1 --format=%H --grep='fix(queue): wait for explicit retry after send failures')`。
+
+## 2026-09-15 - Task: 修复 B26 清空草稿后预览与保存不一致
+### What was done
+- Markdown、HTML 和 JSON 预览保留合法空草稿，HTML 空白文档不再回读旧文件。
+### Testing
+- 五项空草稿与 HTML 空白文档回归修复前失败，修复后通过；连同非空预览共八项通过。
+- 验证实际 HTML iframe 的 srcDoc；Markdown/代码下游以简单渲染器替代，仅验证父组件取值。定向 ESLint、git diff --check 通过。
+### Notes
+- `src/components/resource-viewer/ResourcePreviewBody.tsx`：删除对空草稿的错误回退。
+- `src/components/resource-viewer/ResourcePreviewBody.test.tsx`：三种文本类型空/非空预览回归。
+- `src/components/HtmlBrowser.tsx`：区分未提供内容和有效空文档。
+- `src/components/HtmlBrowser.test.tsx`：空字符串及纯空白不回读磁盘的回归。
+- `docs/qa/deep-usage-audit-2026-09-15.md`：追加 B26 修复结果。
+- `progress.md`：追加本项记录。
+- 回滚：`git revert $(git log -1 --format=%H --grep='fix(preview): render empty drafts without stale fallback')`。
