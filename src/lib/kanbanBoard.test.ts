@@ -368,10 +368,10 @@ describe("agent kanban surface is not a todo list", () => {
     expect(src).not.toMatch(/<select[\s>]/);
   });
 
-  it("opens as a sidebar main-pane page, not a floating modal", () => {
+  it("stays out of the primary navigation and command palette", () => {
     const palette = readFileSync(join(root, "lib/paletteActions.ts"), "utf8");
-    expect(palette).toContain('id: "open-kanban"');
-    expect(palette).toContain('id: "open-task-board"');
+    expect(palette).not.toContain('id: "open-kanban"');
+    expect(palette).not.toContain('id: "open-task-board"');
     const workbench = readFileSync(join(root, "app/AppWorkbench.tsx"), "utf8");
     const sessionModals = readFileSync(
       join(root, "app/WorkbenchSessionModals.tsx"),
@@ -380,9 +380,8 @@ describe("agent kanban surface is not a todo list", () => {
     const chrome = workbench + sessionModals;
     const sidebar = readFileSync(join(root, "app/WorkbenchSidebar.tsx"), "utf8");
     expect(workbench).toContain("KanbanBoardPage");
-    expect(workbench).toContain("navigateKanban");
-    expect(chrome).toContain('hash = "#/kanban"');
-    expect(sidebar).toContain('tr("sidebar.kanban")');
+    expect(workbench).toContain("KanbanBoardPage");
+    expect(sidebar).not.toContain('tr("sidebar.kanban")');
     expect(workbench).toContain('mainPane === "kanban"');
     expect(workbench).toContain("liveVoiceOpen ||");
     expect(workbench).toContain('mainPane === "kanban"');

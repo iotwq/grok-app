@@ -729,3 +729,22 @@
 - `src/app/WorkbenchChatStage.tsx`：移除 Dashboard 回调传递。
 - `src/app/AppWorkbench.tsx`：移除对应主导航和命令面板分发路径。
 - 回滚：`git revert HEAD`（本轮提交）；恢复后重新运行上述测试。
+
+## 2026-09-16 - Task: 制作功能收缩后的 macOS 安装包
+### What was done
+- 基于 bac55909 制作 Apple Silicon macOS DMG，包含主导航和命令面板入口收缩。
+- 保留上一版安装包，生成带提交标识的新安装包；未替换当前运行中的应用。
+- 修正一处仍要求 `open-kanban` 命令入口的旧测试断言，使测试与已实施的入口收缩一致。
+### Testing
+- 完整前端测试 666 个文件、7,601 项全部通过。
+- Tauri UI、Rust release、Apple Silicon app/dmg 构建通过。
+- app 严格代码签名验证通过；Mach-O 确认为 arm64，Info.plist 校验通过。
+- DMG `hdiutil verify` 及 SHA256 回读通过；镜像内 app 签名通过。
+- 镜像内程序使用独立 `GROK_APP_HOME=/tmp/grok-macos-cli-bac55909` 执行 `--sessions` 返回 `[]`、退出码 0。
+- Vite 保留已有大分块警告；ad-hoc 签名未进行 Apple 公证。
+### Notes
+- `src/lib/kanbanBoard.test.ts`：将旧的命令入口存在断言改为入口已移除断言。
+- `docs/qa/macos-package-2026-09-16-bac55909.md`：记录本次安装包来源、校验、签名限制和回滚方式。
+- `dist-installers/Grok_0.2.35_bac55909_aarch64.dmg`：Apple Silicon 新安装包，SHA256 见校验文件。
+- `dist-installers/SHA256SUMS-bac55909.txt`：安装包校验清单。
+- 回滚安装：退出 Grok 后使用此前保留的 `Grok_0.2.35_e45dde79_aarch64.dmg`；回滚代码测试：`git restore --source=bac55909 -- src/lib/kanbanBoard.test.ts`。
