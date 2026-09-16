@@ -3090,15 +3090,6 @@ export function AppWorkbench() {
     }
   }, [closeSettings]);
 
-  const navigateKanban = useCallback(() => {
-    closeSettings();
-    setMainPane("kanban");
-    setShowUserMenu(false);
-    if (typeof window !== "undefined") {
-      window.location.hash = "#/kanban";
-    }
-  }, [closeSettings]);
-
   const persistOpenTarget = useCallback((target: string) => {
     setDefaultOpenTarget(target);
     writeOpenTargetStorage(target);
@@ -10194,17 +10185,6 @@ export function AppWorkbench() {
       case "open-automations":
         navigateAutomations();
         break;
-      case "open-ops":
-        // Ops hub: pick tasks / dashboard / board / batch (not a silent dashboard alias).
-        closeSettings();
-        setOpsEntryOpen(true);
-        if (
-          typeof window !== "undefined" &&
-          window.location.hash.includes("settings")
-        ) {
-          window.location.hash = "#/workbench";
-        }
-        break;
       case "open-tasks":
         closeSettings();
         setMainPane("chat");
@@ -10215,32 +10195,6 @@ export function AppWorkbench() {
         ) {
           window.location.hash = "#/workbench";
         }
-        break;
-      case "open-agent-dashboard":
-        closeSettings();
-        setAgentDashboardOpen(true);
-        if (
-          typeof window !== "undefined" &&
-          window.location.hash.includes("settings")
-        ) {
-          window.location.hash = "#/workbench";
-        }
-        break;
-      case "open-task-board":
-        closeSettings();
-        setTaskBoardOpen(true);
-        if (
-          typeof window !== "undefined" &&
-          window.location.hash.includes("settings")
-        ) {
-          window.location.hash = "#/workbench";
-        }
-        break;
-      case "open-kanban":
-        navigateKanban();
-        break;
-      case "open-batch-agents":
-        openBatchAgents();
         break;
       case "doctor":
         setShowDoctor(true);
@@ -12241,7 +12195,6 @@ export function AppWorkbench() {
           onOpenSearch={() => searchPalette.openBlank()}
           onNewChat={() => void newChat(null)}
           onNavigateAutomations={navigateAutomations}
-          onNavigateKanban={navigateKanban}
           onNavigateRemoteIm={() => navigateSettings("remote_im", "im")}
           showUserMenu={showUserMenu}
           setShowUserMenu={setShowUserMenu}
@@ -12567,7 +12520,6 @@ export function AppWorkbench() {
             sessionJsonSchema={sessionJsonSchema}
             sessionTranscriptStore={sessionTranscriptStore}
             sessions={sessions}
-            setAgentDashboardOpen={setAgentDashboardOpen}
             setErrorDetailOpen={setErrorDetailOpen}
             setGoalMode={setGoalMode}
             setLiveMap={setLiveMap}

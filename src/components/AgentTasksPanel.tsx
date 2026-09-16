@@ -87,8 +87,6 @@ export type AgentTasksPanelProps = {
   onStopSession?: (sessionId: string) => void | Promise<void>;
   /** Stop every stoppable busy session (confirm lives in App). */
   onStopAllSessions?: () => void;
-  /** Open the cross-session Agent dashboard (distinct from this tools panel). */
-  onOpenDashboard?: () => void;
   /**
    * Bind this chat to a subagent cwd / worktree path (agent project cwd).
    * Parent owns project_add / session bind / toast.
@@ -591,7 +589,6 @@ export function AgentTasksPanel({
   onSelectSession,
   onStopSession,
   onStopAllSessions,
-  onOpenDashboard,
   onOpenCwd,
   activeCwd = null,
   subagentWorktreeSnapshotEnabled = false,
@@ -725,16 +722,6 @@ export function AgentTasksPanel({
           ) : null}
         </div>
         <div className="agent-tasks__head-actions">
-          {!isRail && onOpenDashboard ? (
-            <button
-              type="button"
-              className="btn btn--ghost btn--sm"
-              onClick={onOpenDashboard}
-              title={t("tasks.openDashboard")}
-            >
-              {t("tasks.openDashboard")}
-            </button>
-          ) : null}
           {showStopAll ? (
             <button
               type="button"

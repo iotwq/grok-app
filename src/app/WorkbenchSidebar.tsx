@@ -24,7 +24,6 @@ import {
 import {
   IconDeviceMobile,
   IconFolderPlus,
-  IconList,
   IconNewChat,
   IconScheduled,
   IconSearch,
@@ -114,7 +113,6 @@ export type WorkbenchSidebarProps = {
   onOpenSearch: () => void;
   onNewChat: () => void;
   onNavigateAutomations: () => void;
-  onNavigateKanban: () => void;
   onNavigateRemoteIm: () => void;
   showUserMenu: boolean;
   setShowUserMenu: Dispatch<SetStateAction<boolean>>;
@@ -175,7 +173,6 @@ export function WorkbenchSidebar(props: WorkbenchSidebarProps) {
     onOpenSearch,
     onNewChat,
     onNavigateAutomations,
-    onNavigateKanban,
     onNavigateRemoteIm,
     showUserMenu,
     setShowUserMenu,
@@ -389,18 +386,6 @@ export function WorkbenchSidebar(props: WorkbenchSidebarProps) {
               <IconScheduled size={16} />
             </span>
             {tr("sidebar.scheduled")}
-          </button>
-          <button
-            type="button"
-            className={
-              "nav-item" + (mainPane === "kanban" ? " nav-item--active" : "")
-            }
-            onClick={onNavigateKanban}
-          >
-            <span className="nav-item__icon">
-              <IconList size={16} />
-            </span>
-            {tr("sidebar.kanban")}
           </button>
           {isDesktopHost() ? (
             <button

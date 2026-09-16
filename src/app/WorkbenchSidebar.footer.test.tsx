@@ -117,7 +117,6 @@ function props(
     onOpenSearch: () => undefined,
     onNewChat: () => undefined,
     onNavigateAutomations: () => undefined,
-    onNavigateKanban: () => undefined,
     onNavigateRemoteIm: () => undefined,
     showUserMenu: false,
     setShowUserMenu: () => undefined,

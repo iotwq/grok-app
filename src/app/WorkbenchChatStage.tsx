@@ -140,7 +140,6 @@ export type WorkbenchChatStageProps = {
   sessionJsonSchema: string | null;
   sessionTranscriptStore: TStore;
   sessions: SessionRow[];
-  setAgentDashboardOpen: Dispatch<SetStateAction<boolean>>;
   setErrorDetailOpen: Dispatch<SetStateAction<boolean>>;
   setGoalMode: Dispatch<SetStateAction<boolean>>;
   setLiveMap: (
@@ -209,7 +208,7 @@ export function WorkbenchChatStage(p: WorkbenchChatStageProps) {
     onThreadOpenModifiedPath, onThreadOpenResource, onThreadOpenSessionChanges, onThreadRemoveEditAttachment, openExternalLinkFromChat, openPlanInResource,
     openReliability, openRequestPlanChanges, openSession, plan, projects, regenerateLastAssistant,
     requestClearLocalGoalOrchTimeline, retryAgentConnect, runErrorBannerAction, session, sessionChanges, sessionJsonSchema, sessionTranscriptStore,
-    sessions, setAgentDashboardOpen, setErrorDetailOpen, setGoalMode, setLiveMap, setShowChatFind,
+    sessions, setErrorDetailOpen, setGoalMode, setLiveMap, setShowChatFind,
     setStreamStall, setTasksPanelOpen, shouldDisableReconnectBecauseConnecting, showChatFind, showMessageTimestamps, showReplyLength,
     showToast, stop, stopAllBusySessions, stopGate, stopLatch, streamA11yNote,
     streamStall, structuredOutputLabels, structuredOutputUsage, subagentWorktreeSnapshotEnabled, submitEditLastUser, switchToWorktree,
@@ -464,7 +463,6 @@ export function WorkbenchChatStage(p: WorkbenchChatStageProps) {
                 }
               }}
               onStopAllSessions={() => stopAllBusySessions("tasks")}
-              onOpenDashboard={() => setAgentDashboardOpen(true)}
               activeCwd={activeProject?.path ?? null}
               onOpenCwd={async (cwd): Promise<TasksBindCwdResult> => {
                 const path = (cwd || "").trim();

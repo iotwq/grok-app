@@ -709,3 +709,23 @@
 - `progress.md`：追加本轮构建与验证记录。
 - 回滚测试：`git restore --source=e45dde79 -- src/lib/wallpaperThemeContrast.guard.test.ts`；回滚安装版：退出 Grok 后使用保留的 `dist-installers/Grok_0.2.35_ba5e835f_aarch64.dmg` 重新安装。
 - 本地包未进行 Apple 公证；当前任务不包含 Intel 包或公开发布。
+
+## 2026-09-16 - Task: 收缩 Agent 高级运营入口
+### What was done
+- 从主导航移除 Kanban/Session Task Board 入口。
+- 从命令面板移除 Ops Hub、Agent Dashboard、Task Board、Kanban 和 Batch Agents 动作；保留当前会话 Tasks panel。
+- 移除 Tasks panel 内跳转跨会话 Dashboard 的重复按钮；Batch Agents 继续由设置中的高级工具入口提供。
+### Testing
+- `pnpm typecheck` 通过。
+- 相关 ESLint 通过：AppWorkbench、WorkbenchSidebar、WorkbenchChatStage、AgentTasksPanel、palette actions 及测试。
+- `src/lib/paletteActions.test.ts`、`src/app/WorkbenchSidebar.footer.test.tsx`、`src/lib/opsEntry.test.ts`：33 项通过。
+- `git diff --check` 通过。
+### Notes
+- `src/lib/paletteActions.ts`：收窄命令面板至核心操作与当前会话 Tasks。
+- `src/lib/paletteActions.test.ts`：同步动作清单并确认看板搜索不再返回入口。
+- `src/app/WorkbenchSidebar.tsx`：移除 Kanban 主导航按钮。
+- `src/app/WorkbenchSidebar.footer.test.tsx`：同步 Sidebar 测试夹具。
+- `src/components/AgentTasksPanel.tsx`：移除 Dashboard 跳转按钮。
+- `src/app/WorkbenchChatStage.tsx`：移除 Dashboard 回调传递。
+- `src/app/AppWorkbench.tsx`：移除对应主导航和命令面板分发路径。
+- 回滚：`git revert HEAD`（本轮提交）；恢复后重新运行上述测试。
