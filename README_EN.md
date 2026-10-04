@@ -170,8 +170,9 @@ In restricted network environments where Grok services cannot be reached directl
 ## 💡 Platform Notes & Troubleshooting
 
 ### macOS Gatekeeper / "App is damaged"
-Official releases starting from **v0.2.19** are signed with an Apple Developer ID and **Apple-notarized**.
-If Gatekeeper blocks launching (e.g., on unsigned custom builds or due to quarantine metadata):
+macOS packages are usable without Gatekeeper workarounds only when the release CI has
+completed Apple Developer ID signing and notarization. Unsigned custom builds or older
+releases may be blocked by Gatekeeper:
 
 ```bash
 xattr -cr /Applications/Grok.app

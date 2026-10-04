@@ -272,9 +272,9 @@ cp src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/rpm/* dist-installer
 - **Settings → Actions → General → Workflow permissions**  
   勾选 **Read and write permissions**（用于创建 Release 并上传资产）
 
-### 可选：签名 Secrets
+### 签名 Secrets
 
-未配置签名时仍会出包；macOS 可能提示「已损坏」，Windows 可能 SmartScreen 拦截。
+macOS 正式发布必须完成 Apple Developer ID 签名和 Apple 公证；没有这些 Secrets，CI 会在上传安装包前失败，避免发布会被 Gatekeeper 判定为「已损坏」的包。Windows Authenticode 仍为可选配置。
 
 | Secret | 用途 |
 |--------|------|
@@ -290,6 +290,13 @@ cp src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/rpm/* dist-installer
 | `GROK_UPDATER_PUBLIC_KEY` | 应用内自动更新公钥（与 endpoint 一起嵌入 release 构建） |
 | `TAURI_SIGNING_PRIVATE_KEY` | Tauri updater 签名私钥（启用自动更新时必需） |
 | `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | 私钥密码（可为空） |
+
+#### Apple Secrets 的一次性配置
+
+1. 在 Apple Developer 中创建 **Developer ID Application** 证书，将证书导出为带密码的 `.p12`，并在本地执行 `openssl base64 -A -in cert.p12` 获取 `APPLE_CERTIFICATE`。
+2. 在 App Store Connect → Users and Access → Integrations → API Keys 创建下载密钥，分别记录 Issuer ID、Key ID，并将 `AuthKey_<id>.p8` 全文填入 `APPLE_API_KEY_P8`。
+3. 在 GitHub 仓库 **Settings → Secrets and variables → Actions** 中新增上表的 7 个 `APPLE_*` Secret。名称和值必须完整匹配；不要把证书、私钥或密码提交到仓库，也不要发送到聊天中。
+4. 用 `gh secret list --repo iotwq/grok-app` 只核对 Secret 名称。下一次 tag 发布时，CI 会先验证配置，再签名、公证并检查 Gatekeeper 结果；任一步失败都不会把 macOS 构建标记为可发布。
 
 #### Windows Authenticode（正式代码签名）
 

@@ -7,8 +7,9 @@
 # Prerequisites (repo Settings → Actions → General → Workflow permissions):
 #   - Read and write permissions (so the job can create/update Releases)
 #
-# Optional signing secrets (unsigned builds still work; macOS may warn):
-#   - Apple (all required together; omit entirely to ship unsigned):
+# Signing prerequisites:
+#   - Apple is required for both macOS matrix legs. The workflow refuses to
+#     publish a Gatekeeper-incompatible unsigned macOS package:
 #            APPLE_CERTIFICATE              base64 of Developer ID Application .p12
 #            APPLE_CERTIFICATE_PASSWORD     .p12 export password
 #            APPLE_SIGNING_IDENTITY         e.g. Developer ID Application: Name (TEAMID)
@@ -17,7 +18,8 @@
 #            APPLE_API_KEY                  App Store Connect Key ID
 #            APPLE_API_KEY_P8               AuthKey_<id>.p8 PEM contents (written to a
 #                                           temp path as APPLE_API_KEY_PATH for Tauri)
-#     Do NOT create empty APPLE_* secrets. Missing = skip sign/notarize.
+#     Do NOT create empty APPLE_* secrets. Missing or partial values fail the
+#     macOS jobs before they upload a release asset.
 #     Prefer App Store Connect API key over APPLE_ID + app-specific password.
 #   - Windows Authenticode (optional OV/EV .pfx — removes Unknown publisher when set):
 #            WINDOWS_CERTIFICATE            base64-encoded .pfx
@@ -244,9 +246,9 @@ jobs:
           Remove-Item -Recurse -Force certificate -ErrorAction SilentlyContinue
           "enabled=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
-      # Export Apple env only when APPLE_CERTIFICATE is non-empty.
-      # Empty APPLE_CERTIFICATE makes `tauri build` try codesign import and fail with:
-      #   "failed to import keychain certificate"
+      # macOS packages must be Developer ID signed and notarized. Publishing an
+      # ad-hoc/unsigned DMG produces the misleading Gatekeeper "app is damaged"
+      # dialog, so fail before the build when any Apple secret is missing.
       # TAURI_SIGNING_* are only set when updater is enabled (non-empty).
       # WINDOWS_CERTIFICATE* are only used on windows-latest when present.
       - name: Export Apple signing env
@@ -261,12 +263,12 @@ jobs:
           APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
         run: |
           set -euo pipefail
-          if [[ -z "${APPLE_CERTIFICATE:-}" ]]; then
-            echo "APPLE_CERTIFICATE not set — macOS build will be unsigned"
-            exit 0
+          if [[ -z "${APPLE_CERTIFICATE:-}" || -z "${APPLE_CERTIFICATE_PASSWORD:-}" || -z "${APPLE_SIGNING_IDENTITY:-}" || -z "${APPLE_TEAM_ID:-}" ]]; then
+            echo "::error::Apple signing requires APPLE_CERTIFICATE, APPLE_CERTIFICATE_PASSWORD, APPLE_SIGNING_IDENTITY, and APPLE_TEAM_ID"
+            exit 1
           fi
-          if [[ -z "${APPLE_CERTIFICATE_PASSWORD:-}" || -z "${APPLE_SIGNING_IDENTITY:-}" || -z "${APPLE_TEAM_ID:-}" ]]; then
-            echo "::error::APPLE_CERTIFICATE is set but APPLE_CERTIFICATE_PASSWORD / APPLE_SIGNING_IDENTITY / APPLE_TEAM_ID is empty"
+          if [[ -z "${APPLE_API_KEY_P8:-}" || -z "${APPLE_API_ISSUER:-}" || -z "${APPLE_API_KEY:-}" ]]; then
+            echo "::error::Apple notarization requires APPLE_API_KEY_P8, APPLE_API_ISSUER, and APPLE_API_KEY"
             exit 1
           fi
           {
@@ -277,23 +279,15 @@ jobs:
             echo "APPLE_SIGNING_IDENTITY=$APPLE_SIGNING_IDENTITY"
             echo "APPLE_TEAM_ID=$APPLE_TEAM_ID"
           } >> "$GITHUB_ENV"
-          if [[ -n "${APPLE_API_KEY_P8:-}" ]]; then
-            if [[ -z "${APPLE_API_ISSUER:-}" || -z "${APPLE_API_KEY:-}" ]]; then
-              echo "::error::APPLE_API_KEY_P8 is set but APPLE_API_ISSUER / APPLE_API_KEY is empty"
-              exit 1
-            fi
-            mkdir -p "$RUNNER_TEMP/apple-signing"
-            printf '%s\n' "$APPLE_API_KEY_P8" > "$RUNNER_TEMP/apple-signing/AuthKey.p8"
-            chmod 600 "$RUNNER_TEMP/apple-signing/AuthKey.p8"
-            {
-              echo "APPLE_API_KEY_PATH=$RUNNER_TEMP/apple-signing/AuthKey.p8"
-              echo "APPLE_API_ISSUER=$APPLE_API_ISSUER"
-              echo "APPLE_API_KEY=$APPLE_API_KEY"
-            } >> "$GITHUB_ENV"
-            echo "Apple signing + App Store Connect API key enabled"
-          else
-            echo "Apple certificate present but no APPLE_API_KEY_P8 — will sign without notarizing"
-          fi
+          mkdir -p "$RUNNER_TEMP/apple-signing"
+          printf '%s\n' "$APPLE_API_KEY_P8" > "$RUNNER_TEMP/apple-signing/AuthKey.p8"
+          chmod 600 "$RUNNER_TEMP/apple-signing/AuthKey.p8"
+          {
+            echo "APPLE_API_KEY_PATH=$RUNNER_TEMP/apple-signing/AuthKey.p8"
+            echo "APPLE_API_ISSUER=$APPLE_API_ISSUER"
+            echo "APPLE_API_KEY=$APPLE_API_KEY"
+          } >> "$GITHUB_ENV"
+          echo "Apple Developer ID signing + App Store Connect notarization enabled"
 
       - name: Build Tauri app & attach to GitHub Release
         uses: tauri-apps/tauri-action@v0
@@ -322,6 +316,11 @@ jobs:
             ${{ matrix.platform == 'windows-latest' && steps.win_sign.outputs.enabled == 'true' && ' --config src-tauri/tauri.windows.sign.conf.json' || '' }}
           # We assemble a multi-platform latest.json in assemble-updater-manifest.
           includeUpdaterJson: false
+
+      - name: Verify macOS signature and notarization
+        if: startsWith(matrix.platform, 'macos')
+        shell: bash
+        run: bash scripts/verify-macos-release.sh "${{ matrix.target }}"
 
       # macOS: tauri-action often uploads only the .dmg. Silent update needs the
       # signed .app.tar.gz (+ .sig) with arch in the filename for assemble-updater.

@@ -1599,3 +1599,23 @@
 - `src-tauri/resources/grok-build/`：记录 Grok Build 1.0.46 及许可证快照。
 - `CHANGELOG.md`、`README*.md`、`docs/BUILD.md`、`docs/llm-wiki/release.md`、`docs/llm-wiki/website-downloads.md`：同步 0.2.36 发布说明、架构和下载地址。
 - 回滚方式：代码准备提交为 `97af9422`；如需撤回本轮提交，执行 `git revert 97af9422`，再重新运行验证。
+
+## 2026-10-04 - Task: 固化 macOS 签名与公证，避免发布「已损坏」安装包
+### What was done
+- 将 macOS 发布门禁改为强制要求 Developer ID Application 证书、签名身份、Team ID 和 App Store Connect API Key；缺少或部分配置时在构建前失败。
+- 新增 macOS 发布产物校验脚本，检查 `.app` 的 Developer ID 签名、DMG 完整性、公证票据和 Gatekeeper 评估结果。
+- 更新中英文、俄文发布说明及构建文档，明确旧包的 `xattr` 仅是临时绕过，并补充 Apple Secrets 的一次性配置步骤。
+### Testing
+- `bash -n scripts/verify-macos-release.sh` 通过。
+- Ruby YAML 解析 `.github/workflows/release.yml` 通过。
+- `pnpm typecheck` 通过。
+- `git diff --check` 通过。
+- 当前未执行真实签名、公证或安装验证：仓库 Secrets 尚未配置 Apple 凭据，当前机器也没有 Developer ID `.p12` 或 App Store Connect `.p8`。
+### Notes
+- `.github/workflows/release.yml`：macOS 构建强制签名/公证并调用发布校验。
+- `scripts/verify-macos-release.sh`：新增 macOS 产物验证脚本。
+- `docs/BUILD.md`：补充 Apple Secrets 表和一次性配置步骤。
+- `docs/llm-wiki/release.md`：更新发布门禁与 Gatekeeper 说明。
+- `README.md`、`README_EN.md`、`README_ZH.md`、`README_RU.md`：修正 macOS 安装说明。
+- `progress.md`：追加本轮施工与验证记录。
+- 回滚：提交后执行 `git revert <本轮提交>`；未提交前可用 `git diff` 保存补丁后恢复这 9 个文件。不要删除或轮换现有 updater secrets。

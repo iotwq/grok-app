@@ -170,8 +170,8 @@ Get-FileHash .\Grok_*_x64-setup.exe -Algorithm SHA256
 ## 💡 平台说明与排查
 
 ### macOS 提示「已损坏」或无法打开
-官方 GitHub Releases 自 **v0.2.19** 起均已包含 Apple Developer ID 签名并完成 **Apple 官方公证 (Notarization)**。
-若系统 Gatekeeper 仍出现拦截提示（如使用非官方编译版或隔离属性残留），可通过终端清除隔离标记：
+只有经过 Apple Developer ID 签名和 Apple 官方公证的 macOS Release 才能直接通过 Gatekeeper。
+未签名的自定义构建或较早的 Release 可能会被系统拦截，可通过终端清除隔离标记：
 
 ```bash
 xattr -cr /Applications/Grok.app
