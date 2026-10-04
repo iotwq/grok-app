@@ -691,6 +691,7 @@ impl SessionManager {
             last_stall_emit: None,
             stall_soft_emits: 0,
             journal_throttle: JournalWriteThrottle::with_default_interval(),
+            journal_writer: Default::default(),
             open_tool_ids: HashSet::new(),
             open_tool_seen_at: HashMap::new(),
             terminal_tool_ids: HashSet::new(),
@@ -1502,10 +1503,16 @@ impl SessionManager {
         err: &AgentError,
         pending_emits: &mut Vec<StreamEmitPayload>,
     ) -> PendingTurnBoundaryPersist {
-        let mid = s
-            .streaming_message_id
-            .clone()
-            .unwrap_or_else(|| Uuid::new_v4().to_string());
+        // Persist the partial answer before its separate error row. Reusing the
+        // stream id erased it and history reconciliation appended it after the error.
+        let stream_flush = Self::prepare_stream_journal_flush(s, true, false);
+        let mid = if stream_flush.is_some() {
+            Uuid::new_v4().to_string()
+        } else {
+            s.streaming_message_id
+                .clone()
+                .unwrap_or_else(|| Uuid::new_v4().to_string())
+        };
         let code = err.code.as_str();
         let detail = sanitize_error_detail(err.message.trim());
         // Persist machine-readable code first so the frontend can i18n the summary.
@@ -1521,7 +1528,7 @@ impl SessionManager {
         Self::release_failed_turn_markers(s, Some(pending_emits));
 
         PendingTurnBoundaryPersist {
-            stream_flush: None,
+            stream_flush,
             session_id: s.app_session_id.clone(),
             message: ChatMessageStored {
                 id: mid.clone(),
@@ -1531,7 +1538,7 @@ impl SessionManager {
                 created_at: chrono::Utc::now(),
                 is_error: true,
                 attachments: None,
-                marker: None,
+                marker: Some("turn_error".into()),
             },
             meta: s.meta.clone(),
             emit_event: "session://turn_error",

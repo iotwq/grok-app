@@ -477,7 +477,7 @@ export const jaSettingsUi = {
   "settings.autoUpdateReady": "更新をダウンロードしました — 準備ができたら「インストールして再起動」を確認してください。",
   "settings.autoUpdateInstall": "インストールして再起動",
   "settings.autoUpdateConfirm.title": "更新をインストールして再起動しますか？",
-  "settings.autoUpdateConfirm.message": "バージョン {version} をインストールし、アプリを再起動します。",
+  "settings.autoUpdateConfirm.message": "バージョン {version} と内蔵 Grok Build をインストールします。実行中のタスクを停止し、Grok App を再起動します。",
   "settings.autoUpdateConfirm.confirm": "インストールして再起動",
   "settings.autoUpdateConfirm.cancel": "キャンセル",
   "settings.autoUpdateInstalling": "インストール中…",

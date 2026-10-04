@@ -1,5 +1,13 @@
 /** de messages — domain: core */
 export const deCore = {
+  "resource.openLink": "Link öffnen",
+  "resource.openSide": "Im Seitenbrowser öffnen",
+  "resource.copyAddress": "Bildadresse kopieren",
+  "resource.copyFailed": "Kopieren fehlgeschlagen. Bitte erneut versuchen.",
+  "resource.openFailed": "Diese Ressource konnte nicht geöffnet werden. Bitte erneut versuchen.",
+  "resource.working": "Wird verarbeitet…",
+  "image.saveAs": "Bild speichern unter…",
+  "image.saveFailed": "Bild konnte nicht gespeichert werden. Bitte erneut versuchen.",
   "app.name": "Grok",
   "image.loadingOriginal": "Original wird geladen…",
   "image.originalFailed": "Original konnte nicht geladen werden. Die Vorschau bleibt verfügbar.",
@@ -36,7 +44,7 @@ export const deCore = {
   "office.pageOf": "{page} / {total}",
   "image.view": "Bild ansehen",
   "image.copy": "Bild kopieren",
-  "image.copyHint": "Rechtsklick zum Kopieren des Bildes",
+  "image.copyHint": "Rechtsklick für Bildaktionen",
   "image.next": "Nächstes Bild",
   "image.prev": "Vorheriges Bild",
   "image.close": "Schließen",

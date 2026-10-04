@@ -1,5 +1,13 @@
 /** pt-BR messages — domain: core */
 export const ptBRCore = {
+  "resource.openLink": "Abrir link",
+  "resource.openSide": "Abrir no navegador lateral",
+  "resource.copyAddress": "Copiar endereço da imagem",
+  "resource.copyFailed": "Não foi possível copiar. Tente novamente.",
+  "resource.openFailed": "Não foi possível abrir este recurso. Tente novamente.",
+  "resource.working": "Processando…",
+  "image.saveAs": "Salvar imagem como…",
+  "image.saveFailed": "Não foi possível salvar a imagem. Tente novamente.",
   "app.name": "Grok",
   "image.loadingOriginal": "Carregando original…",
   "image.originalFailed": "Não foi possível carregar o original. A prévia continua disponível.",
@@ -36,7 +44,7 @@ export const ptBRCore = {
   "office.pageOf": "{page} / {total}",
   "image.view": "Ver imagem",
   "image.copy": "Copiar imagem",
-  "image.copyHint": "Clique com o botão direito para copiar a imagem",
+  "image.copyHint": "Clique com o botão direito para ver as ações da imagem",
   "image.next": "Próxima imagem",
   "image.prev": "Imagem anterior",
   "image.close": "Fechar",

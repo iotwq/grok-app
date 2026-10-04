@@ -1,5 +1,7 @@
 /** uk messages — domain: errors */
 export const ukErrors = {
+  "error.deck.concurrency.problem": "Досягнуто ліміту одночасних запитів",
+  "error.deck.concurrency.cause": "Дочекайтеся завершення поточних запитів або зменште кількість одночасних завдань перед повторною спробою.",
   "error.deck.model.problem": "Модель недоступна",
   "error.deck.model.cause": "Провайдер відхилив цю модель. Відкрийте налаштування провайдерів і виберіть підтримувану модель.",
   "error.details": "Деталі",

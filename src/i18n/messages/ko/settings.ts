@@ -1,5 +1,13 @@
 /** ko messages — domain: settings */
 export const koSettings = {
+  "settings.updateNoCompatibleInstaller": "이 릴리스에서 현재 시스템 및 프로세서와 호환되는 설치 파일을 찾지 못했습니다.",
+  "settings.updateSourceUnconfigured": "이 빌드에는 업데이트 소스가 설정되지 않았습니다. 배포자가 제공하는 업데이트를 설치하세요.",
+  "runtime.bundled.updateRecovery": "업데이트를 완료하지 못했습니다. Grok App을 다시 시작하여 백그라운드 서비스를 복구한 후 업데이트를 재시도하세요.",
+  "runtime.bundled.restart": "Grok App 다시 시작",
+  "runtime.bundled.title": "내장 Grok Build",
+  "runtime.bundled.description": "Grok Build는 Grok App에 포함되어 함께 업데이트됩니다. 터미널에 설치한 CLI는 별도로 관리됩니다.",
+  "runtime.bundled.missing": "내장 런타임이 없거나 시작할 수 없습니다. Grok App을 다시 설치한 후 재시도하세요.",
+  "runtime.bundled.download": "Grok App 다운로드",
   "settings.sessionMuteSummary": "음소거된 세션",
   "settings.sessionMuteSummaryDesc": "이 대화의 데스크톱 알림이 음소거됩니다. 백그라운드 응답이 끝나면 사이드바 읽지 않음 점은 계속 나타납니다.",
   "settings.sessionMuteCount": "음소거 {n}개",
@@ -345,7 +353,7 @@ export const koSettings = {
   "settings.backBottomAlways": "항상 맨 아래로 돌아가기 표시",
   "settings.backBottomAlwaysDesc": "이미 맨 아래에 있어도 최신으로 스크롤 컨트롤을 보이게 유지합니다. 기본값은 꺼짐입니다(위로 스크롤한 뒤에만 표시).",
   "settings.selectionToolbar": "선택 도구 모음",
-  "settings.selectionToolbarDesc": "대화 텍스트를 드래그하면 복사 / 입력에 추가 막대가 나타납니다. 꺼도 우클릭은 됩니다.",
+  "settings.selectionToolbarDesc": "텍스트 선택 시 “채팅에 추가”와 “사이드 채팅에서 질문”을 표시합니다. 꺼도 마우스 오른쪽 버튼으로 사용할 수 있습니다.",
   "settings.confirmExternalLinks": "링크를 열기 전에 확인",
   "settings.confirmExternalLinksDesc": "채팅의 http(s) 링크를 브라우저에서 열기 전에 묻습니다. 기본값은 꺼짐입니다.",
   "settings.messageActions": "메시지 동작",

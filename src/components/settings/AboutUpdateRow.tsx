@@ -38,6 +38,7 @@ export function AboutUpdateRow({
     channelInfo,
     checkForUpdate,
     installAndRelaunch,
+    restartAfterFailedUpdate,
     githubReleasesUrl,
   } = useUpdaterContext();
   const [openError, setOpenError] = useState<string | null>(null);
@@ -90,7 +91,8 @@ export function AboutUpdateRow({
     return t(copy.bodyKey);
   })();
 
-  const busy = isUpdateActionBusy(statusLike);
+  const restartRequired = status.state === "error" && status.restartRequired;
+  const busy = isUpdateActionBusy(statusLike) || !!restartRequired;
   const showInstallProgress = shouldShowInstallProgress(statusLike);
   // Only show install when download finished (ready), never on available.
   // Click opens in-app confirm; confirm runs install + relaunch.
@@ -109,6 +111,13 @@ export function AboutUpdateRow({
     openErrorKind && openErrorKind !== "other"
       ? updateErrorBodyKey(openErrorKind)
       : null;
+
+  if ((!channelInfo.pluginEnabled || !channelInfo.platformSupported) && channelInfo.manualConfigured === false) {
+    return <div className="settings-row settings-row--stack">
+      <div className="settings-row__label">{t("settings.checkUpdate")}</div>
+      <div className="settings-row__desc" role="status">{t("settings.updateSourceUnconfigured")}</div>
+    </div>;
+  }
 
   return (
     <div className="settings-row settings-row--stack">
@@ -134,6 +143,15 @@ export function AboutUpdateRow({
           </div>
         ) : null}
       </div>
+      {restartRequired && (
+        <div role="alert" className="settings-row__hint settings-row__hint--warn">
+          {t("runtime.bundled.updateRecovery")}
+          <button type="button" className="btn btn--ghost btn--sm"
+            onClick={() => void restartAfterFailedUpdate()}>
+            {t("runtime.bundled.restart")}
+          </button>
+        </div>
+      )}
       <div className="settings-about-update">
         <div className="settings-about-update__actions">
           <button
@@ -238,6 +256,9 @@ export function AboutUpdateRow({
               </div>
             ) : null}
           </div>
+        ) : null}
+        {showOpenRelease && !downloadUrl && assetNames && assetNames.length > 0 ? (
+          <div className="settings-row__hint" role="status">{t("settings.updateNoCompatibleInstaller")}</div>
         ) : null}
         {assetNames && assetNames.length > 0 ? (
           <div className="settings-about-update__assets">

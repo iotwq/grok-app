@@ -1066,6 +1066,26 @@ async fn get_health(State(state): State<HttpState>, headers: HeaderMap) -> impl 
     Json(health_payload(&state.mgr)).into_response()
 }
 
+async fn post_browser_action(
+    State(state): State<HttpState>,
+    headers: HeaderMap,
+    Json(request): Json<crate::browser_automation::BrowserRequest>,
+) -> axum::response::Response {
+    if !token_ok(&headers, &state.token) {
+        return unauthorized().into_response();
+    }
+    let result = tokio::task::spawn_blocking(move || {
+        crate::browser_automation::execute(&state.app, request)
+    })
+    .await;
+    let body = match result {
+        Ok(Ok(value)) => value,
+        Ok(Err(error)) => serde_json::json!({"error":error}),
+        Err(error) => serde_json::json!({"error":error.to_string()}),
+    };
+    Json(body).into_response()
+}
+
 pub async fn start(app: AppHandle, mgr: Arc<SessionManager>) -> Result<SessionApiHandle, String> {
     let token = random_token();
     fanout_persisted_queue(&app);
@@ -1079,6 +1099,7 @@ pub async fn start(app: AppHandle, mgr: Arc<SessionManager>) -> Result<SessionAp
         .route("/v1/health", get(get_health))
         .route("/v1/sessions", get(get_sessions))
         .route("/v1/sessions/{id}/turns", post(post_turn))
+        .route("/v1/browser/action", post(post_browser_action))
         .with_state(state);
 
     let listener = TcpListener::bind("127.0.0.1:0")
@@ -1089,11 +1110,13 @@ pub async fn start(app: AppHandle, mgr: Arc<SessionManager>) -> Result<SessionAp
         .map_err(|e| format!("session api local_addr: {e}"))?
         .port();
     let url = format!("http://127.0.0.1:{port}");
-    write_endpoint_file(&EndpointFile {
+    let endpoint = EndpointFile {
         url: url.clone(),
         token,
         pid: Some(std::process::id()),
-    })?;
+    };
+    write_endpoint_file(&endpoint)?;
+    crate::browser_mcp::set_endpoint(endpoint);
 
     let (shutdown_tx, shutdown_rx) = oneshot::channel::<()>();
     tokio::spawn(async move {

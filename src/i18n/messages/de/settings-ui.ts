@@ -477,7 +477,7 @@ export const deSettingsUi = {
   "settings.autoUpdateReady": "Update geladen — bestätige „Installieren und neu starten“, wenn du soweit bist.",
   "settings.autoUpdateInstall": "Installieren und neu starten",
   "settings.autoUpdateConfirm.title": "Update installieren und neu starten?",
-  "settings.autoUpdateConfirm.message": "Version {version} wird installiert und die App startet neu.",
+  "settings.autoUpdateConfirm.message": "Version {version} wird mit dem integrierten Grok Build installiert. Laufende Aufgaben werden gestoppt und Grok App wird neu gestartet.",
   "settings.autoUpdateConfirm.confirm": "Installieren und neu starten",
   "settings.autoUpdateConfirm.cancel": "Abbrechen",
   "settings.autoUpdateInstalling": "Installieren…",

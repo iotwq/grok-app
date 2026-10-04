@@ -1,5 +1,13 @@
 /** it messages — domain: settings */
 export const itSettings = {
+  "settings.updateNoCompatibleInstaller": "Questa versione non contiene un programma di installazione compatibile con il sistema e il processore.",
+  "settings.updateSourceUnconfigured": "Questa build non ha una fonte di aggiornamento configurata. Installa gli aggiornamenti forniti dal distributore.",
+  "runtime.bundled.updateRecovery": "Impossibile completare l’aggiornamento. Riavvia Grok App per ripristinare i servizi in background, poi riprova.",
+  "runtime.bundled.restart": "Riavvia Grok App",
+  "runtime.bundled.title": "Grok Build integrato",
+  "runtime.bundled.description": "Grok Build è incluso e si aggiorna con Grok App. Le installazioni CLI nel terminale sono gestite separatamente.",
+  "runtime.bundled.missing": "Il runtime integrato è assente o non si avvia. Reinstalla Grok App e riprova.",
+  "runtime.bundled.download": "Scarica Grok App",
   "settings.sessionMuteSummary": "Sessioni silenziate",
   "settings.sessionMuteSummaryDesc": "Le notifiche desktop sono silenziate per queste chat. I punti non letti della barra laterale compaiono comunque quando una risposta in background finisce.",
   "settings.sessionMuteCount": "{n} silenziate",
@@ -345,7 +353,7 @@ export const itSettings = {
   "settings.backBottomAlways": "Mostra sempre torna-in-fondo",
   "settings.backBottomAlwaysDesc": "Tieni visibile il controllo scorri-all’ultimo anche quando sei già in fondo. Disattivato per impostazione predefinita (compare solo dopo che scorri su).",
   "settings.selectionToolbar": "Barra di selezione",
-  "settings.selectionToolbarDesc": "Mostra una barra copia / aggiungi alla chat quando evidenzi il testo. Il tasto destro resta disponibile se è disattivata.",
+  "settings.selectionToolbarDesc": "Mostra “Aggiungi alla chat” e “Chiedi nella chat laterale” quando selezioni del testo. Il clic destro resta disponibile quando questa opzione è disattivata.",
   "settings.confirmExternalLinks": "Conferma prima di aprire i link",
   "settings.confirmExternalLinksDesc": "Chiedi prima di aprire i link http(s) dalla chat nel browser. Disattivato per impostazione predefinita.",
   "settings.messageActions": "Azioni messaggio",

@@ -477,7 +477,7 @@ export const filSettingsUi = {
   "settings.autoUpdateReady": "Na-download ang update — kumpirmahin ang I-install at i-restart kapag handa ka na.",
   "settings.autoUpdateInstall": "I-install at i-restart",
   "settings.autoUpdateConfirm.title": "I-install ang update at i-restart?",
-  "settings.autoUpdateConfirm.message": "I-install ang bersyon {version} at magre-restart ang app.",
+  "settings.autoUpdateConfirm.message": "I-i-install ang bersyon {version} kasama ang Grok Build. Hihinto ang mga kasalukuyang gawain at magre-restart ang Grok App.",
   "settings.autoUpdateConfirm.confirm": "I-install at i-restart",
   "settings.autoUpdateConfirm.cancel": "Kanselahin",
   "settings.autoUpdateInstalling": "Ini-install…",

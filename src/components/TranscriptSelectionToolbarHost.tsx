@@ -3,7 +3,7 @@
  * re-render on every selectionchange while dragging.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { setDraft } from "@/lib/composerDraftStore";
 import {
   eventTargetElement,
@@ -15,7 +15,8 @@ import {
   type TranscriptSelectionBar,
 } from "@/lib/transcriptSelectionBar";
 import { TranscriptSelectionToolbar } from "@/components/TranscriptSelectionToolbar";
-import type { ComposerSendKeyPref } from "@/lib/composerSendKey";
+import type { TranscriptSelectionToolbarProps } from "@/components/TranscriptSelectionToolbar";
+import { SideChatSelectionContext } from "@/components/TranscriptSideChat";
 
 export type TranscriptSelectionToolbarHostProps = {
   scrollRef: { current: HTMLElement | null };
@@ -25,45 +26,30 @@ export type TranscriptSelectionToolbarHostProps = {
     comment: string;
     sourceMessageId?: string;
   }) => void;
-  onCopyText: (text: string) => void;
-  /** Same Enter / ⌘Ctrl+Enter preference as the composer. */
-  sendPref: ComposerSendKeyPref;
-  labels: {
-    copy: string;
-    addQuote: string;
-    commentPlaceholder: string;
-    commentSubmit: string;
-    enterHint: string;
-    modEnterHint: string;
-  };
+  enabled?: boolean;
+  labels: TranscriptSelectionToolbarProps["labels"];
 };
 
 export function TranscriptSelectionToolbarHost({
   scrollRef,
   sessionId,
   onAddQuote,
-  onCopyText,
-  sendPref,
+  enabled = true,
   labels,
 }: TranscriptSelectionToolbarHostProps) {
   const [bar, setBar] = useState<TranscriptSelectionBar | null>(null);
-  const [comment, setComment] = useState("");
-  const barText = bar?.text;
+  const askSideChat = useContext(SideChatSelectionContext);
+  const focusFrameRef = useRef(0);
   const primaryDownRef = useRef(false);
   const startedInTranscriptRef = useRef(false);
 
   useEffect(() => {
-    setComment("");
-  }, [barText]);
-
-  useEffect(() => {
     setBar(null);
-    setComment("");
-  }, [sessionId]);
+    return () => cancelAnimationFrame(focusFrameRef.current);
+  }, [sessionId, enabled]);
 
   const close = useCallback(() => {
     setBar(null);
-    setComment("");
   }, []);
 
   useEffect(() => {
@@ -92,7 +78,7 @@ export function TranscriptSelectionToolbarHost({
       ) {
         return;
       }
-      queue();
+      if (enabled) queue();
     };
     const onPointerDown = (e: PointerEvent) => {
       if (e.button !== 0) return;
@@ -108,18 +94,42 @@ export function TranscriptSelectionToolbarHost({
       const started = startedInTranscriptRef.current;
       primaryDownRef.current = false;
       startedInTranscriptRef.current = false;
-      if (shouldCommitPointerUp({ startedInTranscript: started })) queue();
+      if (enabled && shouldCommitPointerUp({ startedInTranscript: started }))
+        queue();
     };
+    const onContextMenu = (e: MouseEvent) => {
+      const root = scrollRef.current;
+      if (!(e.target instanceof Node) || !root?.contains(e.target)) return;
+      // A resource's own menu takes precedence over an older text selection.
+      if (eventTargetElement(e.target)?.closest("a[href], [data-output-resource], .file-path-card, .md-body__img-frame, .md-body__video-card, .attach-card")) {
+        if (raf) cancelAnimationFrame(raf);
+        raf = 0;
+        setBar(null);
+        return;
+      }
+      const raw = readTranscriptSelection(window.getSelection(), root);
+      if (!raw) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setBar({ ...selectionBarFromRead(raw), x: e.clientX, y: e.clientY });
+    };
+    const onViewportChange = () => setBar(null);
+    document.addEventListener("contextmenu", onContextMenu, true);
+    document.addEventListener("scroll", onViewportChange, true);
+    window.addEventListener("resize", onViewportChange);
     document.addEventListener("selectionchange", onSel);
     document.addEventListener("pointerdown", onPointerDown, true);
     document.addEventListener("pointerup", onPointerUp);
     return () => {
+      document.removeEventListener("contextmenu", onContextMenu, true);
+      document.removeEventListener("scroll", onViewportChange, true);
+      window.removeEventListener("resize", onViewportChange);
       document.removeEventListener("selectionchange", onSel);
       document.removeEventListener("pointerdown", onPointerDown, true);
       document.removeEventListener("pointerup", onPointerUp);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [scrollRef]);
+  }, [scrollRef, enabled]);
 
   useEffect(() => {
     if (!bar) return;
@@ -141,20 +151,22 @@ export function TranscriptSelectionToolbarHost({
     <TranscriptSelectionToolbar
       x={bar.x}
       y={bar.y}
-      text={excerpt}
-      comment={comment}
-      onCommentChange={setComment}
-      onCopy={() => {
-        onCopyText(excerpt);
-        close();
-      }}
+      onAskSideChat={
+        askSideChat
+          ? () => {
+              close();
+              window.getSelection()?.removeAllRanges();
+              askSideChat({ text: excerpt, comment: "", sourceMessageId });
+            }
+          : undefined
+      }
       onAddQuote={() => {
         const trimmed = excerpt.trim();
         if (!trimmed) return;
         if (onAddQuote) {
           onAddQuote({
             text: trimmed,
-            comment: comment.trim(),
+            comment: "",
             sourceMessageId,
           });
         } else {
@@ -165,14 +177,15 @@ export function TranscriptSelectionToolbarHost({
         }
         close();
         window.getSelection()?.removeAllRanges();
-        requestAnimationFrame(() => {
-          const el = document.querySelector<HTMLElement>(".composer__input");
+        const el = scrollRef.current
+          ?.closest(".main__stage")
+          ?.querySelector<HTMLElement>(".composer__input");
+        focusFrameRef.current = requestAnimationFrame(() => {
           if (!el || el.getAttribute("contenteditable") === "false") return;
-          el.focus({ preventScroll: false });
+          el.focus({ preventScroll: true });
         });
       }}
       onClose={close}
-      sendPref={sendPref}
       labels={labels}
     />
   );

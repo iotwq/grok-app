@@ -20,7 +20,7 @@ import {
   EmbeddedBrowser,
   sideBrowserWebviewLabel,
 } from "@/components/EmbeddedBrowser";
-import { IconClick, IconExternalLink, IconRefresh } from "@/components/icons";
+import { IconChevronLeft, IconChevronRight, IconClick, IconExternalLink, IconRefresh } from "@/components/icons";
 import { Tip } from "@/components/ui/tooltip";
 import { useBrowserDesignMode } from "@/hooks/useBrowserDesignMode";
 import * as api from "@/lib/api";
@@ -84,6 +84,10 @@ export function BrowserTab({
   /** Bumped on refresh / Enter-same-URL so EmbeddedBrowser reloads the page. */
   const [reloadKey, setReloadKey] = useState(0);
   const [pageLoading, setPageLoading] = useState(true);
+  const [navigationError, setNavigationError] = useState<string | null>(null);
+  const [navigating, setNavigating] = useState(false);
+  const latestLocation = useRef({ url, viewUrl, tunnelOn, onUrlChange });
+  latestLocation.current = { url, viewUrl, tunnelOn, onUrlChange };
   const [designMode, setDesignMode] = useState(false);
   const [note, setNote] = useState("");
   const [includeShot, setIncludeShot] = useState(true);
@@ -94,6 +98,31 @@ export function BrowserTab({
    */
   const composingRef = useRef(false);
   const webviewLabel = sideBrowserWebviewLabel(tabId);
+  // Agent navigation and page links must also update the visible address bar.
+  useEffect(() => {
+    if (!api.isDesktopHost()) return;
+    let disposed = false;
+    let stop: (() => void) | undefined;
+    void api.listen<api.SideBrowserPageLoadEvent>("side-browser://page-load", (event) => {
+      if (disposed || event.label !== webviewLabel || event.phase !== "finished") return;
+      if (!/^https?:\/\//.test(event.url)) return;
+      const previous = latestLocation.current;
+      let readableUrl = event.url;
+      // Keep remote loopback addresses readable instead of persisting the
+      // temporary local forwarded port as a remote address.
+      if (previous.tunnelOn) {
+        const next = new URL(event.url);
+        if (next.origin === new URL(previous.viewUrl).origin) {
+          readableUrl = new URL(previous.url).origin + next.pathname + next.search + next.hash;
+        }
+      }
+      setUrl(readableUrl);
+      setAddressDraft(readableUrl);
+      previous.onUrlChange?.(readableUrl);
+    }).then(unlisten => { if (disposed) unlisten(); else stop = unlisten; })
+      .catch(error => console.warn("[BrowserTab] URL listener failed", error));
+    return () => { disposed = true; stop?.(); };
+  }, [webviewLabel]);
   const localPreview = isLikelyInjectablePreviewUrl(url);
   const { status, selection, shot, clearSelection } = useBrowserDesignMode({
     label: webviewLabel,
@@ -163,6 +192,19 @@ export function BrowserTab({
     setAddressDraft(url);
     setPageLoading(true);
     setReloadKey((k) => k + 1);
+  };
+
+  const travel = async (direction: "back" | "forward") => {
+    if (navigating || pageLoading) return;
+    setNavigating(true);
+    setNavigationError(null);
+    try {
+      await api.sideBrowserEval(webviewLabel, direction === "back" ? "history.back(); true" : "history.forward(); true");
+    } catch (error) {
+      setNavigationError(String(error));
+    } finally {
+      setNavigating(false);
+    }
   };
 
   const promptLabels = useMemo<DesignModePromptLabels>(
@@ -239,6 +281,18 @@ export function BrowserTab({
       data-ssh-tunneled={tunnelOn ? "1" : "0"}
     >
       <div className="embedded-browser__bar">
+        <Tip label={tr("side.browser.back")}>
+          <button type="button" className="chrome-btn" aria-label={tr("side.browser.back")}
+            disabled={pageLoading || navigating || !api.isDesktopHost()} onClick={() => void travel("back")}>
+            <IconChevronLeft size={14} />
+          </button>
+        </Tip>
+        <Tip label={tr("side.browser.forward")}>
+          <button type="button" className="chrome-btn" aria-label={tr("side.browser.forward")}
+            disabled={pageLoading || navigating || !api.isDesktopHost()} onClick={() => void travel("forward")}>
+            <IconChevronRight size={14} />
+          </button>
+        </Tip>
         <div className="rp-tree-search sw-browser__url-wrap">
           <input
             type="text"
@@ -326,6 +380,7 @@ export function BrowserTab({
           </button>
         </Tip>
       </div>
+      {navigationError && <div className="sw-terminal__notice rp__error" role="alert">{navigationError}</div>}
       {sshAlias && (tunnelOn || tunnelError) ? (
         <div
           className={

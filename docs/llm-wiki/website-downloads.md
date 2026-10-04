@@ -8,7 +8,7 @@
 
 | 问题 | 答案 |
 |------|------|
-| 文件放哪 | `RongleCat/grok-app` 的 GitHub Release，不放官网仓 |
+| 文件放哪 | `iotwq/grok-app` 的 GitHub Release，不放官网仓 |
 | 谁出流量 | GitHub CDN。官网只托管 HTML/CSS/图 |
 | 按钮怎么写 | `href` 指向 GitHub；或官网短链 **302** 到 GitHub。禁止反代 / 禁止把包打进 Pages |
 | 怎么永远最新 | 用稳定文件名 + `/releases/latest/download/…` |
@@ -44,6 +44,7 @@ GitHub Releases CDN（objects.githubusercontent.com 等）
 tag vX.Y.Z
   ├─ macOS ARM / Intel  → Grok_<ver>_aarch64.dmg / Grok_<ver>_x64.dmg
   ├─ Windows            → Grok_<ver>_x64-setup.exe / Grok_<ver>_x64-portable.zip
+  ├─ Windows ARM64      → Grok_<ver>_arm64-setup.exe / Grok_<ver>_arm64-portable.zip
   ├─ Linux              → AppImage / .deb / .rpm
   ├─ grok-desktop-latest → 仅自动更新（官网不要用）
   └─ checksums job
@@ -57,8 +58,8 @@ tag vX.Y.Z
 
 ## 3. 稳定 URL（官网按钮写这些）
 
-仓库：`RongleCat/grok-app`  
-前缀：`https://github.com/RongleCat/grok-app/releases/latest/download/`
+仓库：`iotwq/grok-app`
+前缀：`https://github.com/iotwq/grok-app/releases/latest/download/`
 
 | 官网按钮 | `installers` 键 | 稳定文件名 | 完整 URL |
 |----------|-----------------|------------|----------|
@@ -66,12 +67,14 @@ tag vX.Y.Z
 | macOS Intel | `mac-x64` | `Grok_mac_x64.dmg` | `…/latest/download/Grok_mac_x64.dmg` |
 | Windows 安装版 | `windows-x64` | `Grok_windows_x64-setup.exe` | `…/latest/download/Grok_windows_x64-setup.exe` |
 | Windows 绿色版 | `windows-x64-portable` | `Grok_windows_x64-portable.zip` | `…/latest/download/Grok_windows_x64-portable.zip` |
+| Windows ARM64 安装版 | `windows-arm64` | `Grok_windows_arm64-setup.exe` | `…/latest/download/Grok_windows_arm64-setup.exe` |
+| Windows ARM64 绿色版 | `windows-arm64-portable` | `Grok_windows_arm64-portable.zip` | `…/latest/download/Grok_windows_arm64-portable.zip` |
 | Linux 通用 | `linux-x64-appimage` | `Grok_linux_x64.AppImage` | `…/latest/download/Grok_linux_x64.AppImage` |
 | Debian 系 | `linux-x64-deb` | `Grok_linux_x64.deb` | `…/latest/download/Grok_linux_x64.deb` |
 | Fedora / RHEL 系 | `linux-x64-rpm` | `Grok_linux_x64.rpm` | `…/latest/download/Grok_linux_x64.rpm` |
 | 机器清单 | — | `downloads.json` | `…/latest/download/downloads.json` |
 
-发版硬性要求：`mac-x64` 与 `windows-x64` 缺失则 checksums job 失败。其余键在对应平台构建成功时一并写入。四端 CI 全绿时上表 7 个安装包都会在。
+发版硬性要求：`mac-x64`、`windows-x64` 与 `windows-arm64` 缺失则 checksums job 失败。其余键在对应平台构建成功时一并写入。五个平台构建全绿时，上表 9 个安装包都会在。
 
 ### 3.1 各包给谁用
 
@@ -81,11 +84,13 @@ tag vX.Y.Z
 | `mac-x64` | Intel Mac | 默认主按钮（现在大多数人是 ARM） |
 | `windows-x64` | Windows 10/11 x64 安装 | 「Windows ARM」 |
 | `windows-x64-portable` | 免安装 zip | 主下载（主按钮用 setup.exe） |
+| `windows-arm64` | Windows 10/11 ARM64 安装 | 「Windows x64」 |
+| `windows-arm64-portable` | ARM64 免安装 zip | 主下载（主按钮用 setup.exe） |
 | `linux-x64-appimage` | 任意桌面发行版；Arch / Manjaro 走这条 | 某个具体发行版专包 |
 | `linux-x64-deb` | Ubuntu / Debian / Mint / Pop!_OS | Fedora |
 | `linux-x64-rpm` | Fedora / RHEL / openSUSE | Ubuntu |
 
-没有：macOS universal、Windows ARM、Linux aarch64、AUR、Flatpak、Snap。
+没有：macOS universal、Linux aarch64、AUR、Flatpak、Snap。
 
 ### 3.2 版本化文件名（只作对照，不要写死在按钮上）
 
@@ -108,7 +113,7 @@ tag vX.Y.Z
 下一枚正式 tag 之后：
 
 ```text
-https://github.com/RongleCat/grok-app/releases/latest/download/downloads.json
+https://github.com/iotwq/grok-app/releases/latest/download/downloads.json
 ```
 
 ### 4.1 顶层字段
@@ -149,8 +154,8 @@ https://github.com/RongleCat/grok-app/releases/latest/download/downloads.json
   "officialSite": "https://grok-app.com",
   "version": "0.2.20",
   "tag": "v0.2.20",
-  "releaseUrl": "https://github.com/RongleCat/grok-app/releases/tag/v0.2.20",
-  "downloadsJsonUrl": "https://github.com/RongleCat/grok-app/releases/latest/download/downloads.json",
+  "releaseUrl": "https://github.com/iotwq/grok-app/releases/tag/v0.2.20",
+  "downloadsJsonUrl": "https://github.com/iotwq/grok-app/releases/latest/download/downloads.json",
   "installers": {
     "mac-aarch64": {
       "id": "mac-aarch64",
@@ -159,9 +164,9 @@ https://github.com/RongleCat/grok-app/releases/latest/download/downloads.json
       "kind": "dmg",
       "label": "macOS Apple Silicon",
       "filename": "Grok_mac_aarch64.dmg",
-      "url": "https://github.com/RongleCat/grok-app/releases/latest/download/Grok_mac_aarch64.dmg",
+      "url": "https://github.com/iotwq/grok-app/releases/latest/download/Grok_mac_aarch64.dmg",
       "versionedFilename": "Grok_0.2.20_aarch64.dmg",
-      "versionedUrl": "https://github.com/RongleCat/grok-app/releases/download/v0.2.20/Grok_0.2.20_aarch64.dmg",
+      "versionedUrl": "https://github.com/iotwq/grok-app/releases/download/v0.2.20/Grok_0.2.20_aarch64.dmg",
       "sha256": "…64 hex…",
       "size": 14121321
     },
@@ -172,9 +177,9 @@ https://github.com/RongleCat/grok-app/releases/latest/download/downloads.json
       "kind": "dmg",
       "label": "macOS Intel",
       "filename": "Grok_mac_x64.dmg",
-      "url": "https://github.com/RongleCat/grok-app/releases/latest/download/Grok_mac_x64.dmg",
+      "url": "https://github.com/iotwq/grok-app/releases/latest/download/Grok_mac_x64.dmg",
       "versionedFilename": "Grok_0.2.20_x64.dmg",
-      "versionedUrl": "https://github.com/RongleCat/grok-app/releases/download/v0.2.20/Grok_0.2.20_x64.dmg",
+      "versionedUrl": "https://github.com/iotwq/grok-app/releases/download/v0.2.20/Grok_0.2.20_x64.dmg",
       "sha256": "…",
       "size": 15305825
     },
@@ -185,9 +190,9 @@ https://github.com/RongleCat/grok-app/releases/latest/download/downloads.json
       "kind": "nsis",
       "label": "Windows x64",
       "filename": "Grok_windows_x64-setup.exe",
-      "url": "https://github.com/RongleCat/grok-app/releases/latest/download/Grok_windows_x64-setup.exe",
+      "url": "https://github.com/iotwq/grok-app/releases/latest/download/Grok_windows_x64-setup.exe",
       "versionedFilename": "Grok_0.2.20_x64-setup.exe",
-      "versionedUrl": "https://github.com/RongleCat/grok-app/releases/download/v0.2.20/Grok_0.2.20_x64-setup.exe",
+      "versionedUrl": "https://github.com/iotwq/grok-app/releases/download/v0.2.20/Grok_0.2.20_x64-setup.exe",
       "sha256": "…",
       "size": 11891913
     }
@@ -214,7 +219,7 @@ GitHub Release 资源 **没有** 给任意浏览器源开 CORS。页面里 `fetc
 ```bash
 curl -fsSL -L \
   -o downloads.json \
-  https://github.com/RongleCat/grok-app/releases/latest/download/downloads.json
+  https://github.com/iotwq/grok-app/releases/latest/download/downloads.json
 ```
 
 `-L` 必须开：`/releases/latest/download/…` 会 302 到具体 tag。
@@ -239,7 +244,7 @@ curl -fsSL -L \
 按钮可以直接写死第 3 节的稳定 URL，零 API、零构建依赖。缺点是页面上的版本号不会自动变。可另加一个「所有版本」链到：
 
 ```text
-https://github.com/RongleCat/grok-app/releases
+https://github.com/iotwq/grok-app/releases
 ```
 
 两种可以一起用：href 写死稳定 URL，版本号来自构建时的 JSON。
@@ -296,7 +301,7 @@ Get-FileHash .\Grok_windows_x64-setup.exe -Algorithm SHA256
 官网若展示校验：用 `installers[id].sha256`，并链到该版 `SHA256SUMS`：
 
 ```text
-https://github.com/RongleCat/grok-app/releases/latest/download/SHA256SUMS
+https://github.com/iotwq/grok-app/releases/latest/download/SHA256SUMS
 ```
 
 （`SHA256SUMS` 从合同落地的下一枚 tag 起才会和别名出现在同一 Release。）

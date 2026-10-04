@@ -8,7 +8,7 @@ Both Grok App and community **Grok Desktop** drive intelligence the same way:
 
 | Layer | Implementation |
 |-------|----------------|
-| Runtime | **Grok Build CLI** binary (`grok`) |
+| Runtime | App-bundled **Grok Build** (`grok-build`), updated with the desktop package |
 | Entry | `grok agent stdio` |
 | Protocol | **ACP** (Agent Client Protocol) JSON-RPC over stdio |
 | Client | Desktop Host (`AcpClient`) — **not** a reimplemented agent brain |
@@ -23,6 +23,41 @@ Desktop never reimplements tools/sampling. It is an ACP client + UI shell.
 | `independent` | `~/.grok-app/agent-home` (or `$GROK_APP_HOME/agent-home`) |
 
 Custom providers are written to **`$GROK_HOME/config.toml`** as `[model.<id>]` sections so the agent can use `base_url` + `api_key` without OAuth fallback.
+
+### User-wide instructions (`~/.grok/AGENTS.md`)
+
+Local native agents read the user's UTF-8 `~/.grok/AGENTS.md` automatically; no
+setting is required. On Windows, `~` resolves to `USERPROFILE` (then `HOME`).
+The source is always the real user home, independent of `GROK_APP_HOME`, the
+selected provider, or the session-data mode.
+
+- **Shared profile:** Grok Build already loads this file as global instructions.
+  The Host leaves the profile untouched and does not inject a duplicate.
+- **Independent/custom-provider/official-aux profile:** before opening an ACP
+  session, the Host refreshes only its managed
+  `$GROK_HOME/rules/grok-app-user-agents.md` from the source. Grok Build's native
+  global rules loader combines it with existing profile instructions and trusted
+  project rules. The Host does not replace either `AGENTS.md` or the default
+  system prompt, and does not apply the session `extra_rules` size clamp.
+- Missing or blank source files mean no additional global rules; an old managed
+  copy is removed. An unchanged source does not rewrite the copy. Read/write
+  failures stop the connection with the affected path instead of silently
+  claiming that the rules were loaded. A same-name file without the App-managed
+  header is never overwritten or deleted. Rule contents are not logged.
+- **When changes take effect:** newly created agent sessions load the current
+  file, including sessions opened through a prewarmed process. Existing, parked,
+  and resumed sessions retain their runtime instruction snapshot. Start
+  a **new chat** after editing the file or to apply this feature to an older
+  chat; merely reconnecting a saved chat does not reload its instructions.
+- **Remote scope:** SSH, WSL, and TCP ACP agents continue to use their own
+  environment's rule files; the Host does not transfer local user instructions
+  to a remote agent. Native macOS, Windows, and Linux share the same Host path.
+
+Runtime checks: Grok Build 1.0.34 and 1.0.41 load native `rules/*.md` into actual
+ACP inference requests. Neither version included `--rules` content in these requests,
+so this feature must not be implemented by merely appending that spawn flag.
+The native runtime controls instruction precedence, context limits, and saved
+session snapshots; the Host does not rewrite saved agent conversations.
 
 ## Provider model (L2)
 
@@ -95,6 +130,26 @@ Grok Build’s stream parsers are strict. OpenCode Zen Go historically breaks bo
 Form shows a **Get API Key** text control under the key field when the channel matches a preset (by id or base host). Opens the URL via `open_external_url`.
 
 CPA / sub2api / grok-go remain generic OpenAI-compatible relays.
+
+### Failed Responses compatibility
+
+Generic custom providers using `api_backend = "responses"` also use the App's
+loopback proxy. Grok Build 1.0.34 rejects a `response.failed` event whose failed
+response omits `output`, masking the provider error as `missing field output`.
+The proxy adds only the missing empty array; it preserves the failed status,
+error code/message, event identity, and any existing output. Successful events
+are not repaired or converted into failures.
+
+Normal data frames stream through as complete SSE events, including fragmented
+UTF-8 and CRLF framing. OpenCode-only drop rules stay limited to those hosts.
+HTTP errors retain their status, body and `Retry-After`; generic Responses does
+not acquire the vendor proxy's 300-second idle cutoff. Cancellation and retries
+remain owned by the runtime, with no Host replay of the whole prompt or tools.
+
+Startup/provider-list repair updates only the App-owned agent profile and keeps
+the real URL visible in Settings. Official subscriptions and the native
+`grok_build_proxy` contract bypass this generic compatibility path. This fixes
+failure decoding, not actual account concurrency limits or upstream outages.
 
 ### Grok Build-compatible relay mode
 
@@ -267,6 +322,17 @@ Host. The error deck refines their details to `MODEL_UNAVAILABLE`, including
 legacy `AGENT_CRASHED` wrappers, and opens Providers so the user can correct the
 model ID. Bare process-exit errors still use the crash/reconnect path.
 
+### Stream decoding failures
+
+Known provider-stream decoding failures (`ResponseStreamEvent`,
+`ChatCompletionChunk`, `stream_read_error`, and the observed JSON control-character
+serialization error) map to `NETWORK_PROVIDER`. An RPC error alone does not prove
+that the CLI process exited. The UI also refines legacy `AGENT_CRASHED` labels when
+the original error details match, for both the banner and the turn error bubble.
+Raw diagnostics stay available; a bare process exit still uses the crash path.
+This classification does not repair malformed upstream responses, rewrite stream
+packets, or automatically replay a failed prompt.
+
 ### Official alias collision
 
 `grok` is reserved for the CLI official route; new/edited custom providers must use
@@ -274,3 +340,18 @@ another ID. Switching to official preserves any legacy custom `[model.grok]` und
 `grok-custom` (or a free numbered suffix), including its key, models and sanitizer
 URL. The renamed relay remains selectable; the official default no longer resolves
 back to that relay. Existing legacy relays continue to work until switched.
+
+## Session and channel append rules (2026-10-04)
+
+Native ACP sessions now send merged session rules, provider append prompts, path
+citation and browser policy through `session/new._meta.rules`. Grok Build 1.0.41
+folds this into its default system prompt; the Host does not replace that prompt
+or write per-session instructions into shared `rules/` files. Warm processes use
+the same session/new path. Resumed/forked conversations retain their original
+instruction snapshot: create a new chat after changing append rules. Remote legacy
+launches retain the existing CLI flags as well. Global `~/.grok/AGENTS.md` loading
+continues through the existing native file loader.
+
+Verification: the bundled 1.0.41 executable, an isolated HOME/GROK_HOME, and a local
+mock inference server confirmed two ACP sessions each include only their own rules
+in actual inference requests. No production account, files, or model endpoint used.

@@ -1,5 +1,7 @@
 /** ja messages — domain: errors */
 export const jaErrors = {
+  "error.deck.concurrency.problem": "アカウントの同時リクエスト数が上限に達しました",
+  "error.deck.concurrency.cause": "実行中のリクエストが完了するのを待つか、同時に実行するタスクを減らしてから再試行してください。",
   "error.deck.model.problem": "モデルを利用できません",
   "error.deck.model.cause": "プロバイダーがこのモデルを拒否しました。プロバイダー設定で対応するモデルを選択してください。",
   "error.details": "詳細",

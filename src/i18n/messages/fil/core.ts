@@ -1,5 +1,13 @@
 /** fil messages — domain: core */
 export const filCore = {
+  "resource.openLink": "Buksan ang link",
+  "resource.openSide": "Buksan sa browser sa gilid",
+  "resource.copyAddress": "Kopyahin ang address ng larawan",
+  "resource.copyFailed": "Hindi makopya. Pakisubukang muli.",
+  "resource.openFailed": "Hindi mabuksan ang resource na ito. Pakisubukang muli.",
+  "resource.working": "Pinoproseso…",
+  "image.saveAs": "I-save ang larawan bilang…",
+  "image.saveFailed": "Hindi ma-save ang larawan. Pakisubukang muli.",
   "app.name": "Grok",
   "image.loadingOriginal": "Nilo-load ang orihinal…",
   "image.originalFailed": "Hindi ma-load ang orihinal. Makikita pa rin ang preview.",
@@ -36,7 +44,7 @@ export const filCore = {
   "office.pageOf": "{page} / {total}",
   "image.view": "Tingnan ang larawan",
   "image.copy": "Kopyahin ang larawan",
-  "image.copyHint": "I-right-click para kopyahin ang larawan",
+  "image.copyHint": "I-right-click para sa mga aksyon sa larawan",
   "image.next": "Susunod na larawan",
   "image.prev": "Nakaraang larawan",
   "image.close": "Isara",

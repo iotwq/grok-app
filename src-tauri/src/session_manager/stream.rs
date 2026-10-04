@@ -134,6 +134,9 @@ pub(crate) fn resolve_turn_event_route(
 /// lock (`prepare_stream_journal_flush`) and committed to disk outside it
 /// (`commit_stream_journal_flush`).
 pub(crate) struct PendingStreamJournalFlush {
+    pub(super) writer: Arc<super::journal_writer::StreamJournalWriter>,
+    pub(super) revision: u64,
+    pub(super) force: bool,
     pub(crate) session_id: String,
     pub(crate) message: ChatMessageStored,
     pub(crate) meta: store::SessionMeta,
@@ -888,20 +891,31 @@ impl SessionManager {
             s.journal_throttle.reset();
         }
         Some(PendingStreamJournalFlush {
+            writer: Arc::clone(&s.journal_writer),
+            revision: s.journal_writer.revision(),
+            force,
             session_id: s.app_session_id.clone(),
             message,
             meta: s.meta.clone(),
         })
     }
 
-    /// Disk half of a stream journal flush: journal upsert + session meta
-    /// bump. Callers on hot paths must not hold `inner` / `background` /
-    /// `parked` here (see `prepare_stream_journal_flush`).
+    /// Intermediate snapshots return immediately; forced boundaries wait for
+    /// the per-session writer so no late snapshot can undo terminal history.
     pub(super) fn commit_stream_journal_flush(pending: PendingStreamJournalFlush) {
+        let writer = Arc::clone(&pending.writer);
+        writer.commit(pending);
+    }
+
+    /// Disk work runs on the blocking pool during streaming, synchronously at
+    /// forced boundaries. Never take session-map locks in this function.
+    pub(super) fn write_stream_journal_flush(pending: PendingStreamJournalFlush) {
         let PendingStreamJournalFlush {
             session_id,
             message,
             meta,
+            force,
+            ..
         } = pending;
         if let Err(e) = store::append_message(&session_id, message) {
             // Row id is stable and buffers are cumulative — the next flush
@@ -913,11 +927,15 @@ impl SessionManager {
             );
             return;
         }
-        if let Err(e) = store::update_session_meta(&meta) {
-            tracing::warn!(
-                session = %session_id,
-                "stream session metadata update failed after journal append: {e}"
-            );
+        // User append already updates the index. Only save metadata at
+        // boundaries instead of rewriting the shared index for each snapshot.
+        if force {
+            if let Err(e) = store::update_session_meta(&meta) {
+                tracing::warn!(
+                    session = %session_id,
+                    "stream session metadata update failed after journal append: {e}"
+                );
+            }
         }
     }
 
@@ -930,11 +948,15 @@ impl SessionManager {
         if let Some(flush) = pending.stream_flush {
             Self::commit_stream_journal_flush(flush);
         }
+        let failed_turn = pending.message.marker.as_deref() == Some("turn_error");
         if let Err(e) = store::append_message(&pending.session_id, pending.message) {
             tracing::error!(
                 session = %pending.session_id,
                 "turn-boundary journal append failed: {e}"
             );
+        } else if failed_turn {
+            // Clear only after the terminal error is durable, outside session locks.
+            crate::turn_lease::clear_lease(&pending.session_id);
         }
         if let Err(e) = store::update_session_meta(&pending.meta) {
             tracing::warn!(
@@ -1465,7 +1487,7 @@ pub(crate) fn has_turn_end_marker_after_last_user(app_session_id: &str) -> bool 
     msgs[start..].iter().any(|m| {
         matches!(
             m.marker.as_deref(),
-            Some("turn_cancelled") | Some("turn_end") | Some("end_of_turn")
+            Some("turn_cancelled") | Some("turn_end") | Some("end_of_turn") | Some("turn_error")
         ) || m.content.starts_with("turn_cancelled")
             || m.content.starts_with("turn_end|")
     })
@@ -1628,6 +1650,7 @@ mod stream_emit_lock_tests {
             last_stall_emit: None,
             stall_soft_emits: 0,
             journal_throttle: JournalWriteThrottle::with_default_interval(),
+            journal_writer: Default::default(),
             open_tool_ids: HashSet::new(),
             open_tool_seen_at: HashMap::new(),
             terminal_tool_ids: HashSet::new(),
@@ -1640,6 +1663,85 @@ mod stream_emit_lock_tests {
             stream_emit_flush_gen: 0,
             last_tool_heartbeat_emit: None,
         }
+    }
+
+    #[test]
+    fn failed_turn_keeps_partial_output_and_commits_a_terminal_boundary() {
+        let _env = crate::paths::APP_HOME_ENV_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        let dir = std::env::temp_dir().join(format!("grok-failed-turn-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let before = std::env::var_os("GROK_APP_HOME");
+        std::env::set_var("GROK_APP_HOME", &dir);
+        let mut s = minimal_streaming_session();
+        let writer = Arc::clone(&s.journal_writer);
+        let disk_busy = writer.write_lock.lock();
+        let mut snapshots = Vec::new();
+        for i in 0..40 {
+            s.stream_buf = format!("Partial SVG {i}");
+            s.journal_throttle.reset();
+            snapshots
+                .push(SessionManager::prepare_stream_journal_flush(&mut s, false, false).unwrap());
+        }
+        let (tx, rx) = std::sync::mpsc::channel();
+        let producer = std::thread::spawn(move || {
+            for snapshot in snapshots {
+                SessionManager::commit_stream_journal_flush(snapshot);
+            }
+            tx.send(()).unwrap();
+        });
+        let queued_without_waiting_for_disk = rx.recv_timeout(Duration::from_secs(1)).is_ok();
+        let had_pending = writer.has_pending();
+        drop(disk_busy);
+        producer.join().unwrap();
+        assert!(
+            queued_without_waiting_for_disk,
+            "stream pump waited for disk"
+        );
+        assert!(
+            had_pending,
+            "latest cumulative snapshot should wait in the bounded slot"
+        );
+        s.journal_throttle.reset();
+        let late_snapshot =
+            SessionManager::prepare_stream_journal_flush(&mut s, false, false).unwrap();
+        s.stream_buf = "Creating the SVG animation…".into();
+        s.stream_thought = "Use SVG".into();
+        crate::turn_lease::begin_active(&s.app_session_id, Some("agent-1"), Some("turn-1"));
+        let mut emits = Vec::new();
+        let pending = SessionManager::prepare_turn_error(
+            &mut s,
+            &crate::error::AgentError::new(
+                crate::error::AgentErrorCode::QuotaExceeded,
+                "gateway_concurrency_limit",
+            ),
+            &mut emits,
+        );
+        let flush = pending.stream_flush.as_ref().unwrap();
+        assert_eq!(flush.message.id, "msg-1");
+        assert_eq!(flush.message.content, "Creating the SVG animation…");
+        assert_ne!(pending.message.id, flush.message.id);
+        assert!(!s.prompt_in_flight);
+        SessionManager::commit_turn_boundary_persist(None, pending);
+        let rows = store::load_messages(&s.app_session_id);
+        assert_eq!(rows.len(), 2);
+        assert!(!rows[0].is_error);
+        assert_eq!(rows[0].content, "Creating the SVG animation…");
+        assert_eq!(rows[1].marker.as_deref(), Some("turn_error"));
+        assert!(crate::turn_lease::read_lease(&s.app_session_id).is_none());
+        assert!(crate::turn_interrupt::heal_interrupted_turn(&s.app_session_id).is_none());
+        // A snapshot prepared before the boundary may be submitted late. It
+        // must not resurrect a message after the user clears/deletes history.
+        store::delete_session(&s.app_session_id).unwrap();
+        SessionManager::commit_stream_journal_flush(late_snapshot);
+        assert!(!writer.has_pending());
+        assert!(store::load_messages(&s.app_session_id).is_empty());
+        match before {
+            Some(v) => std::env::set_var("GROK_APP_HOME", v),
+            None => std::env::remove_var("GROK_APP_HOME"),
+        }
+        std::fs::remove_dir_all(dir).unwrap();
     }
 
     #[test]

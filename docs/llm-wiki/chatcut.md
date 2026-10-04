@@ -134,11 +134,13 @@ Skills attach via the plugin install path; App Extensions prefs still gate MCP e
 
 | Codex host | Grok equivalent |
 |------------|-----------------|
-| `control-in-app-browser` / `node_repl` browser runtime | Resources `EmbeddedBrowser` (open/focus URL) |
-| Full browser-control tool_search API | Not 1:1 — open URL + user interacts in pane |
+| `control-in-app-browser` / `node_repl` browser runtime | Built-in `grok-browser` MCP drives a visible Resources tab: open, snapshot, click, fill, select, scroll, back, close; macOS, Windows and Linux also support viewport screenshots and cross-origin frames |
+| Full browser-control tool_search API | Not 1:1 — DOM automation, viewport screenshots and cross-origin frame operations are available; trusted physical input and desktop Computer Use are not implemented |
 | `codex mcp login chatcut` | `grok mcp` OAuth flow / Extensions MCP wizard |
 
 ## Code map
+
+Browser setup, usage and limits: [browser-automation.md](browser-automation.md). ChatCut's default system-browser handoff above is unchanged.
 
 - `src/lib/chatcutHandoff.ts` — URL policy (pure, unit-tested)
 - `src/lib/chatcutCodexAdapter.ts` — Codex → Grok manifest/MCP (pure)
@@ -146,3 +148,7 @@ Skills attach via the plugin install path; App Extensions prefs still gate MCP e
 - `src/hooks/useSessionHostEvents.ts` — auto-open on `session://tool`
 - `src/app/AppWorkbench.tsx` — ChatCut link click → Resources
 - Host: `extract_tool_ui_fields` surfaces ChatCut URLs from MCP `rawOutput`
+
+### Embedded download intent (2026-09-20)
+
+The download bridge acts on an actual `a[download]` click, not when the anchor is appended or inserted. Ordinary iframe `src` assignment/insertion must preserve navigation and must not open a save dialog. The legacy iframe export fallback is limited to the top-level `chatcut.io`, `app.chatcut.io` or `www.chatcut.io` page and a file path or `/download`/`/export` path; query strings alone are not download evidence. News advertising/sync frames previously triggered repeated native save dialogs and browser tool failures. This change leaves the existing HTTP/cookie transport and threading unchanged.

@@ -34,6 +34,7 @@ type Props = {
   immediateSingleSelect?: boolean;
   /** When the question is already the card title, skip repeating it. */
   hidePrompts?: boolean;
+  idPrefix?: string;
 };
 
 export function AskUserForm({
@@ -47,6 +48,7 @@ export function AskUserForm({
   onQuickPick,
   immediateSingleSelect = false,
   hidePrompts = false,
+  idPrefix = "ask-user",
 }: Props) {
   const quickPick =
     immediateSingleSelect &&
@@ -64,6 +66,7 @@ export function AskUserForm({
         return (
           <AskUserQuestion
             key={q.id || key}
+            idPrefix={idPrefix}
             q={q}
             qi={qi}
             qKey={key}
@@ -85,6 +88,7 @@ export function AskUserForm({
 }
 
 function AskUserQuestion({
+  idPrefix,
   q,
   qi,
   qKey,
@@ -99,6 +103,7 @@ function AskUserQuestion({
   onFreeText,
   onQuickPick,
 }: {
+  idPrefix: string;
   q: AskUserQuestionItem;
   qi: number;
   qKey: string;
@@ -118,7 +123,7 @@ function AskUserQuestion({
   const showCustom = !hasOptions || customOpen || Boolean(text.trim());
   const freeHint = hasOptions ? labels.freeTextHint : labels.otherPlaceholder;
   const showFreeHint = askUserShowFreeHint(freeHint, labels.otherPlaceholder);
-  const labelledBy = hidePrompt ? "ask-user-bar-title" : `ask-user-q-${qi}`;
+  const labelledBy = hidePrompt ? "ask-user-bar-title" : `${idPrefix}-q-${qi}`;
 
   return (
     <div
@@ -127,7 +132,7 @@ function AskUserQuestion({
       aria-labelledby={labelledBy}
     >
       {hidePrompt ? null : (
-        <div className="ask-user__prompt" id={`ask-user-q-${qi}`}>
+        <div className="ask-user__prompt" id={`${idPrefix}-q-${qi}`}>
           {q.question}
         </div>
       )}

@@ -1,5 +1,7 @@
 /** it messages — domain: errors */
 export const itErrors = {
+  "error.deck.concurrency.problem": "Limite di richieste simultanee raggiunto",
+  "error.deck.concurrency.cause": "Attendi il completamento delle richieste in corso o riduci le attività simultanee prima di riprovare.",
   "error.deck.model.problem": "Modello non disponibile",
   "error.deck.model.cause": "Il fornitore ha rifiutato questo modello. Apri Fornitori e scegli un modello supportato dal servizio.",
   "error.details": "Dettagli",

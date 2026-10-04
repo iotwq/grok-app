@@ -1,5 +1,7 @@
 /** Traditional Chinese messages — domain: workspace */
 export const zhTWWorkspace = {
+  "side.browser.back": "上一頁",
+  "side.browser.forward": "下一頁",
   "resources.title": "資源",
   "resources.files": "檔案",
   "resources.preview": "請選擇檔案",

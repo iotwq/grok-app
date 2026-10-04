@@ -477,7 +477,7 @@ export const esSettingsUi = {
   "settings.autoUpdateReady": "Actualización descargada — confirma Instalar y reiniciar cuando quieras.",
   "settings.autoUpdateInstall": "Instalar y reiniciar",
   "settings.autoUpdateConfirm.title": "¿Instalar actualización y reiniciar?",
-  "settings.autoUpdateConfirm.message": "Se instalará la versión {version} y la aplicación se reiniciará.",
+  "settings.autoUpdateConfirm.message": "Se instalará la versión {version} con Grok Build integrado. Las tareas en curso se detendrán y Grok App se reiniciará.",
   "settings.autoUpdateConfirm.confirm": "Instalar y reiniciar",
   "settings.autoUpdateConfirm.cancel": "Cancelar",
   "settings.autoUpdateInstalling": "Instalando…",

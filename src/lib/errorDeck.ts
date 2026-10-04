@@ -55,6 +55,7 @@ export type ErrorDeckCode =
   | "QUOTA_EXCEEDED"
   /** Transient 429 / “slow down” — not included-usage exhaustion. */
   | "RATE_LIMITED"
+  | "CONCURRENCY_LIMITED"
   | "CONNECT_FAILED"
   | "PROCESS_LIMIT"
   | "CLI_TOO_OLD"
@@ -110,11 +111,11 @@ type DeckSpec = {
 const DECK: Record<ErrorDeckCode, DeckSpec> = {
   CLI_NOT_FOUND: {
     problem: "error.deck.cli.problem",
-    cause: "error.deck.cli.cause",
+    cause: "runtime.bundled.missing",
     primaryId: "open_doctor",
     primaryLabel: "error.action.openDoctor",
     secondaryId: "open_runtime",
-    secondaryLabel: "error.action.setCliPath",
+    secondaryLabel: "runtime.bundled.title",
   },
   AUTH_FAILED: {
     problem: "error.deck.auth.problem",
@@ -180,6 +181,12 @@ const DECK: Record<ErrorDeckCode, DeckSpec> = {
     secondaryId: "dismiss",
     secondaryLabel: "error.action.dismiss",
   },
+  CONCURRENCY_LIMITED: {
+    problem: "error.deck.concurrency.problem",
+    cause: "error.deck.concurrency.cause",
+    primaryId: "dismiss",
+    primaryLabel: "error.action.dismiss",
+  },
   RATE_LIMITED: {
     problem: "error.deck.rateLimit.problem",
     cause: "error.deck.rateLimit.cause",
@@ -204,9 +211,9 @@ const DECK: Record<ErrorDeckCode, DeckSpec> = {
   },
   CLI_TOO_OLD: {
     problem: "error.deck.cliTooOld.problem",
-    cause: "error.deck.cliTooOld.cause",
+    cause: "runtime.bundled.description",
     primaryId: "upgrade_cli",
-    primaryLabel: "error.action.upgradeCli",
+    primaryLabel: "settings.checkUpdate",
     secondaryId: "open_doctor",
     secondaryLabel: "error.action.openDoctor",
   },
@@ -324,6 +331,7 @@ const AGENT_DECK_CODES: ErrorDeckCode[] = [
   "AGENT_CRASHED",
   "QUOTA_EXCEEDED",
   "RATE_LIMITED",
+  "CONCURRENCY_LIMITED",
   "CONNECT_FAILED",
   "PROCESS_LIMIT",
   "CLI_TOO_OLD",
@@ -409,6 +417,11 @@ export function looksLikeTerminalQuota(
   );
 }
 
+function looksLikeConcurrencyLimit(raw: string | null | undefined): boolean {
+  const s = (raw ?? "").toLowerCase();
+  return s.includes("gateway_concurrency_limit") || s.includes("concurrency limit exceeded");
+}
+
 /** Transient throttle — HTTP 429 / “too many requests” without usage exhaustion. */
 export function looksLikeRateLimit(
   raw: string | null | undefined,
@@ -418,6 +431,8 @@ export function looksLikeRateLimit(
   if (!s.trim()) return false;
   return (
     s.includes("rate limit") ||
+    s.includes("gateway_concurrency_limit") ||
+    s.includes("concurrency limit exceeded") ||
     s.includes("rate_limit") ||
     s.includes("too many requests") ||
     s.includes("429") ||
@@ -431,6 +446,7 @@ export function refineQuotaDeckCode(
   message?: string | null,
 ): ErrorDeckCode {
   if (looksLikeTerminalQuota(message)) return "QUOTA_EXCEEDED";
+  if (looksLikeConcurrencyLimit(message)) return "CONCURRENCY_LIMITED";
   if (looksLikeRateLimit(message)) return "RATE_LIMITED";
   return "QUOTA_EXCEEDED";
 }
@@ -502,8 +518,19 @@ function looksLikeUnavailableModel(raw: string | null | undefined): boolean {
     (s.includes("model") && ["not found", "not supported", "does not exist", "not available"].some((reason) => s.includes(reason)));
 }
 
+function looksLikeProviderStreamError(raw: string | null | undefined): boolean {
+  const s = (raw ?? "").toLowerCase();
+  return s.includes("failed to deserialize responsestreamevent") ||
+    s.includes("failed to deserialize chatcompletionchunk") ||
+    s.includes("stream_read_error") ||
+    s.includes("serialization error: missing field `output`") ||
+    (s.includes("serialization error:") && s.includes("control character") &&
+      s.includes("while parsing a string"));
+}
+
 export function classifyErrorMessage(raw: string | null | undefined): ErrorDeckCode {
   if (looksLikeUnavailableModel(raw)) return "MODEL_UNAVAILABLE";
+  if (looksLikeConcurrencyLimit(raw)) return "CONCURRENCY_LIMITED";
   const s = (raw ?? "").toLowerCase();
   if (!s.trim()) return "GENERIC";
 
@@ -655,6 +682,7 @@ export function classifyErrorMessage(raw: string | null | undefined): ErrorDeckC
     return "RATE_LIMITED";
   }
   if (
+    looksLikeProviderStreamError(raw) ||
     s.includes("network_provider") ||
     s.includes("timed out") ||
     s.includes("timeout") ||
@@ -719,9 +747,12 @@ export function resolveErrorDeckCode(
   if (looksLikeTerminalQuota(message)) {
     return "QUOTA_EXCEEDED";
   }
+  if (looksLikeConcurrencyLimit(message)) return "CONCURRENCY_LIMITED";
   if (looksLikeRateLimit(message)) {
     return "RATE_LIMITED";
   }
+  // Older Hosts labeled provider JSON/SSE decoding failures as a CLI crash.
+  if (looksLikeProviderStreamError(message)) return "NETWORK_PROVIDER";
   const fromCode = deckCodeFromAgent(code, opts);
   // Host often emits plain AUTH_FAILED — refine with message + active route.
   if (fromCode === "AUTH_FAILED") {

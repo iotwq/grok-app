@@ -1,5 +1,7 @@
 /** pt-BR messages — domain: workspace */
 export const ptBRWorkspace = {
+  "side.browser.back": "Voltar",
+  "side.browser.forward": "Avançar",
   "resources.title": "Recursos",
   "resources.files": "Arquivos",
   "resources.preview": "Selecione um arquivo",

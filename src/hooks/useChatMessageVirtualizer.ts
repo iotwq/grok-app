@@ -71,7 +71,6 @@ import {
   runAfterPaneSplitMotion,
 } from "@/lib/paneSplitMotion";
 import {
-  distanceFromBottom,
   markProgrammaticStickScroll,
   shouldForcePinnedSnapOnOpen,
   STICK_MIN_VIEWPORT_HEIGHT_PX,
@@ -174,13 +173,6 @@ export function useChatMessageVirtualizer(
     committedWinRef.current = win;
   }, [win]);
   /**
-   * Distance from the bottom captured right before a pinned window commit.
-   * The post-commit snap restores this distance instead of trusting
-   * post-commit reads, which cannot distinguish user movement from
-   * scrollHeight drift caused by the freshly mounted rows.
-   */
-  const pinnedPreCommitBottomDistRef = useRef(0);
-  /**
    * Next pin-window commit after a conversation switch must land on the tail
    * even if leftover scrollTop is far from the new bottom.
    */
@@ -192,7 +184,6 @@ export function useChatMessageVirtualizer(
     heightsVersionRef.current = 0;
     offsetsCacheRef.current = null;
     pendingAnchorOffsetRef.current = 0;
-    pinnedPreCommitBottomDistRef.current = 0;
     forceOpenSnapRef.current = true;
     fingerDownRef.current = false;
     scrollingRef.current = false;
@@ -517,20 +508,6 @@ export function useChatMessageVirtualizer(
       return;
     }
 
-    // Capture the distance-from-bottom *before* this commit lands. The pinned
-    // snap effect restores it: post-commit reads cannot tell "user scrolled
-    // up" from "mounted rows shifted scrollHeight", and judging on post-commit
-    // numbers made >10px measurement drift refuse the snap (bottom bounce).
-    if (pin) {
-      pinnedPreCommitBottomDistRef.current = forceOpenSnapRef.current
-        ? 0
-        : distanceFromBottom(
-            el.scrollTop,
-            el.scrollHeight,
-            el.clientHeight,
-          );
-    }
-
     winRef.current = adjustedNext;
 
     // Background-mount lane: render pure-overscan updates as a transition so
@@ -735,9 +712,8 @@ export function useChatMessageVirtualizer(
     recomputeNow();
   }, [virtualized, itemCount, forceIndices, recomputeNow]);
 
-  // After a pin-window spacer commit, restore the pre-commit distance from
-  // the bottom before paint, so a commit whose mounted heights differ from
-  // the cached estimates is displacement-neutral (no bottom bounce).
+  // A deferred spacer commit can land after stick-follow already advanced.
+  // While pinned, use the current tail instead of restoring an older gap.
   useLayoutEffect(() => {
     if (!virtualized) return;
     if (fingerDownRef.current) return;
@@ -749,18 +725,8 @@ export function useChatMessageVirtualizer(
     const v = viewportRef.current;
     if (!v) return;
     if (v.clientHeight < STICK_MIN_VIEWPORT_HEIGHT_PX) return;
-    // When stick still says pinned, always restore the bottom offset.
-    // Streaming thinking/tool growth can inflate pre-commit dist above the
-    // escape threshold without the user leaving the tail (#1172). True
-    // leave-bottom is owned by useStickToBottom flipping isPinnedRef.
-    // Mid-gesture yank is prevented by scrollingRef / fingerDown above and
-    // by not clearing scrollingRef during the wheel itself (#1159).
-    let dist = pinnedPreCommitBottomDistRef.current;
-    if (forceOpen) {
-      dist = 0;
-    }
-    const top = Math.max(0, v.scrollHeight - v.clientHeight);
-    const desired = Math.max(0, top - dist);
+    // Intentional browsing is owned by useStickToBottom flipping isPinnedRef.
+    const desired = Math.max(0, v.scrollHeight - v.clientHeight);
     if (Math.abs(v.scrollTop - desired) > 0.5) {
       ignoreScrollAdjustRef.current = true;
       markProgrammaticStickScroll(v, desired);

@@ -34,7 +34,7 @@ describe("shouldCommitPointerUp", () => {
 });
 
 describe("isSelectionInsideTranscript", () => {
-  it("requires the root and at least one endpoint inside it", () => {
+  it("requires the root and both endpoints inside it", () => {
     const inside = { id: "in" } as unknown as Node;
     const outside = { id: "out" } as unknown as Node;
     const root = {
@@ -42,9 +42,10 @@ describe("isSelectionInsideTranscript", () => {
         return node === inside;
       },
     };
-    expect(isSelectionInsideTranscript(inside, outside, root)).toBe(true);
-    expect(isSelectionInsideTranscript(outside, inside, root)).toBe(true);
+    expect(isSelectionInsideTranscript(inside, outside, root)).toBe(false);
+    expect(isSelectionInsideTranscript(outside, inside, root)).toBe(false);
     expect(isSelectionInsideTranscript(outside, outside, root)).toBe(false);
+    expect(isSelectionInsideTranscript(inside, inside, root)).toBe(true);
     expect(isSelectionInsideTranscript(inside, inside, null)).toBe(false);
   });
 });
@@ -57,7 +58,7 @@ describe("selectionBarFromRead / selectionBarsEqual", () => {
       rect: { left: 100, width: 40, bottom: 50 },
     });
     expect(bar).toEqual({
-      x: 100 + 20 - 140,
+      x: 100 + 20,
       y: 58,
       text: "hello",
       sourceMessageId: "m1",

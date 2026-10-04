@@ -17,7 +17,7 @@
 <p align="center">
   <a href="https://grok-app.com"><img src="https://img.shields.io/badge/website-grok--app.com-0ea5e9" alt="Website" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License" /></a>
-  <a href="https://github.com/RongleCat/grok-app/stargazers"><img src="https://img.shields.io/github/stars/RongleCat/grok-app?style=social" alt="GitHub stars" /></a>
+  <a href="https://github.com/iotwq/grok-app/stargazers"><img src="https://img.shields.io/github/stars/iotwq/grok-app?style=social" alt="GitHub stars" /></a>
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey" alt="Platforms" />
   <img src="https://img.shields.io/badge/Tauri-2-orange" alt="Tauri 2" />
   <img src="https://img.shields.io/badge/note-unofficial-yellow" alt="Unofficial" />
@@ -37,9 +37,9 @@
 ---
 
 > [!NOTE]
-> **About Grok App:** Grok App is an open-source desktop client and workbench for the local [Grok Build](https://x.ai) CLI (`grok agent stdio`). It is **not an official xAI product**. The application does not bundle proprietary model backends; all chat reasoning, tool execution, and permissions run directly through your installed `grok` CLI.
+> **About Grok App:** Grok App is an open-source desktop client and workbench for the local [Grok Build](https://x.ai) CLI (`grok agent stdio`). It is **not an official xAI product**. The application does not bundle proprietary model backends; all chat reasoning, tool execution, and permissions run through the bundled Grok Build runtime.
 >
-> Full agent capabilities require an installed and signed-in Grok Build CLI. The first-run setup wizard can assist with CLI installation, and UI-only development can be run with `GROK_APP_ACP=mock`.
+> Grok Build is bundled and updated with the desktop app; terminal CLI installations remain independent. The first-run wizard checks the bundled runtime and offers account setup, and UI-only development can be run with `GROK_APP_ACP=mock`.
 
 ---
 
@@ -124,13 +124,14 @@
 
 ### 1. Download Prebuilt Packages
 
-Download installers directly from the official website [grok-app.com](https://grok-app.com) or [GitHub Releases](https://github.com/RongleCat/grok-app/releases):
+Download installers directly from the official website [grok-app.com](https://grok-app.com) or [GitHub Releases](https://github.com/iotwq/grok-app/releases):
 
 | Platform | Package Format | Details |
 |:---|:---|:---|
 | **macOS (Apple Silicon)** | `Grok_*_aarch64.dmg` | Apple Silicon (M1/M2/M3/M4) Macs |
 | **macOS (Intel)** | `Grok_*_x64.dmg` | Intel-based Macs |
 | **Windows (x64)** | `*-setup.exe` / `*-portable.zip` | Setup installer and portable archive |
+| **Windows (ARM64)** | `*-arm64-setup.exe` / `*-arm64-portable.zip` | ARM64 installer and portable archive |
 | **Linux (x64)** | `AppImage` / `.deb` / `.rpm` | Universal AppImage, Debian/Ubuntu, Fedora/RHEL |
 
 > 💡 **Note**: The application bundle name is **Grok**. Prebuilt packages need no build toolchain. Optional official auxiliary MCP tools on custom providers require Node.js 22 or newer from [nodejs.org](https://nodejs.org/); the app detects missing Node and keeps regular MCP tools available.
@@ -149,13 +150,13 @@ Get-FileHash .\Grok_*_x64-setup.exe -Algorithm SHA256
 
 ### 2. First Run & Setup
 
-1. **Launch**: Open Grok App. The setup wizard will automatically verify that the Grok Build CLI is installed (with multi-mirror fast install support).
+1. **Launch**: Open Grok App. The setup wizard verifies the bundled Grok Build runtime; no separate CLI installation is required.
 2. **Account / Relays (Optional)**: Sign in with your official account, provide an API key, or configure a custom relay. If your local `grok` CLI is already authenticated, simply choose **Use existing CLI sign-in**.
 3. **Add Project**: Select and trust your project working directory.
 4. **Connect Agent**: Choose **Ask** or **YOLO** permission mode, and start building with your desktop agent!
 
 #### Requirements
-- Local **Grok Build CLI** (`grok`) **0.2.112 or newer** (run `grok update` in terminal to upgrade).
+- **Grok Build is included** and updated with Grok App. Configure an account or provider in the App; a terminal CLI installation is optional and independently managed.
 - Windows: Requires **WebView2 Runtime** (pre-installed on Windows 11; bootstrapped by the installer if missing).
 - Linux AppImage: host `libEGL.so.1` plus WebKitGTK 4.1 / Ayatana — see [Linux runtime libraries](#linux-runtime-libraries-appimage).
 
@@ -201,7 +202,7 @@ sudo apt-get install -y libegl1 libgles2 libwebkit2gtk-4.1-0 libayatana-appindic
 
 Then `chmod +x` and run the AppImage (or the extracted `usr/bin/grok-app`). The `.deb` already lists `libwebkit2gtk-4.1-0` and `libgtk-3-0`.
 
-This is a **missing shared library at process start**. It is not the Wayland black-window / `EGL_BAD_PARAMETER` case in [Linux Display Notes](#linux-display-notes-webkitgtk--wayland). See issue [#899](https://github.com/RongleCat/grok-app/issues/899).
+This is a **missing shared library at process start**. It is not the Wayland black-window / `EGL_BAD_PARAMETER` case in [Linux Display Notes](#linux-display-notes-webkitgtk--wayland). See issue [#899](https://github.com/iotwq/grok-app/issues/899).
 
 ---
 
@@ -362,7 +363,7 @@ Thanks to everyone who has contributed to Grok App. All human GitHub contributor
   <a href="https://github.com/Yux-c" title="Yux-c"><img src="https://github.com/Yux-c.png?size=96" width="72" height="72" alt="Yux-c" style="border-radius:50%" /></a>
 </p>
 
-[Full contributors graph →](https://github.com/RongleCat/grok-app/graphs/contributors)
+[Full contributors graph →](https://github.com/iotwq/grok-app/graphs/contributors)
 <!-- CONTRIBUTORS:END -->
 
 ---

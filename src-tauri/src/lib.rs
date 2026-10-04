@@ -53,6 +53,7 @@ mod cc_switch_import;
 
 mod cli_install;
 
+mod bundled_runtime;
 mod cli_probe;
 
 mod cli_sessions;
@@ -65,6 +66,14 @@ mod wsl_backend;
 
 mod ssh_remote;
 
+mod browser_automation;
+#[cfg(target_os = "linux")]
+mod browser_linux;
+mod browser_mcp;
+#[cfg(target_os = "macos")]
+mod browser_webkit;
+#[cfg(target_os = "windows")]
+mod browser_windows;
 mod side_browser_blob;
 mod side_browser_google_auth;
 mod side_browser_host;
@@ -277,6 +286,9 @@ use session_manager::SessionManager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    if std::env::args().nth(1).as_deref() == Some("--browser-mcp") {
+        std::process::exit(browser_mcp::run());
+    }
     // Session list / continue-by-id CLI must not open a window or steal focus
     // via the single-instance plugin. Exit before any Tauri builder setup.
     if session_api::try_run_cli() {

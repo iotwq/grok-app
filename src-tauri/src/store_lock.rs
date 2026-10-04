@@ -4,9 +4,10 @@
 //! We take an exclusive lock around read-modify-write of index files so the
 //! index is not half-written, and use temp+rename for atomic replace.
 
+use std::collections::HashSet;
 use std::fs::{self, File, OpenOptions};
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, MutexGuard};
+use std::sync::{Condvar, LazyLock, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -20,7 +21,42 @@ const LOCK_POLL: Duration = Duration::from_millis(40);
 /// second descriptor in the same process as re-entrant.  Keep an in-process
 /// guard as well so two threads can never interleave a read-modify-write
 /// transaction (the common path for stream/journal updates).
-static PROCESS_STORE_LOCK: Mutex<()> = Mutex::new(());
+static PROCESS_STORE_LOCKS: LazyLock<(Mutex<HashSet<PathBuf>>, Condvar)> =
+    LazyLock::new(|| (Mutex::new(HashSet::new()), Condvar::new()));
+
+struct ProcessStoreLock(PathBuf);
+
+impl ProcessStoreLock {
+    fn acquire(path: PathBuf, deadline: Instant) -> Result<Self, String> {
+        let (held, released) = &*PROCESS_STORE_LOCKS;
+        let mut held = held.lock().unwrap_or_else(|e| e.into_inner());
+        while held.contains(&path) {
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() {
+                return Err(format!(
+                    "LOCK_BUSY: could not lock {} within {}ms",
+                    path.display(),
+                    LOCK_WAIT.as_millis()
+                ));
+            }
+            (held, _) = released
+                .wait_timeout(held, remaining)
+                .unwrap_or_else(|e| e.into_inner());
+        }
+        held.insert(path.clone());
+        Ok(Self(path))
+    }
+}
+
+impl Drop for ProcessStoreLock {
+    fn drop(&mut self) {
+        let (held, released) = &*PROCESS_STORE_LOCKS;
+        held.lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .remove(&self.0);
+        released.notify_all();
+    }
+}
 
 /// Sidecar lock path for `foo.json` → `foo.json.lock`.
 pub fn lock_path_for(target: &Path) -> PathBuf {
@@ -31,10 +67,8 @@ pub fn lock_path_for(target: &Path) -> PathBuf {
 
 /// Holds an exclusive lock until dropped.
 pub struct ExclusiveLock {
-    // The guard must live for the full file-lock lifetime.  A single process
-    // mutex is intentionally conservative: store transactions are short and
-    // correctness matters more than parallel JSON writes.
-    _process_guard: MutexGuard<'static, ()>,
+    // Serialize only this file, including platforms with process-scoped locks.
+    _process_guard: ProcessStoreLock,
     _file: File,
 }
 
@@ -47,9 +81,7 @@ impl Drop for ExclusiveLock {
 
 /// Acquire exclusive lock for `target` (creates `target.lock`).
 pub fn lock_exclusive(target: &Path) -> Result<ExclusiveLock, String> {
-    let process_guard = PROCESS_STORE_LOCK
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let deadline = Instant::now() + LOCK_WAIT;
     let path = lock_path_for(target);
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|e| format!("lock dir: {e}"))?;
@@ -62,7 +94,11 @@ pub fn lock_exclusive(target: &Path) -> Result<ExclusiveLock, String> {
         .open(&path)
         .map_err(|e| format!("open lock {}: {e}", path.display()))?;
 
-    let deadline = Instant::now() + LOCK_WAIT;
+    // Canonicalize the sidecar after creation so relative/symlink aliases share
+    // a reservation. Waiting on this file never holds up unrelated journals.
+    let key =
+        fs::canonicalize(&path).map_err(|e| format!("resolve lock {}: {e}", path.display()))?;
+    let process_guard = ProcessStoreLock::acquire(key, deadline)?;
     loop {
         match file.try_lock_exclusive() {
             Ok(()) => {
@@ -193,5 +229,41 @@ mod tests {
     fn is_lock_busy_detects_prefix() {
         assert!(is_lock_busy("LOCK_BUSY: could not lock"));
         assert!(!is_lock_busy("write temp: disk full"));
+    }
+
+    #[test]
+    fn an_unrelated_file_can_be_written_while_another_is_locked() {
+        let first = tmp_file("held.json");
+        let second = tmp_file("independent.json");
+        let lock = lock_exclusive(&first).unwrap();
+        let (tx, rx) = std::sync::mpsc::channel();
+        let second_for_thread = second.clone();
+        let worker = thread::spawn(move || {
+            tx.send(write_bytes_atomic(&second_for_thread, b"saved"))
+                .unwrap();
+        });
+        let result = rx.recv_timeout(Duration::from_secs(1));
+        drop(lock);
+        worker.join().unwrap();
+        result.expect("unrelated file was blocked").unwrap();
+        assert_eq!(fs::read(&second).unwrap(), b"saved");
+        let _ = fs::remove_file(&second);
+        let _ = fs::remove_file(lock_path_for(&first));
+        let _ = fs::remove_file(lock_path_for(&second));
+    }
+
+    #[test]
+    fn same_file_reservation_times_out_and_recovers_after_release() {
+        let path = tmp_file("timeout.json");
+        let lock = lock_exclusive(&path).unwrap();
+        let started = Instant::now();
+        let error = lock_exclusive(&path)
+            .err()
+            .expect("same file must time out");
+        assert!(is_lock_busy(&error));
+        assert!(started.elapsed() < LOCK_WAIT + Duration::from_secs(1));
+        drop(lock);
+        drop(lock_exclusive(&path).unwrap());
+        let _ = fs::remove_file(lock_path_for(&path));
     }
 }

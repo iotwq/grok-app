@@ -116,4 +116,45 @@ describe("useStickToBottom bottom rebound", () => {
     expect(scrollTop).toBe(550);
     expect(result.current.isPinnedRef.current).toBe(false);
   });
+
+  it.each([
+    { deltaY: -4, settleMs: 40 },
+    { deltaY: -40, settleMs: 40 },
+    { deltaY: -40, settleMs: 0 },
+  ])("keeps reading position after $deltaY px upward input ($settleMs ms after opening)", ({ deltaY, settleMs }) => {
+    let resize: ResizeObserverCallback = () => {};
+    vi.stubGlobal("ResizeObserver", class extends NoopResizeObserver {
+      constructor(callback: ResizeObserverCallback) { super(); resize = callback; }
+    });
+    const viewport = document.createElement("div");
+    const content = document.createElement("div");
+    viewport.appendChild(content);
+    let height = 1000;
+    Object.defineProperties(viewport, {
+      scrollHeight: { get: () => height },
+      clientHeight: { value: 400 },
+      clientWidth: { value: 800 },
+    });
+    Object.defineProperty(content, "offsetHeight", { get: () => height });
+    const { result, rerender } = renderHook(
+      ({ keyName }) => useStickToBottom({ conversationKey: keyName }),
+      { initialProps: { keyName: "before-attach" } },
+    );
+    Object.assign(result.current.viewportRef, { current: viewport });
+    Object.assign(result.current.contentRef, { current: content });
+    rerender({ keyName: "attached" });
+    act(() => vi.advanceTimersByTime(settleMs));
+
+    act(() => {
+      viewport.dispatchEvent(new WheelEvent("wheel", { deltaY }));
+      viewport.scrollTop += deltaY;
+      viewport.dispatchEvent(new Event("scroll"));
+      height = 1100;
+      resize([], {} as ResizeObserver);
+      vi.advanceTimersByTime(100);
+    });
+
+    expect(viewport.scrollTop).toBe(600 + deltaY);
+    expect(result.current.isPinnedRef.current).toBe(false);
+  });
 });

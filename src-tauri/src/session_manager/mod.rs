@@ -13,7 +13,7 @@
 //! - soft_respawn skips mid-turn live sessions.
 //!
 //! Streaming performance (I04 / I06):
-//! - Mid-stream journal upserts are throttled (≥500ms or paragraph / force).
+//! - Mid-stream journal upserts are throttled (≥500ms; only force bypasses).
 //! - Pure stream silence: silent heal first (orphan tools / ready-eligible when
 //!   the agent RPC already finished), then soft `session://stream_stall`
 //!   (Keep waiting / End turn). **Never auto-cancel a user-initiated turn** —
@@ -25,6 +25,7 @@ mod events;
 mod events_bg;
 mod fork_trim;
 mod journal;
+mod journal_writer;
 mod post_turn_reconcile;
 mod process;
 mod stream;

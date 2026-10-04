@@ -1,5 +1,7 @@
 /** ru messages — domain: workspace */
 export const ruWorkspace = {
+  "side.browser.back": "Назад",
+  "side.browser.forward": "Вперёд",
   "resources.title": "Ресурсы",
   "resources.files": "Файлы",
   "resources.preview": "Выберите файл",

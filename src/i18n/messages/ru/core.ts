@@ -1,5 +1,13 @@
 /** ru messages — domain: core */
 export const ruCore = {
+  "resource.openLink": "Открыть ссылку",
+  "resource.openSide": "Открыть в боковом браузере",
+  "resource.copyAddress": "Копировать адрес изображения",
+  "resource.copyFailed": "Не удалось скопировать. Повторите попытку.",
+  "resource.openFailed": "Не удалось открыть ресурс. Повторите попытку.",
+  "resource.working": "Обработка…",
+  "image.saveAs": "Сохранить изображение как…",
+  "image.saveFailed": "Не удалось сохранить изображение. Повторите попытку.",
   "app.name": "Grok",
   "image.loadingOriginal": "Загрузка оригинала…",
   "image.originalFailed": "Не удалось загрузить оригинал. Предпросмотр по-прежнему доступен.",
@@ -36,7 +44,7 @@ export const ruCore = {
   "office.pageOf": "{page} / {total}",
   "image.view": "Просмотреть изображение",
   "image.copy": "Копировать изображение",
-  "image.copyHint": "Щёлкните правой кнопкой, чтобы скопировать изображение",
+  "image.copyHint": "Нажмите правой кнопкой для действий с изображением",
   "image.next": "Следующее изображение",
   "image.prev": "Предыдущее изображение",
   "image.close": "Закрыть",

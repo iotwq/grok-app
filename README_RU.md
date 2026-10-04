@@ -17,7 +17,7 @@
 <p align="center">
   <a href="https://grok-app.com"><img src="https://img.shields.io/badge/website-grok--app.com-0ea5e9" alt="Website" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License" /></a>
-  <a href="https://github.com/RongleCat/grok-app/stargazers"><img src="https://img.shields.io/github/stars/RongleCat/grok-app?style=social" alt="GitHub stars" /></a>
+  <a href="https://github.com/iotwq/grok-app/stargazers"><img src="https://img.shields.io/github/stars/iotwq/grok-app?style=social" alt="GitHub stars" /></a>
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey" alt="Platforms" />
   <img src="https://img.shields.io/badge/Tauri-2-orange" alt="Tauri 2" />
   <img src="https://img.shields.io/badge/note-unofficial-yellow" alt="Unofficial" />
@@ -37,9 +37,9 @@
 ---
 
 > [!NOTE]
-> **О Grok App:** Это настольный клиент и рабочая среда с открытым исходным кодом для локального [Grok Build](https://x.ai) CLI (`grok agent stdio`). Проект **не является официальным продуктом xAI**. Приложение не содержит встроенных моделей: все рассуждения, вызовы инструментов и выполнение задач осуществляются напрямую через установленный у вас `grok` CLI.
+> **О Grok App:** Это настольный клиент и рабочая среда с открытым исходным кодом для локального [Grok Build](https://x.ai) CLI (`grok agent stdio`). Проект **не является официальным продуктом xAI**. Приложение не содержит встроенных моделей: все рассуждения, вызовы инструментов и выполнение задач осуществляются напрямую через встроенный Grok Build.
 >
-> Для полноценного использования возможностей агента требуется установленный и авторизованный Grok Build CLI. Встроенный мастер первого запуска поможет с установкой CLI, а для автономной разработки интерфейса доступен режим `GROK_APP_ACP=mock`.
+> Grok Build включён в приложение и обновляется вместе с ним; CLI в терминале управляется отдельно. Мастер первого запуска проверяет встроенную среду и предлагает настройку аккаунта, а для автономной разработки интерфейса доступен режим `GROK_APP_ACP=mock`.
 
 ---
 
@@ -124,13 +124,14 @@
 
 ### 1. Загрузка готовых пакетов
 
-Загрузите установочный файл для вашей операционной системы с официального сайта [grok-app.com](https://grok-app.com) или со страницы [GitHub Releases](https://github.com/RongleCat/grok-app/releases):
+Загрузите установочный файл для вашей операционной системы с официального сайта [grok-app.com](https://grok-app.com) или со страницы [GitHub Releases](https://github.com/iotwq/grok-app/releases):
 
 | Платформа | Формат пакета | Описание |
 |:---|:---|:---|
 | **macOS (Apple Silicon)** | `Grok_*_aarch64.dmg` | Для компьютеров Mac с процессорами M1/M2/M3/M4 |
 | **macOS (Intel)** | `Grok_*_x64.dmg` | Для компьютеров Mac на базе процессоров Intel |
 | **Windows (x64)** | `*-setup.exe` / `*-portable.zip` | Установщик и портативная версия |
+| **Windows (ARM64)** | `*-arm64-setup.exe` / `*-arm64-portable.zip` | Установщик и портативная версия для ARM64 |
 | **Linux (x64)** | `AppImage` / `.deb` / `.rpm` | Универсальный AppImage, пакеты для Debian/Ubuntu и Fedora/RHEL |
 
 > 💡 **Примечание**: Имя приложения в системе — **Grok**. Для запуска готовых пакетов не требуется установка Node.js, pnpm или Rust.
@@ -149,13 +150,13 @@ Get-FileHash .\Grok_*_x64-setup.exe -Algorithm SHA256
 
 ### 2. Первый запуск и настройка
 
-1. **Запуск**: Откройте Grok App. Мастер первого запуска автоматически проверит наличие установленного Grok Build CLI (поддерживается быстрая установка с нескольких зеркал).
+1. **Запуск**: Откройте Grok App. Мастер первого запуска проверяет встроенный Grok Build; отдельная установка CLI не требуется.
 2. **Авторизация / Шлюзы (необязательно)**: Войдите в официальный аккаунт, укажите API-ключ или настройте кастомный relay. Если ваш локальный CLI `grok` уже авторизован, просто выберите **Использовать текущий вход CLI**.
 3. **Добавление проекта**: Выберите и подтвердите доверие к рабочей папке вашего проекта.
 4. **Подключение агента**: Выберите режим **Ask** или **YOLO** и приступайте к разработке!
 
 #### Системные требования
-- Установленный **Grok Build CLI** (`grok`) версии **0.2.112 или новее** (для обновления выполните `grok update` в терминале).
+- **Grok Build уже включён** и обновляется с Grok App. Настройте аккаунт или провайдера в приложении; установка CLI в терминале необязательна и управляется отдельно.
 - Для Windows требуется **WebView2 Runtime** (в Windows 11 предустановлен; в более ранних версиях установщик предложит инсталляцию).
 - Linux AppImage: системные `libEGL.so.1`, WebKitGTK 4.1 и Ayatana — см. [библиотеки runtime](#linux-библиотеки-runtime-appimage).
 
@@ -201,7 +202,7 @@ sudo apt-get install -y libegl1 libgles2 libwebkit2gtk-4.1-0 libayatana-appindic
 
 Затем `chmod +x` и запустите AppImage (или распакованный `usr/bin/grok-app`). В `.deb` уже указаны `libwebkit2gtk-4.1-0` и `libgtk-3-0`.
 
-Это **отсутствие shared library при старте**, а не чёрное окно Wayland / `EGL_BAD_PARAMETER` из раздела [графика в Linux](#особенности-графики-в-linux-webkitgtk--wayland). См. issue [#899](https://github.com/RongleCat/grok-app/issues/899).
+Это **отсутствие shared library при старте**, а не чёрное окно Wayland / `EGL_BAD_PARAMETER` из раздела [графика в Linux](#особенности-графики-в-linux-webkitgtk--wayland). См. issue [#899](https://github.com/iotwq/grok-app/issues/899).
 
 ---
 
@@ -362,7 +363,7 @@ Windows (необязательно): дважды щёлкните [`install-la
   <a href="https://github.com/Yux-c" title="Yux-c"><img src="https://github.com/Yux-c.png?size=96" width="72" height="72" alt="Yux-c" style="border-radius:50%" /></a>
 </p>
 
-[Полный граф участников →](https://github.com/RongleCat/grok-app/graphs/contributors)
+[Полный граф участников →](https://github.com/iotwq/grok-app/graphs/contributors)
 <!-- CONTRIBUTORS:END -->
 
 ---

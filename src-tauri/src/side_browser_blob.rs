@@ -1014,16 +1014,12 @@ pub fn blob_download_polyfill(label: &str) -> String {
     }}
 
     if (href.indexOf("https://") === 0 || href.indexOf("http://") === 0) {{
-      var low = href.toLowerCase();
-      var pathLooksFile =
-        low.indexOf(".mp4") >= 0 || low.indexOf(".webm") >= 0 || low.indexOf(".mov") >= 0 ||
-        low.indexOf(".zip") >= 0 || low.indexOf(".pdf") >= 0 || low.indexOf(".png") >= 0 ||
-        low.indexOf(".jpg") >= 0 || low.indexOf(".jpeg") >= 0 || low.indexOf(".gif") >= 0 ||
-        low.indexOf(".webp") >= 0 || low.indexOf(".bin") >= 0 || low.indexOf(".wav") >= 0 ||
-        low.indexOf(".mp3") >= 0 || low.indexOf(".m4a") >= 0;
-      var looksApiDownload =
-        low.indexOf("/download") >= 0 || low.indexOf("/export") >= 0 ||
-        low.indexOf("/render") >= 0 || low.indexOf("/jobs/") >= 0;
+      // Query parameters often contain another URL (ad redirects). Inspect only
+      // this URL's path, otherwise an ordinary tracking iframe becomes a download.
+      var path;
+      try {{ path = new URL(href, location.href).pathname.toLowerCase(); }} catch (e) {{ return false; }}
+      var pathLooksFile = /\.(mp4|webm|mov|zip|pdf|png|jpe?g|gif|webp|bin|wav|mp3|m4a)$/.test(path);
+      var looksApiDownload = /\/(download|export)(\/|$)/.test(path);
       if (force || pathLooksFile || looksApiDownload) {{
         fetchThenDeliver(href, name);
         return true;
@@ -1057,8 +1053,12 @@ pub fn blob_download_polyfill(label: &str) -> String {
   function tryIframeSrc(src) {{
     if (!src || typeof src !== "string") return false;
     if (src === "about:blank" || src.indexOf("javascript:") === 0) return false;
-    // ChatCut Xx() fallback: hidden iframe to download URL
-    return handleHref(src, "", true);
+    // Only ChatCut's known export fallback needs iframe interception. Ordinary
+    // iframe creation (ads, embeds, document previews) is never download intent.
+    var host = location.hostname.toLowerCase();
+    if (host !== "chatcut.io" && host !== "app.chatcut.io" && host !== "www.chatcut.io") return false;
+    if (window !== window.top) return false;
+    return handleHref(src, "", false);
   }}
 
   // --- hooks ---
@@ -1091,17 +1091,15 @@ pub fn blob_download_polyfill(label: &str) -> String {
     }};
   }} catch (e) {{}}
 
-  // Critical: ChatCut does appendChild(a); a.click(); revoke — handle on append
-  // BEFORE click/revoke. Also catch iframe download fallback.
+  // Only the scoped iframe fallback acts on insertion. Rendering an <a download>
+  // is not a click; the anchor click hooks above already handle click/revoke.
   try {{
     var origAppend = Node.prototype.appendChild;
     Node.prototype.appendChild = function (child) {{
       try {{
         if (child && child.tagName) {{
           var tag = String(child.tagName).toUpperCase();
-          if (tag === "A") {{
-            tryAnchor(child);
-          }} else if (tag === "IFRAME") {{
+          if (tag === "IFRAME") {{
             var s = "";
             try {{ s = child.src || child.getAttribute("src") || ""; }} catch (e) {{}}
             if (s && tryIframeSrc(s)) {{
@@ -1120,8 +1118,7 @@ pub fn blob_download_polyfill(label: &str) -> String {
       try {{
         if (child && child.tagName) {{
           var tag = String(child.tagName).toUpperCase();
-          if (tag === "A") tryAnchor(child);
-          else if (tag === "IFRAME") {{
+          if (tag === "IFRAME") {{
             var s = "";
             try {{ s = child.src || child.getAttribute("src") || ""; }} catch (e) {{}}
             if (s && tryIframeSrc(s)) {{

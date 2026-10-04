@@ -1159,10 +1159,8 @@ impl SessionManager {
                                 (None, None)
                             } else {
                                 s.provider_retry_aborted = true;
-                                // `attempt` is how many tries the host saw; `cap`
-                                // is the agent/host budget — do not claim we ran
-                                // the full budget when hard-transport fail-fast
-                                // aborts early (e.g. attempt 3 of 12).
+                                // Report actual attempts: the runtime can give up
+                                // or exhaust quota before using its full budget.
                                 // Terminal quota uses QuotaExceeded + the CLI sentence.
                                 let err = provider_retry_abort_error(attempt, cap, &reason);
                                 // Chat-visible error row (must happen before clearing stream ids)

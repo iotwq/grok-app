@@ -1,5 +1,13 @@
 /** ko messages — domain: core */
 export const koCore = {
+  "resource.openLink": "링크 열기",
+  "resource.openSide": "사이드 브라우저에서 열기",
+  "resource.copyAddress": "이미지 주소 복사",
+  "resource.copyFailed": "복사하지 못했습니다. 다시 시도해 주세요.",
+  "resource.openFailed": "이 리소스를 열 수 없습니다. 다시 시도해 주세요.",
+  "resource.working": "처리 중…",
+  "image.saveAs": "이미지를 다른 이름으로 저장…",
+  "image.saveFailed": "이미지를 저장하지 못했습니다. 다시 시도해 주세요.",
   "app.name": "Grok",
   "image.loadingOriginal": "원본을 불러오는 중…",
   "image.originalFailed": "원본을 불러오지 못했습니다. 미리보기는 계속 볼 수 있습니다.",
@@ -36,7 +44,7 @@ export const koCore = {
   "office.pageOf": "{page} / {total}",
   "image.view": "이미지 보기",
   "image.copy": "이미지 복사",
-  "image.copyHint": "이미지를 복사하려면 마우스 오른쪽 버튼을 클릭하세요",
+  "image.copyHint": "오른쪽 클릭으로 이미지 작업 표시",
   "image.next": "다음 이미지",
   "image.prev": "이전 이미지",
   "image.close": "닫기",

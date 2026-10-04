@@ -841,3 +841,11 @@ html[data-sidebar-density="compact"] .tree-l3--hint {
   min-height: 22px;
   font-size: 11px;
 }
+
+/* Output image actions sit above the full-size preview (14000). */
+.context-menu.resource-image-menu { z-index: 14010; }
+.resource-action-notice { z-index: 14020; }
+.md-body__img-frame__el[role="button"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}

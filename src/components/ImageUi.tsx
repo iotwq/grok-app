@@ -1,6 +1,6 @@
 /**
- * Shared image UI: click → lightbox; right-click menu aligned with AttachmentCard
- * (view, reveal, copy image, copy path when a local path is known).
+ * Shared image UI: click → lightbox; right-click shares original-image actions
+ * with the viewer (copy, save, address/path and reveal for local files).
  *
  * Chat cards use a **fixed height** (150px) with width from natural ratio.
  * Aspect ratios are cached in memory + localStorage (`imageAspectCache`) so
@@ -16,13 +16,7 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react";
-import * as api from "@/lib/api";
 import { isTauri } from "@/lib/api";
-import {
-  copyImageFromHtmlImage,
-  copyImageFromPath,
-  copyImageFromSrc,
-} from "@/lib/copyImage";
 import {
   ensureMediaEndpoint,
   invalidateImageSrc,
@@ -52,12 +46,14 @@ import {
 import { isFusedQueryKeyPath } from "@/lib/pathNormalize";
 import { pathBasename } from "@/lib/attachments";
 import { useImageViewerOptional } from "@/components/ImageViewerContext";
-import { IconCopy, IconExternalLink, IconFolder } from "@/components/icons";
+import { IconExternalLink } from "@/components/icons";
 import { ContextMenu, type ContextMenuItem } from "@/components/ContextMenu";
 import { createT, type Locale } from "@/i18n";
+import { useImageResourceActions } from "@/hooks/useImageResourceActions";
 import { revealInOsLabel } from "@/lib/appPlatform";
 
 export interface ImageUiLabels {
+  locale?: Locale;
   viewImage: string;
   copyImage: string;
   /** Reveal in OS file manager (Finder / Explorer / Files). */
@@ -479,90 +475,22 @@ export function ImageUi({
     );
   };
 
-  const copyImage = async () => {
-    // Prefer painted <img> + Host file path (WebView ClipboardItem / fetch often fail).
-    const el = imgRef.current;
-    if (el && el.naturalWidth > 0) {
-      const r = await copyImageFromHtmlImage(el, { localPath });
-      if (r.ok) return;
-      console.warn("[ImageUi] copy from img failed:", r.reason, {
-        localPath,
-        resolvedSrc,
-      });
-    }
-    if (localPath) {
-      const r = await copyImageFromPath(localPath);
-      if (r.ok) return;
-    }
-    if (!resolvedSrc) return;
-    const r = await copyImageFromSrc(resolvedSrc);
-    if (!r.ok) {
-      console.warn("[ImageUi] copy image failed:", r.reason, {
-        localPath,
-        resolvedSrc,
-      });
-    }
-  };
-
-  const copyPath = async () => {
-    if (!localPath) return;
-    try {
-      await navigator.clipboard.writeText(localPath);
-    } catch {
-      /* ignore */
-    }
-  };
-
-  const revealPath = async () => {
-    if (!localPath || !api.isTauri()) return;
-    try {
-      // Host normalizes file://, ~/, and Windows \\?\ paths; always pass the
-      // on-disk absolute path (not the loopback media URL).
-      await api.pathReveal(localPath);
-    } catch (e) {
-      // Soft-fail: keep card usable; surface for support logs.
-      console.error("[ImageUi] pathReveal failed:", localPath, e);
-    }
-  };
-
+  const imageActions = useImageResourceActions({
+    source: localPath || src,
+    locale: labels.locale,
+    disabled: !resolvedSrc || loadFailed,
+  });
   const menuItems: ContextMenuItem[] = [
     {
       id: "view",
       label: labels.viewImage,
       icon: <IconExternalLink size={16} />,
-      onClick: () => openViewer(),
+      onClick: openViewer,
       disabled: !resolvedSrc || loadFailed,
     },
+    { id: "separator", separator: true },
+    ...imageActions.items,
   ];
-  if (localPath) {
-    menuItems.push({
-      id: "reveal",
-      label: labels.reveal,
-      icon: <IconFolder size={16} />,
-      onClick: () => {
-        void revealPath();
-      },
-    });
-  }
-  menuItems.push({
-    id: "copy-image",
-    label: labels.copyImage,
-    icon: <IconCopy size={16} />,
-    onClick: () => {
-      void copyImage();
-    },
-    disabled: !resolvedSrc || loadFailed,
-  });
-  if (localPath) {
-    menuItems.push({
-      id: "copy-path",
-      label: labels.copyPath,
-      icon: <IconCopy size={16} />,
-      onClick: () => {
-        void copyPath();
-      },
-    });
-  }
 
   const state: "pending" | "ready" | "broken" = loadFailed || (!resolvedSrc && failKind)
     ? "broken"
@@ -617,12 +545,13 @@ export function ImageUi({
       <span
         className={frameClassName(className, state, layout)}
         style={frameStyle}
+        data-output-resource="image"
         role={state === "broken" ? "img" : undefined}
         aria-label={state === "broken" ? brokenLabel : undefined}
         title={
           state === "broken"
             ? brokenLabel
-            : undefined
+            : labels.viewImage
         }
         onContextMenu={(e) => {
           e.preventDefault();
@@ -641,6 +570,14 @@ export function ImageUi({
             src={resolvedSrc}
             alt={alt}
             draggable={draggable}
+            role="button"
+            tabIndex={0}
+            aria-label={alt ? `${labels.viewImage}: ${alt}` : labels.viewImage}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault(); e.stopPropagation(); openViewer();
+              }
+            }}
             // Allow canvas read for copy when media is loopback HTTP (CORS-enabled).
             crossOrigin={
               /^https?:\/\/(127\.0\.0\.1|localhost)(:|\/)/i.test(resolvedSrc)
@@ -702,6 +639,7 @@ export function ImageUi({
           </span>
         )}
       </span>
+      {imageActions.notice}
       <ContextMenu
         open={!!menu}
         x={menu?.x ?? 0}
@@ -722,6 +660,7 @@ export function imageUiLabels(locale: Locale): ImageUiLabels {
   if (!cached) {
     const tr = createT(locale);
     cached = {
+      locale,
       viewImage: tr("image.view"),
       copyImage: tr("image.copy"),
       reveal: revealInOsLabel(tr),

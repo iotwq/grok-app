@@ -7,11 +7,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/RongleCat/grok-app.git"
+    "url": "https://github.com/iotwq/grok-app.git"
   },
   "homepage": "https://grok-app.com",
   "bugs": {
-    "url": "https://github.com/RongleCat/grok-app/issues"
+    "url": "https://github.com/iotwq/grok-app/issues"
   },
   "type": "module",
   "packageManager": "pnpm@9.15.9",

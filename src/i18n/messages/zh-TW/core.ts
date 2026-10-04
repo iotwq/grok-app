@@ -1,5 +1,13 @@
 /** Traditional Chinese messages — domain: core */
 export const zhTWCore = {
+  "resource.openLink": "開啟連結",
+  "resource.openSide": "在側邊瀏覽器開啟",
+  "resource.copyAddress": "複製圖片位址",
+  "resource.copyFailed": "複製失敗，請重試。",
+  "resource.openFailed": "無法開啟此資源，請重試。",
+  "resource.working": "正在處理…",
+  "image.saveAs": "圖片另存為…",
+  "image.saveFailed": "圖片儲存失敗，請重試。",
   "app.name": "Grok",
   "image.loadingOriginal": "正在載入原始檔案…",
   "image.originalFailed": "原始檔案載入失敗，仍可查看預覽。",
@@ -36,7 +44,7 @@ export const zhTWCore = {
   "office.pageOf": "{page} / {total}",
   "image.view": "檢視大圖",
   "image.copy": "複製圖片",
-  "image.copyHint": "右鍵可複製圖片",
+  "image.copyHint": "按右鍵查看圖片操作",
   "image.next": "下一張",
   "image.prev": "上一張",
   "image.close": "關閉",

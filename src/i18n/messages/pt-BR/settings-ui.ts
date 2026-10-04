@@ -477,7 +477,7 @@ export const ptBRSettingsUi = {
   "settings.autoUpdateReady": "Atualização baixada — confirme Instalar e reiniciar quando estiver pronto.",
   "settings.autoUpdateInstall": "Instalar e reiniciar",
   "settings.autoUpdateConfirm.title": "Instalar atualização e reiniciar?",
-  "settings.autoUpdateConfirm.message": "A versão {version} será instalada e o app será reiniciado.",
+  "settings.autoUpdateConfirm.message": "A versão {version} será instalada com o Grok Build integrado. As tarefas em execução serão interrompidas e o Grok App será reiniciado.",
   "settings.autoUpdateConfirm.confirm": "Instalar e reiniciar",
   "settings.autoUpdateConfirm.cancel": "Cancelar",
   "settings.autoUpdateInstalling": "Instalando…",

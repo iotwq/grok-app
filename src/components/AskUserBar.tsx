@@ -73,6 +73,8 @@ export function AskUserBar({
   useEffect(() => {
     if (!open || collapsed) return;
     const onKey = (e: KeyboardEvent) => {
+      // Side-chat inputs own their keyboard actions.
+      if (e.target instanceof Element && e.target.closest(".side-chat")) return;
       if (e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();

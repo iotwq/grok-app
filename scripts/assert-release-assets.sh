@@ -76,6 +76,8 @@ REQUIRED=(
   "Grok_${VER}_x64.dmg"
   "Grok_${VER}_x64-setup.exe"
   "Grok_${VER}_x64-portable.zip"
+  "Grok_${VER}_arm64-setup.exe"
+  "Grok_${VER}_arm64-portable.zip"
   "Grok_${VER}_amd64.AppImage"
   "Grok_${VER}_amd64.deb"
   "Grok-${VER}-1.x86_64.rpm|Grok-${VER}.x86_64.rpm|Grok_${VER}_x86_64.rpm|Grok_${VER}_amd64.rpm"
@@ -104,7 +106,7 @@ if [[ ${#missing[@]} -gt 0 ]]; then
   for m in "${missing[@]}"; do
     echo "  - $m" >&2
   done
-  echo "All of macOS (arm+x64), Windows (setup+portable), and Linux (AppImage/deb/rpm) must upload before the release is done." >&2
+  echo "All of macOS (arm+x64), Windows (arm64+x64 setup+portable), and Linux (AppImage/deb/rpm) must upload before the release is done." >&2
   exit 1
 fi
 

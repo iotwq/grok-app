@@ -1,5 +1,7 @@
 /** ta messages — domain: workspace */
 export const taWorkspace = {
+  "side.browser.back": "பின்னால்",
+  "side.browser.forward": "முன்னால்",
   "resources.title": "வளங்கள்",
   "resources.files": "கோப்புகள்",
   "resources.preview": "கோப்பைத் தேர்ந்தெடு",

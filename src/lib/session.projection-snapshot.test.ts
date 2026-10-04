@@ -189,6 +189,12 @@ describe("session projection", () => {
     expect(errorCopy("SANDBOX_BLOCKED")).toMatch(/sandbox|namespace|linux|bwrap|sysctl/i);
   });
 
+  it("uses provider error copy for a stream decode failure tagged as an old crash", () => {
+    const message = 'Internal error (code -32603, data: {"message":"serialization error: control character found while parsing a string at line 2 column 0"})';
+    expect(formatTurnErrorBody({ code: "AGENT_CRASHED", message }, "zh"))
+      .toBe(errorCopy("NETWORK_PROVIDER", "zh"));
+  });
+
   it("formatTurnErrorBody maps bwrap uid-map denial to sandbox deck (#541)", () => {
     const body = formatTurnErrorBody(
       {
@@ -463,4 +469,29 @@ describe("session projection", () => {
     });
     expect(messages[1]!.attachments).toBeUndefined();
   });
+});
+
+
+it("keeps partial output before a separately identified terminal error", () => {
+  const messages: ChatMessage[] = [
+    { id: "u", role: "user", content: "Draw SVG" },
+    { id: "partial", role: "assistant", content: "Creating the animation…", streaming: true },
+  ];
+  const result = applyTurnError(messages, {
+    messageId: "failure", code: "QUOTA_EXCEEDED", message: "gateway_concurrency_limit",
+  }, "zh");
+  expect(result.map(m => m.id)).toEqual(["u", "partial", "failure"]);
+  expect(result[1].content).toBe("Creating the animation…");
+  expect(result[1].streaming).toBe(false);
+  expect(result[2].content).toContain("账号并发已达上限");
+});
+
+
+it("keeps persisted thought when state clears streaming before the error event", () => {
+  const result = applyTurnError([
+    { id: "u", role: "user", content: "draw" },
+    { id: "partial", role: "assistant", content: "", thought: "Use SVG", streaming: false },
+  ], { messageId: "failure", code: "NETWORK_PROVIDER", message: "serialization error: missing field `output`" });
+  expect(result.map(m => m.id)).toEqual(["u", "partial", "failure"]);
+  expect(result[1].thought).toBe("Use SVG");
 });

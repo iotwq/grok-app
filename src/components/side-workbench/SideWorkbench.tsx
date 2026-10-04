@@ -117,6 +117,8 @@ export function SideWorkbench({
 }: SideWorkbenchProps) {
   const [internal, setInternal] = useState(emptySideWorkbenchState);
   const state = controlled ?? internal;
+  const stateRef = useRef(state);
+  stateRef.current = state;
   const lastPlanFocusKey = useRef<number | null>(null);
   const [dirtyPaths, setDirtyPaths] = useState<string[]>([]);
   const [closePathRequest, setClosePathRequest] = useState<{
@@ -145,6 +147,12 @@ export function SideWorkbench({
     },
     [onStateChange],
   );
+
+  const updateBrowserUrl = useCallback((id: string, url: string) => {
+    const current = stateRef.current;
+    if (!current.tabs.some(tab => tab.id === id && tab.kind === "browser" && tab.url !== url)) return;
+    setState({ ...current, tabs: current.tabs.map(tab => tab.id === id && tab.kind === "browser" ? { ...tab, url } : tab) });
+  }, [setState]);
 
   /**
    * After close mutations: if the strip is empty, collapse the right aside
@@ -486,6 +494,7 @@ export function SideWorkbench({
                       projectPath={projectPath}
                       sshAlias={sshAlias}
                       active={paneActive && isActive}
+                      onBrowserUrlChange={url => updateBrowserUrl(tab.id, url)}
                     />
                   </div>
                 );

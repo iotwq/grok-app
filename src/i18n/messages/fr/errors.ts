@@ -1,5 +1,7 @@
 /** fr messages — domain: errors */
 export const frErrors = {
+  "error.deck.concurrency.problem": "Limite de requêtes simultanées atteinte",
+  "error.deck.concurrency.cause": "Attendez la fin des requêtes en cours ou réduisez les tâches simultanées avant de réessayer.",
   "error.deck.model.problem": "Modèle indisponible",
   "error.deck.model.cause": "Le fournisseur a refusé ce modèle. Ouvrez Fournisseurs et choisissez un modèle pris en charge.",
   "error.details": "Détails",

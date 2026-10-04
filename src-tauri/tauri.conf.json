@@ -4,9 +4,10 @@
   "version": "0.2.35",
   "identifier": "com.grokapp.desktop",
   "build": {
-    "beforeDevCommand": "pnpm dev:ui",
+    "beforeDevCommand": "node scripts/prepare-bundled-runtime.mjs && pnpm dev:ui",
     "devUrl": "http://localhost:1421",
-    "beforeBuildCommand": "pnpm build:ui",
+    "beforeBuildCommand": "node scripts/prepare-bundled-runtime.mjs --refresh && pnpm build:ui",
+    "beforeBundleCommand": "node scripts/prepare-bundled-runtime.mjs --refresh",
     "frontendDist": "../dist"
   },
   "app": {
@@ -61,6 +62,8 @@
   },
   "bundle": {
     "active": true,
+    "externalBin": ["binaries/grok-build"],
+    "resources": { "resources/grok-build/": "grok-build-notices/" },
     "targets": [
       "app",
       "dmg",

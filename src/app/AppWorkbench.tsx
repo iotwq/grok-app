@@ -316,7 +316,6 @@ import {
   shouldConfirmSessionNoteDiscard,
   validateSessionNote,
 } from "@/lib/sessionNotes";
-import { CliUpdateOfferBar } from "@/components/CliUpdateOfferBar";
 import {
   loadDone as loadProductTutorialDone,
   markDone as markProductTutorialDone,
@@ -1362,6 +1361,7 @@ export function AppWorkbench() {
       }
       // Esc: leave Settings, else stop the active turn (catalog: shortcuts.stop).
       if (e.key === "Escape") {
+        if (document.querySelector(".context-menu")) return;
         const gate = escapeStopLiveRef.current;
         const voiceSteals = voiceStealsEscapeRef.current;
         // Lightbox is a child of this listener; capture would otherwise stop the turn.
@@ -4267,12 +4267,7 @@ export function AppWorkbench() {
         if (api.isTauri()) {
           void api.openExternalUrl(openUrl).catch((e) => {
             console.error("[chat] openExternalUrl failed", e);
-            // Fallback for hosts that reject shell open.
-            try {
-              window.open(openUrl, "_blank", "noopener,noreferrer");
-            } catch {
-              /* ignore */
-            }
+            showToastRef.current(tr("resource.openFailed"), 4200);
           });
         } else {
           window.open(openUrl, "_blank", "noopener,noreferrer");
@@ -12449,13 +12444,6 @@ export function AppWorkbench() {
               </span>
             </div>
           )}
-
-          <CliUpdateOfferBar
-            active={appGate === "ready" && mainPane === "chat"}
-            t={tr}
-            setAppDialog={setAppDialog}
-            showToast={showToast}
-          />
 
           <WorkbenchChatStage
             activeProject={activeProject}

@@ -1,5 +1,13 @@
 /** ta messages — domain: core */
 export const taCore = {
+  "resource.openLink": "இணைப்பைத் திற",
+  "resource.openSide": "பக்க உலாவியில் திற",
+  "resource.copyAddress": "பட முகவரியை நகலெடு",
+  "resource.copyFailed": "நகலெடுக்க முடியவில்லை. மீண்டும் முயலவும்.",
+  "resource.openFailed": "இந்த வளத்தைத் திறக்க முடியவில்லை. மீண்டும் முயலவும்.",
+  "resource.working": "செயலாக்கப்படுகிறது…",
+  "image.saveAs": "படத்தை இவ்வாறு சேமி…",
+  "image.saveFailed": "படத்தைச் சேமிக்க முடியவில்லை. மீண்டும் முயலவும்.",
   "app.name": "Grok",
   "image.loadingOriginal": "அசல் கோப்பு ஏற்றப்படுகிறது…",
   "image.originalFailed": "அசல் கோப்பை ஏற்ற முடியவில்லை. முன்னோட்டம் தொடர்ந்து கிடைக்கும்.",
@@ -36,7 +44,7 @@ export const taCore = {
   "office.pageOf": "{page} / {total}",
   "image.view": "படத்தைப் பார்",
   "image.copy": "படத்தை நகலெடு",
-  "image.copyHint": "படத்தை நகலெடுக்க வலது சொடுக்கு",
+  "image.copyHint": "படச் செயல்களுக்கு வலது சொடுக்கவும்",
   "image.next": "அடுத்த படம்",
   "image.prev": "முந்தைய படம்",
   "image.close": "மூடு",

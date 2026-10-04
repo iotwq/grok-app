@@ -1,5 +1,13 @@
 /** ru messages — domain: settings */
 export const ruSettings = {
+  "settings.updateNoCompatibleInstaller": "В этом выпуске не найден установщик для вашей системы и процессора.",
+  "settings.updateSourceUnconfigured": "Для этой сборки не настроен источник обновлений. Устанавливайте обновления от её распространителя.",
+  "runtime.bundled.updateRecovery": "Обновление не завершено. Перезапустите Grok App для восстановления фоновых служб и повторите обновление.",
+  "runtime.bundled.restart": "Перезапустить Grok App",
+  "runtime.bundled.title": "Встроенный Grok Build",
+  "runtime.bundled.description": "Grok Build включён в Grok App и обновляется вместе с ним. Установки CLI в терминале управляются отдельно.",
+  "runtime.bundled.missing": "Встроенная среда отсутствует или не запускается. Переустановите Grok App и повторите попытку.",
+  "runtime.bundled.download": "Скачать Grok App",
   "settings.sessionMuteSummary": "Отключённые уведомления",
   "settings.sessionMuteSummaryDesc": "Для этих чатов отключены уведомления рабочего стола. Метки непрочитанных на боковой панели всё равно появляются после фонового ответа.",
   "settings.sessionMuteCount": "Без уведомлений: {n}",
@@ -345,7 +353,7 @@ export const ruSettings = {
   "settings.backBottomAlways": "Всегда показывать кнопку к последнему сообщению",
   "settings.backBottomAlwaysDesc": "Держать кнопку прокрутки к последнему видимой даже внизу. По умолчанию выкл. (показывается только после прокрутки вверх).",
   "settings.selectionToolbar": "Панель выделения",
-  "settings.selectionToolbarDesc": "Показывать панель «копировать / в чат» при выделении текста. Правый клик остаётся, если выключить.",
+  "settings.selectionToolbarDesc": "При выделении текста показывать «Добавить в чат» и «Спросить в боковом чате». При отключении эти действия доступны по правому клику.",
   "settings.confirmExternalLinks": "Подтверждать открытие внешних ссылок",
   "settings.confirmExternalLinksDesc": "Спрашивать перед открытием ссылок http(s) из чата в браузере. По умолчанию выкл.",
   "settings.messageActions": "Действия с сообщением",

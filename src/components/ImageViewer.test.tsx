@@ -8,6 +8,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { copyImageFromPath, copyImageFromSrc } from "@/lib/copyImage";
 import { ImageViewerProvider } from "./ImageViewer";
 import {
   closeImageViewerLayer,
@@ -24,7 +25,8 @@ const renderedLightbox = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/imageSrc", () => ({
   resolveImageSrc: resolveImage,
 }));
-vi.mock("@/lib/copyImage", () => ({
+vi.mock("@/lib/copyImage", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/copyImage")>(),
   copyImageFromPath: vi.fn(async () => ({ ok: true })),
   copyImageFromSrc: vi.fn(async () => ({ ok: true })),
 }));
@@ -42,7 +44,8 @@ vi.mock("./ImageLightbox", () => ({
   }) => {
     renderedLightbox(props);
     return (
-      <div data-testid="viewer" data-open={String(props.open)}>
+      <div className="yarl__root" data-testid="viewer" data-open={String(props.open)}>
+        <img src={props.slides[props.index]?.src} alt="Preview" />
         {props.slides[props.index]?.src}
         <button
           type="button"
@@ -400,5 +403,30 @@ describe("ImageViewer lifecycle", () => {
       expect(props.slides[0].originalStatus).toBeUndefined();
     });
     expect(loadOriginal).toHaveBeenCalledTimes(2);
+  });
+});
+
+
+describe("ImageViewer context actions", () => {
+  it("right-click shows a menu without copying; choosing copy uses the original", async () => {
+    const view = setup();
+    act(() => view.api.open([{ src: "/Users/test/original.png" }]));
+    await waitFor(() => expect(screen.getByTestId("viewer").getAttribute("data-open")).toBe("true"));
+    fireEvent.contextMenu(screen.getByAltText("Preview"), { clientX: 120, clientY: 140 });
+    expect(screen.getByRole("menu").className).toContain("resource-image-menu");
+    expect(copyImageFromPath).not.toHaveBeenCalled();
+    expect(copyImageFromSrc).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("menuitem", { name: "Copy image" }));
+    await waitFor(() => expect(copyImageFromPath).toHaveBeenCalledWith("/Users/test/original.png"));
+  });
+
+  it("Escape dismisses the menu without closing the viewer", async () => {
+    const view = setup();
+    act(() => view.api.open([{ src: "https://example.com/image.png" }]));
+    await waitFor(() => expect(screen.getByTestId("viewer").getAttribute("data-open")).toBe("true"));
+    fireEvent.contextMenu(screen.getByAltText("Preview"));
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("menu")).toBeNull();
+    expect(view.api.isOpen()).toBe(true);
   });
 });

@@ -15,7 +15,6 @@ import {
   useRef,
   useState,
   type ReactNode,
-  type MouseEvent as ReactMouseEvent,
 } from "react";
 import type { Locale } from "@/i18n";
 import { createT } from "@/i18n";
@@ -59,25 +58,19 @@ import {
 } from "@/lib/sessionPathMap";
 import { AttachmentCard } from "@/components/AttachmentCard";
 import { ImageUi, imageUiLabels } from "@/components/ImageUi";
-import { ContextMenu, type ContextMenuItem } from "@/components/ContextMenu";
 import { UserAttachments } from "@/components/lobe-chat/UserAttachments";
 import { TranscriptSelectionToolbarHost } from "@/components/TranscriptSelectionToolbarHost";
-import { useComposerSendKeyPref } from "@/hooks/useComposerSendKeyPref";
-import { isSelectionInsideTranscript } from "@/lib/transcriptSelectionBar";
 import type { ResourceOpenTarget } from "@/components/resource-viewer/types";
 import {
   IconArrowsMinimize,
-  IconCopy,
   IconExportMd,
   IconFork,
   IconLink,
-  IconPaperclip,
   IconRename,
   IconRewind,
   IconTarget,
 } from "@/components/icons";
 import { shouldOfferAssistantFork } from "@/lib/sessionFork";
-import { setDraft } from "@/lib/composerDraftStore";
 import {
   clampThinkingStartToMessage,
   isLeadingThoughtUnit,
@@ -1848,7 +1841,6 @@ export function ConversationThread({
       window.removeEventListener(BACK_BOTTOM_ALWAYS_CHANGE_EVENT, onPref);
   }, []);
 
-  const quoteSendPref = useComposerSendKeyPref();
   const [selectionToolbar, setSelectionToolbar] = useState(() =>
     loadTranscriptSelectionToolbarPref(),
   );
@@ -1913,110 +1905,6 @@ export function ConversationThread({
       window.removeEventListener(TRANSCRIPT_FILTER_CHANGE_EVENT, onPref);
   }, []);
   const showToolChrome = shouldShowTranscriptToolChrome(transcriptFilter);
-
-  /**
-   * Transcript selection context menu (正文区域): right-click with text
-   * selected opens the app ContextMenu (same visual baseline as attachment
-   * cards) with Copy / Paste / Add-to-input. No selection → nothing (native
-   * menu is already suppressed globally).
-   */
-  const [selectionMenu, setSelectionMenu] = useState<{
-    x: number;
-    y: number;
-    text: string;
-  } | null>(null);
-
-  const copyText = useCallback((text: string) => {
-    void (async () => {
-      try {
-        await navigator.clipboard.writeText(text);
-      } catch {
-        try {
-          const ta = document.createElement("textarea");
-          ta.value = text;
-          ta.style.position = "fixed";
-          ta.style.left = "-9999px";
-          document.body.appendChild(ta);
-          ta.select();
-          document.execCommand("copy");
-          document.body.removeChild(ta);
-        } catch {
-          /* ignore */
-        }
-      }
-    })();
-  }, []);
-
-  const closeSelectionUi = useCallback(() => {
-    setSelectionMenu(null);
-  }, []);
-
-  useEffect(() => {
-    closeSelectionUi();
-  }, [sessionId, closeSelectionUi]);
-
-  const addQuoteFromSelection = useCallback(
-    (text: string, comment: string, sourceMessageId?: string) => {
-      const excerpt = text.trim();
-      if (!excerpt) return;
-      if (onAddQuote) {
-        onAddQuote({ text: excerpt, comment: comment.trim(), sourceMessageId });
-      } else {
-        setDraft((prev) => {
-          if (!prev) return excerpt;
-          return /\s$/.test(prev) ? prev + excerpt : prev + "\n\n" + excerpt;
-        });
-      }
-      closeSelectionUi();
-      window.getSelection()?.removeAllRanges();
-      requestAnimationFrame(() => {
-        const el = document.querySelector<HTMLElement>(".composer__input");
-        if (!el || el.getAttribute("contenteditable") === "false") return;
-        el.focus({ preventScroll: false });
-      });
-    },
-    [onAddQuote, closeSelectionUi],
-  );
-
-  const onTranscriptContextMenu = useCallback(
-    (e: ReactMouseEvent<HTMLDivElement>) => {
-      const sel = window.getSelection();
-      if (!sel) return;
-      const text = sel.toString().trim();
-      if (!text) return;
-      // Only when the selection lives inside this transcript viewport.
-      const scrollEl = scrollRef.current;
-      if (!scrollEl) return;
-      if (
-        !isSelectionInsideTranscript(sel.anchorNode, sel.focusNode, scrollEl)
-      ) {
-        return;
-      }
-      e.preventDefault();
-      e.stopPropagation();
-      setSelectionMenu({ x: e.clientX, y: e.clientY, text });
-    },
-    [],
-  );
-
-  const selectionMenuItems = useMemo<ContextMenuItem[]>(() => {
-    if (!selectionMenu) return [];
-    const selText = selectionMenu.text;
-    return [
-      {
-        id: "sel-copy",
-        label: tr("chat.selectionCopy"),
-        icon: <IconCopy size={16} />,
-        onClick: () => copyText(selText),
-      },
-      {
-        id: "sel-add-input",
-        label: tr("chat.selectionAddToInput"),
-        icon: <IconPaperclip size={16} />,
-        onClick: () => addQuoteFromSelection(selText, ""),
-      },
-    ];
-  }, [selectionMenu, tr, copyText, addQuoteFromSelection]);
 
   const messageNodes = useMemo(
     () => buildSessionMessageNodes(messages),
@@ -2825,7 +2713,6 @@ export function ConversationThread({
       <div
         ref={scrollRef}
         className="lobe-chat__scroll"
-        onContextMenu={onTranscriptContextMenu}
       >
         <div ref={contentRef} className="lobe-chat__inner">
           {emptyCopy ? (
@@ -3010,33 +2897,17 @@ export function ConversationThread({
         onClick={() => scrollToBottom("smooth")}
       />
 
-      {/* Selection context menu — same ContextMenu baseline as attachment cards. */}
-      <ContextMenu
-        open={!!selectionMenu}
-        x={selectionMenu?.x ?? 0}
-        y={selectionMenu?.y ?? 0}
-        onClose={() => setSelectionMenu(null)}
-        items={selectionMenuItems}
+      <TranscriptSelectionToolbarHost
+        scrollRef={scrollRef}
+        sessionId={sessionId}
+        enabled={selectionToolbar}
+        onAddQuote={onAddQuote}
+        labels={{
+          addQuote: tr("chat.selectionAddToInput"),
+          askSideChat: tr("chat.selectionAskSideChat"),
+          selection: tr("chat.selectionToolbar"),
+        }}
       />
-      {selectionToolbar ? (
-        <TranscriptSelectionToolbarHost
-          scrollRef={scrollRef}
-          sessionId={sessionId}
-          onAddQuote={(q) =>
-            addQuoteFromSelection(q.text, q.comment, q.sourceMessageId)
-          }
-          onCopyText={copyText}
-          sendPref={quoteSendPref}
-          labels={{
-            copy: tr("chat.selectionCopy"),
-            addQuote: tr("chat.selectionAddToInput"),
-            commentPlaceholder: tr("chat.selectionCommentPlaceholder"),
-            commentSubmit: tr("chat.selectionCommentSubmit"),
-            enterHint: tr("chat.selectionEnterHint"),
-            modEnterHint: tr("chat.selectionModEnterHint"),
-          }}
-        />
-      ) : null}
     </div>
   );
 }

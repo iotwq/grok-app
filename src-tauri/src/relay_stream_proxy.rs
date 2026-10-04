@@ -1,4 +1,4 @@
-//! Local OpenAI-compatible reverse proxy that strips non-standard SSE frames.
+//! Local compatibility proxy for custom OpenAI-compatible providers.
 //!
 //! Some gateways (OpenCode Zen Go, etc.) append proprietary trailers such as:
 //!   `{"choices":[],"x-opencode-type":"inference-cost",...}`  // missing `id`
@@ -6,6 +6,8 @@
 //! Grok Build CLI deserializes stream chunks strictly and **fatals** on these,
 //! which surfaces in the App as “Agent crashed / protocol interrupted”.
 //!
+//! Generic Responses relays can omit `output` on `response.failed`; insert
+//! the missing empty array so the CLI can read the actual provider error.
 //! Host rewrites affected providers’ `base_url` to
 //! `http://127.0.0.1:{port}/r/{provider_id}/v1` and stores the real upstream in
 //! `app_upstream_base_url` (CLI ignores unknown keys).
@@ -44,6 +46,40 @@ pub fn host_needs_stream_sanitize(base_url: &str) -> bool {
     u.contains("opencode.ai") || u.contains("/zen/go")
 }
 
+fn needs_stream_proxy(base_url: &str, api_backend: &str) -> bool {
+    host_needs_stream_sanitize(base_url) || api_backend.trim().eq_ignore_ascii_case("responses")
+}
+
+fn section_needs_stream_proxy(fields: &HashMap<String, String>) -> bool {
+    crate::providers::normalize_provider_mode(fields.get("app_provider_mode").map(String::as_str))
+        != crate::providers::PROVIDER_MODE_GROK_BUILD_PROXY
+        && needs_stream_proxy(
+            &effective_upstream_base(fields),
+            fields
+                .get("api_backend")
+                .map(String::as_str)
+                .unwrap_or("chat_completions"),
+        )
+}
+
+/// A failed response can omit output when generation never started. The CLI
+/// still requires the array before it can read the real provider error. Never
+/// change status/error, fabricate output, or normalize a successful response.
+fn normalize_failed_response(payload: &str) -> Option<String> {
+    let mut event: serde_json::Value = serde_json::from_str(payload).ok()?;
+    if event.get("type")?.as_str()? != "response.failed" {
+        return None;
+    }
+    let response = event.get_mut("response")?.as_object_mut()?;
+    if response.get("status").and_then(|v| v.as_str()) != Some("failed")
+        || response.contains_key("output")
+    {
+        return None;
+    }
+    response.insert("output".into(), serde_json::json!([]));
+    serde_json::to_string(&event).ok()
+}
+
 /// Whether a single SSE `data:` payload should be dropped (CLI-unsafe).
 pub fn should_drop_sse_data_payload(payload: &str) -> bool {
     let raw = payload.trim();
@@ -53,6 +89,10 @@ pub fn should_drop_sse_data_payload(payload: &str) -> bool {
     let Ok(v) = serde_json::from_str::<serde_json::Value>(raw) else {
         return false;
     };
+    // A terminal failure is never a disposable vendor trailer.
+    if v.get("type").and_then(|t| t.as_str()) == Some("response.failed") {
+        return false;
+    }
     if v.get("x-opencode-type").is_some() {
         return true;
     }
@@ -126,7 +166,7 @@ pub fn push_utf8_stream(pending: &mut Vec<u8>, chunk: &[u8], out: &mut String) {
 }
 
 /// Filter one SSE event block (terminated by blank line).
-pub fn filter_sse_event(event: &str) -> String {
+pub fn filter_sse_event(event: &str, sanitize_vendor: bool) -> String {
     let mut data_payloads: Vec<String> = Vec::new();
     let mut other: Vec<String> = Vec::new();
     for line in event.lines() {
@@ -144,21 +184,28 @@ pub fn filter_sse_event(event: &str) -> String {
         out.push_str("\n\n");
         return out;
     }
-    data_payloads.retain(|p| !should_drop_sse_data_payload(p));
-    if data_payloads.is_empty() {
+    // SSE joins data lines with a newline before interpreting the payload.
+    let payload = data_payloads.join("\n");
+    if sanitize_vendor && should_drop_sse_data_payload(&payload) {
         return String::new();
     }
+    let Some(normalized) = normalize_failed_response(&payload) else {
+        // Ordinary frames pass through byte-for-byte, without accumulating
+        // the whole response or applying OpenCode-only rules to other relays.
+        return if event.ends_with("\n\n") || event.ends_with("\r\n\r\n") {
+            event.to_string()
+        } else {
+            format!("{event}\n\n")
+        };
+    };
     let mut out = String::new();
     for o in other {
         out.push_str(&o);
         out.push('\n');
     }
-    for d in data_payloads {
-        out.push_str("data: ");
-        out.push_str(&d);
-        out.push('\n');
-    }
-    out.push('\n');
+    out.push_str("data: ");
+    out.push_str(&normalized);
+    out.push_str("\n\n");
     out
 }
 
@@ -238,7 +285,7 @@ pub fn ensure_started_blocking() -> Result<u16, String> {
     tauri::async_runtime::block_on(ensure_started())
 }
 
-/// Local base_url written into agent-home for a provider that needs sanitizing.
+/// Local base_url written into agent-home for a provider needing compatibility.
 pub fn local_proxy_base_url(provider_id: &str, port: u16) -> String {
     let id = provider_id.trim().trim_matches('/');
     format!("http://127.0.0.1:{port}/r/{id}/v1")
@@ -256,8 +303,8 @@ pub fn effective_upstream_base(fields: &HashMap<String, String>) -> String {
 
 /// Given user-facing base_url + id, return (cli_base_url, optional_upstream_to_store).
 ///
-/// When sanitizing is needed, `cli_base_url` is loopback and `Some(real)` is the
-/// true OpenCode/Zen endpoint (stored as `app_upstream_base_url`).
+/// When compatibility is needed, `cli_base_url` is loopback and `Some(real)`
+/// is the true upstream endpoint (stored as `app_upstream_base_url`).
 pub fn rewrite_base_for_cli(
     provider_id: &str,
     user_base_url: &str,
@@ -272,7 +319,7 @@ pub fn rewrite_base_for_cli(
     if is_local_sanitize_proxy_url(&real) {
         return Ok((real, None));
     }
-    if !host_needs_stream_sanitize(&real) {
+    if !needs_stream_proxy(&real, api_backend) {
         return Ok((real, None));
     }
     let port = ensure_started_blocking()?;
@@ -286,7 +333,7 @@ pub fn is_local_sanitize_proxy_url(base_url: &str) -> bool {
     (u.contains("127.0.0.1") || u.contains("localhost")) && u.contains("/r/")
 }
 
-/// Re-write all custom sections that need sanitizing (startup / list repair).
+/// Re-write affected generic custom sections (startup / list repair).
 pub fn repair_sanitize_proxy_bases() -> Result<bool, String> {
     let path = crate::paths::agent_config_toml();
     if !path.is_file() {
@@ -303,8 +350,7 @@ pub fn repair_sanitize_proxy_bases() -> Result<bool, String> {
             .map(|x| x.as_str())
             .unwrap_or("chat_completions");
         let displayed = effective_upstream_base(&s.fields);
-        if !host_needs_stream_sanitize(&displayed) {
-            // Drop stale app_upstream if the host no longer needs sanitizing.
+        if !section_needs_stream_proxy(&s.fields) {
             continue;
         }
         let full_path = crate::providers::base_url_full_path_from_fields(&s.fields);
@@ -390,6 +436,7 @@ async fn proxy_request(req: Request) -> Result<Response, String> {
         .or_else(|| after_id.strip_prefix("v1"))
         .unwrap_or(after_id);
     let upstream_base = lookup_upstream(provider_id)?;
+    let sanitize_vendor = host_needs_stream_sanitize(&upstream_base);
     let upstream_base = upstream_base.trim_end_matches('/');
     let suffix = after_v1.trim_start_matches('/');
     let mut target = if suffix.is_empty() {
@@ -402,18 +449,21 @@ async fn proxy_request(req: Request) -> Result<Response, String> {
         target.push_str(q);
     }
 
-    let headers = filter_request_headers(req.headers());
+    let headers = filter_transport_headers(req.headers());
     let body_bytes = axum::body::to_bytes(req.into_body(), 32 * 1024 * 1024)
         .await
         .map_err(|e| format!("read body: {e}"))?;
 
     let client = {
         // Do not install a total request deadline: a healthy SSE response may
-        // legitimately run for hours. Bound only connection setup and idle
-        // reads; the latter resets whenever an upstream chunk arrives.
-        let b = reqwest::Client::builder()
-            .connect_timeout(RELAY_CONNECT_TIMEOUT)
-            .read_timeout(RELAY_STREAM_IDLE_TIMEOUT);
+        // legitimately run for hours. Retain the existing vendor-only idle
+        // deadline, which resets whenever an upstream chunk arrives.
+        let mut b = reqwest::Client::builder().connect_timeout(RELAY_CONNECT_TIMEOUT);
+        if sanitize_vendor {
+            b = b.read_timeout(RELAY_STREAM_IDLE_TIMEOUT);
+        }
+        // Generic Responses retains the CLI's request lifetime/cancellation;
+        // routing through compatibility must not add a new 5-minute cutoff.
         crate::proxy::apply_to_reqwest(b)
             .build()
             .map_err(|e| e.to_string())?
@@ -435,6 +485,7 @@ async fn proxy_request(req: Request) -> Result<Response, String> {
     let upstream = rb.send().await.map_err(|e| format!("upstream: {e}"))?;
     let status =
         StatusCode::from_u16(upstream.status().as_u16()).unwrap_or(StatusCode::BAD_GATEWAY);
+    let response_headers = filter_transport_headers(upstream.headers());
     let content_type = upstream
         .headers()
         .get(reqwest::header::CONTENT_TYPE)
@@ -448,11 +499,9 @@ async fn proxy_request(req: Request) -> Result<Response, String> {
             .bytes()
             .await
             .map_err(|e| format!("upstream body: {e}"))?;
-        return Response::builder()
-            .status(status)
-            .header(header::CONTENT_TYPE, content_type.as_str())
-            .body(Body::from(bytes))
-            .map_err(|e| e.to_string());
+        let mut response = Response::builder().status(status);
+        *response.headers_mut().expect("valid response builder") = response_headers;
+        return response.body(Body::from(bytes)).map_err(|e| e.to_string());
     }
 
     // Byte pending holds incomplete UTF-8 across chunk boundaries; line_buf is
@@ -463,14 +512,18 @@ async fn proxy_request(req: Request) -> Result<Response, String> {
         let mut utf8_pending: Vec<u8> = Vec::new();
         let mut line_buf = String::new();
         loop {
-            let item = match tokio::time::timeout(RELAY_STREAM_IDLE_TIMEOUT, stream.next()).await {
-                Ok(item) => item,
-                Err(_) => {
-                    let msg = "upstream SSE idle timeout";
-                    tracing::warn!(target: "relay_stream_proxy", "{msg}");
-                    yield Ok::<Bytes, Infallible>(Bytes::from(format_sse_error(msg)));
-                    break;
+            let item = if sanitize_vendor {
+                match tokio::time::timeout(RELAY_STREAM_IDLE_TIMEOUT, stream.next()).await {
+                    Ok(item) => item,
+                    Err(_) => {
+                        let msg = "upstream SSE idle timeout";
+                        tracing::warn!(target: "relay_stream_proxy", "{msg}");
+                        yield Ok::<Bytes, Infallible>(Bytes::from(format_sse_error(msg)));
+                        break;
+                    }
                 }
+            } else {
+                stream.next().await
             };
             let Some(item) = item else { break };
             match item {
@@ -480,7 +533,7 @@ async fn proxy_request(req: Request) -> Result<Response, String> {
                         let end = pos + delimiter_len;
                         let event = line_buf[..end].to_string();
                         line_buf = line_buf[end..].to_string();
-                        let kept = filter_sse_event(&event);
+                        let kept = filter_sse_event(&event, sanitize_vendor);
                         if !kept.is_empty() {
                             yield Ok::<Bytes, Infallible>(Bytes::from(kept));
                         }
@@ -499,15 +552,16 @@ async fn proxy_request(req: Request) -> Result<Response, String> {
             utf8_pending.clear();
         }
         if !line_buf.is_empty() {
-            let kept = filter_sse_event(&line_buf);
+            let kept = filter_sse_event(&line_buf, sanitize_vendor);
             if !kept.is_empty() {
                 yield Ok::<Bytes, Infallible>(Bytes::from(kept));
             }
         }
     };
 
-    Response::builder()
-        .status(status)
+    let mut response = Response::builder().status(status);
+    *response.headers_mut().expect("valid response builder") = response_headers;
+    response
         .header(header::CONTENT_TYPE, "text/event-stream")
         .header(header::CACHE_CONTROL, "no-cache")
         .body(Body::from_stream(filtered))
@@ -537,7 +591,7 @@ fn format_sse_error(message: &str) -> String {
     format!("event: error\ndata: {payload}\n\n")
 }
 
-fn filter_request_headers(src: &HeaderMap) -> HeaderMap {
+fn filter_transport_headers(src: &HeaderMap) -> HeaderMap {
     let mut out = HeaderMap::new();
     for (k, v) in src.iter() {
         let name = k.as_str().to_ascii_lowercase();
@@ -576,6 +630,235 @@ fn lookup_upstream(provider_id: &str) -> Result<String, String> {
 mod tests {
     use super::*;
 
+    fn failed_event() -> serde_json::Value {
+        serde_json::json!({
+            "type": "response.failed", "sequence_number": 7,
+            "response": {
+                "id": "resp_test", "object": "response", "created_at": 1,
+                "model": "test", "status": "failed",
+                "error": {"code": "gateway_concurrency_limit", "message": "账号并发已达上限"}
+            }
+        })
+    }
+
+    #[test]
+    fn failure_normalization_only_adds_missing_output() {
+        let original = failed_event();
+        let mut expected = original.clone();
+        expected["response"]["output"] = serde_json::json!([]);
+        let normalized = normalize_failed_response(&original.to_string()).unwrap();
+        assert_eq!(
+            serde_json::from_str::<serde_json::Value>(&normalized).unwrap(),
+            expected
+        );
+        assert!(normalize_failed_response(&normalized).is_none());
+        expected["response"]["output"] =
+            serde_json::json!([{"type": "message", "content": "partial"}]);
+        assert!(normalize_failed_response(&expected.to_string()).is_none());
+        let mut completed = original;
+        completed["type"] = serde_json::json!("response.completed");
+        completed["response"]["status"] = serde_json::json!("completed");
+        assert!(normalize_failed_response(&completed.to_string()).is_none());
+    }
+
+    #[test]
+    fn multiline_crlf_failure_retains_event_identity_and_error() {
+        let payload = serde_json::to_string_pretty(&failed_event()).unwrap();
+        let data = payload
+            .lines()
+            .map(|line| format!("data: {line}\r\n"))
+            .collect::<String>();
+        let frame = format!("id: failure-7\r\nevent: response.failed\r\n{data}\r\n");
+        let out = filter_sse_event(&frame, false);
+        assert!(out.contains("id: failure-7\nevent: response.failed\n"));
+        let data = out.lines().find_map(|l| l.strip_prefix("data: ")).unwrap();
+        let mut expected = failed_event();
+        expected["response"]["output"] = serde_json::json!([]);
+        assert_eq!(
+            serde_json::from_str::<serde_json::Value>(data).unwrap(),
+            expected
+        );
+    }
+
+    #[test]
+    fn generic_frames_keep_original_bytes_and_do_not_use_vendor_drop_rules() {
+        for frame in [
+            "event: response.output_text.delta\r\ndata: {\"type\":\"response.output_text.delta\",\"delta\":\"你好\"}\r\n\r\n",
+            "data: [DONE]\n\n",
+            "data: {\"type\":\"ping\"}\n\n",
+        ] {
+            assert_eq!(filter_sse_event(frame, false), frame);
+        }
+        let mut failure = failed_event();
+        failure["cost"] = serde_json::json!(0);
+        assert!(!should_drop_sse_data_payload(&failure.to_string()));
+    }
+
+    #[test]
+    fn routes_generic_responses_but_preserves_native_relay_contract() {
+        let mut fields = HashMap::from([
+            ("base_url".into(), "https://relay.example/v1".into()),
+            ("api_backend".into(), "responses".into()),
+        ]);
+        assert!(section_needs_stream_proxy(&fields));
+        fields.insert("app_provider_mode".into(), "grok_build_proxy".into());
+        assert!(!section_needs_stream_proxy(&fields));
+        fields.remove("app_provider_mode");
+        fields.insert("api_backend".into(), "chat_completions".into());
+        assert!(!section_needs_stream_proxy(&fields));
+        fields.insert("base_url".into(), "https://opencode.ai/zen/go/v1".into());
+        assert!(section_needs_stream_proxy(&fields));
+    }
+
+    #[test]
+    fn loopback_proxy_streams_before_completion_and_preserves_provider_errors() {
+        let _lock = crate::paths::APP_HOME_ENV_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        struct TestScope {
+            home: std::path::PathBuf,
+            previous: Option<std::ffi::OsString>,
+            server: Option<tokio::task::AbortHandle>,
+        }
+        impl Drop for TestScope {
+            fn drop(&mut self) {
+                if let Some(server) = &self.server {
+                    server.abort();
+                }
+                match &self.previous {
+                    Some(previous) => std::env::set_var("GROK_APP_HOME", previous),
+                    None => std::env::remove_var("GROK_APP_HOME"),
+                }
+                let _ = std::fs::remove_dir_all(&self.home);
+            }
+        }
+        let mut scope = TestScope {
+            home: std::env::temp_dir().join(format!("grok-relay-test-{}", uuid::Uuid::new_v4())),
+            previous: std::env::var_os("GROK_APP_HOME"),
+            server: None,
+        };
+        std::fs::create_dir_all(scope.home.join("agent-home")).unwrap();
+        std::env::set_var("GROK_APP_HOME", &scope.home);
+        let settings = crate::store::AppSettings {
+            proxy_mode: "none".into(),
+            ..Default::default()
+        };
+        std::fs::write(
+            scope.home.join("settings.json"),
+            serde_json::to_vec(&settings).unwrap(),
+        )
+        .unwrap();
+
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        listener.set_nonblocking(true).unwrap();
+        let upstream = format!("http://{}/v1", listener.local_addr().unwrap());
+        let config = crate::paths::agent_config_toml();
+        std::fs::write(&config, format!(
+            "[model.audit]\nbase_url = \"{upstream}\"\napi_backend = \"responses\"\n\n[model.native]\nbase_url = \"https://native.example/v1\"\napi_backend = \"responses\"\napp_provider_mode = \"grok_build_proxy\"\n"
+        )).unwrap();
+        assert!(repair_sanitize_proxy_bases().unwrap());
+        assert!(
+            !repair_sanitize_proxy_bases().unwrap(),
+            "repair must be idempotent"
+        );
+        let sections = crate::providers::parse_model_sections_for_proxy(
+            &std::fs::read_to_string(&config).unwrap(),
+        );
+        let audit = sections.iter().find(|s| s.id == "audit").unwrap();
+        let local_base = audit.fields["base_url"].clone();
+        assert!(is_local_sanitize_proxy_url(&local_base));
+        assert_eq!(effective_upstream_base(&audit.fields), upstream);
+        let native = sections.iter().find(|s| s.id == "native").unwrap();
+        assert_eq!(native.fields["base_url"], "https://native.example/v1");
+        assert!(!native.fields.contains_key(APP_UPSTREAM_BASE_URL_KEY));
+
+        tauri::async_runtime::block_on(async {
+            let release = std::sync::Arc::new(tokio::sync::Notify::new());
+            let gate = release.clone();
+            let delta = "event: response.output_text.delta\r\ndata: {\"type\":\"response.output_text.delta\",\"delta\":\"你好\"}\r\n\r\n";
+            let app = Router::new().fallback(any(move |req: Request| {
+                let gate = gate.clone();
+                async move {
+                    assert_eq!(req.method(), axum::http::Method::POST);
+                    assert_eq!(req.uri().path(), "/v1/responses");
+                    assert_eq!(req.headers()[header::AUTHORIZATION], "Bearer test-key");
+                    let status_case = req.uri().query() == Some("case=status");
+                    assert!(status_case || req.uri().query() == Some("case=stream"));
+                    let body = axum::body::to_bytes(req.into_body(), 1024).await.unwrap();
+                    assert_eq!(body.as_ref(), br#"{"model":"audit","stream":true}"#);
+                    if status_case {
+                        return Response::builder()
+                            .status(StatusCode::TOO_MANY_REQUESTS)
+                            .header(header::CONTENT_TYPE, "application/json")
+                            .header(header::RETRY_AFTER, "7")
+                            .body(Body::from(r#"{"error":{"code":"gateway_concurrency_limit"}}"#))
+                            .unwrap();
+                    }
+                    let stream = async_stream::stream! {
+                        let split = delta.find('你').unwrap() + 1;
+                        yield Ok::<_, Infallible>(Bytes::copy_from_slice(&delta.as_bytes()[..split]));
+                        yield Ok::<_, Infallible>(Bytes::copy_from_slice(&delta.as_bytes()[split..]));
+                        gate.notified().await;
+                        yield Ok::<_, Infallible>(Bytes::from(format!("event: response.failed\ndata: {}\n\n", failed_event())));
+                    };
+                    Response::builder()
+                        .header(header::CONTENT_TYPE, "text/event-stream")
+                        .header("x-request-id", "test-request")
+                        .body(Body::from_stream(stream))
+                        .unwrap()
+                }
+            }));
+            let listener = tokio::net::TcpListener::from_std(listener).unwrap();
+            let server = tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+            scope.server = Some(server.abort_handle());
+            let client = reqwest::Client::builder()
+                .no_proxy()
+                .timeout(std::time::Duration::from_secs(5))
+                .build()
+                .unwrap();
+            let request = |case: &str| {
+                client
+                    .post(format!("{local_base}/responses?case={case}"))
+                    .bearer_auth("test-key")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(r#"{"model":"audit","stream":true}"#)
+            };
+            let response = request("stream").send().await.unwrap();
+            assert_eq!(response.status(), StatusCode::OK);
+            assert_eq!(response.headers()["x-request-id"], "test-request");
+            let mut stream = response.bytes_stream();
+            let first = tokio::time::timeout(std::time::Duration::from_secs(2), stream.next())
+                .await
+                .expect("first delta must arrive before upstream completes")
+                .unwrap()
+                .unwrap();
+            assert_eq!(first.as_ref(), delta.as_bytes());
+            release.notify_one();
+            let mut tail = Vec::new();
+            while let Some(chunk) = stream.next().await {
+                tail.extend_from_slice(&chunk.unwrap());
+            }
+            let tail = String::from_utf8(tail).unwrap();
+            let data = tail.lines().find_map(|l| l.strip_prefix("data: ")).unwrap();
+            let mut expected = failed_event();
+            expected["response"]["output"] = serde_json::json!([]);
+            assert_eq!(
+                serde_json::from_str::<serde_json::Value>(data).unwrap(),
+                expected
+            );
+
+            let response = request("status").send().await.unwrap();
+            assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS);
+            assert_eq!(response.headers()[header::RETRY_AFTER], "7");
+            assert_eq!(
+                response.text().await.unwrap(),
+                r#"{"error":{"code":"gateway_concurrency_limit"}}"#
+            );
+            server.abort();
+            let _ = server.await;
+        });
+    }
+
     #[test]
     fn drops_opencode_cost_frame() {
         let raw = r#"{"choices":[],"x-opencode-type":"inference-cost","cost":"0.0003"}"#;
@@ -611,13 +894,13 @@ mod tests {
     #[test]
     fn filter_event_drops_cost() {
         let ev = "data: {\"choices\":[],\"x-opencode-type\":\"inference-cost\",\"cost\":\"1\"}\n\n";
-        assert!(filter_sse_event(ev).is_empty());
+        assert!(filter_sse_event(ev, true).is_empty());
     }
 
     #[test]
     fn filter_event_keeps_chunk() {
         let ev = "data: {\"id\":\"1\",\"object\":\"chat.completion.chunk\",\"choices\":[]}\n\n";
-        let out = filter_sse_event(ev);
+        let out = filter_sse_event(ev, true);
         assert!(out.contains("chat.completion.chunk"));
     }
 
@@ -644,12 +927,11 @@ mod tests {
 
     #[test]
     fn ensure_started_blocking_fast_path_when_port_set() {
-        // Do not start a real listener — only exercise the AtomicU16 short-circuit
-        // so nested block_on is never attempted in unit tests.
-        let prev = LISTEN_PORT.swap(54321, Ordering::SeqCst);
+        // Use the persistent runtime so this test never advertises a fake port
+        // to provider tests running concurrently.
+        let port = ensure_started_blocking().expect("start proxy");
         let got = ensure_started_blocking().expect("fast path");
-        assert_eq!(got, 54321);
-        LISTEN_PORT.store(prev, Ordering::SeqCst);
+        assert_eq!(got, port);
     }
 
     #[test]

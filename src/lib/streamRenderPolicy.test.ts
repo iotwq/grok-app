@@ -36,17 +36,15 @@ describe("streamRenderPolicy", () => {
     ).toBe(false);
   });
 
-  it("markdown parse interval lengthens for long streaming bodies", () => {
+  it("bounds streaming paint latency even for long answers", () => {
     expect(resolveStreamMarkdownParseMs(100, false)).toBe(0);
     expect(resolveStreamMarkdownParseMs(100, true)).toBe(
       STREAM_MARKDOWN_PARSE_MS,
     );
-    expect(
-      resolveStreamMarkdownParseMs(STREAM_PLAIN_TEXT_CHAR_THRESHOLD, true),
-    ).toBeGreaterThan(STREAM_MARKDOWN_PARSE_MS);
-    expect(resolveStreamMarkdownParseMs(12_000, true)).toBeGreaterThan(
-      resolveStreamMarkdownParseMs(STREAM_PLAIN_TEXT_CHAR_THRESHOLD, true),
-    );
+    for (const length of [2_000, 12_000, 100_000]) {
+      expect(resolveStreamMarkdownParseMs(length, true)).toBeLessThanOrEqual(120);
+      expect(resolveStreamMarkdownParseMs(length, true)).toBeGreaterThanOrEqual(60);
+    }
   });
 
   it("flush ms scales with hardware concurrency", () => {

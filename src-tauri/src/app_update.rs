@@ -18,10 +18,19 @@ use std::time::Duration;
 use serde::Serialize;
 use serde_json::Value;
 
-const DEFAULT_RELEASES_API_URL: &str =
-    "https://api.github.com/repos/RongleCat/grok-app/releases/latest";
-const DEFAULT_RELEASES_HTML_URL: &str = "https://github.com/RongleCat/grok-app/releases/latest";
-const DEFAULT_RELEASES_PAGE: &str = "https://github.com/RongleCat/grok-app/releases";
+/// A local build has no release channel unless its distributor supplies one.
+pub fn release_urls() -> Option<(&'static str, &'static str)> {
+    configured_release_urls(
+        option_env!("GROK_APP_RELEASES_URL"),
+        option_env!("GROK_APP_RELEASES_HTML_URL"),
+    )
+}
+
+fn configured_release_urls<'a>(api: Option<&'a str>, page: Option<&'a str>) -> Option<(&'a str, &'a str)> {
+    let api = api?.trim();
+    let page = page?.trim();
+    (api.starts_with("https://") && page.starts_with("https://")).then_some((api, page))
+}
 
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(12);
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(20);
@@ -108,6 +117,23 @@ fn prefer_tokens(os: &str, arch: &str) -> &'static [&'static str] {
     }
 }
 
+/// Never let a filename score turn a different platform into a fallback.
+fn compatible_installer(os: &str, arch: &str, name: &str) -> bool {
+    let platform = match os {
+        "macos" => name.ends_with(".dmg"),
+        "windows" => name.ends_with(".exe") || name.ends_with(".msi"),
+        "linux" => name.ends_with(".appimage") || name.ends_with(".deb") || name.ends_with(".rpm"),
+        _ => false,
+    };
+    let arm = name.contains("aarch64") || name.contains("arm64") || name.contains("apple-silicon");
+    let intel = name.contains("x86_64") || name.contains("x64") || name.contains("amd64");
+    platform && (os == "macos" && name.contains("universal") || match arch {
+        "aarch64" => arm && !intel,
+        "x86_64" => intel && !arm,
+        _ => false,
+    })
+}
+
 /// Pick a user-facing installer (DMG / setup.exe / AppImage), not updater archives.
 fn pick_platform_asset_for(
     os: &str,
@@ -129,7 +155,7 @@ fn pick_platform_asset_for(
             _ => continue,
         };
         let lower = name.to_ascii_lowercase();
-        if is_skipped_release_asset(&lower) {
+        if is_skipped_release_asset(&lower) || !compatible_installer(os, arch, &lower) {
             continue;
         }
         let mut score = 0usize;
@@ -179,7 +205,7 @@ pub fn parse_github_release(current_version: &str, v: &Value) -> Result<AppUpdat
         .get("html_url")
         .and_then(|x| x.as_str())
         .filter(|s| !s.is_empty())
-        .unwrap_or(DEFAULT_RELEASES_PAGE)
+        .unwrap_or_else(|| release_urls().map(|(_, page)| page).unwrap_or(""))
         .to_string();
     let release_name = v
         .get("name")
@@ -430,10 +456,7 @@ async fn fetch_via_html_redirect(
 /// Query GitHub for the latest release and compare to this build.
 pub async fn check_app_update() -> Result<AppUpdateCheck, String> {
     let current = env!("CARGO_PKG_VERSION");
-    let api_url =
-        std::env::var("GROK_APP_RELEASES_URL").unwrap_or_else(|_| DEFAULT_RELEASES_API_URL.into());
-    let html_url = std::env::var("GROK_APP_RELEASES_HTML_URL")
-        .unwrap_or_else(|_| DEFAULT_RELEASES_HTML_URL.into());
+    let (api_url, html_url) = release_urls().ok_or("APP_UPDATE_SOURCE_NOT_CONFIGURED")?;
 
     if !is_allowed_update_url(&api_url) {
         return Err("update check URL must be https (or localhost for tests)".into());
@@ -463,6 +486,15 @@ pub async fn check_app_update() -> Result<AppUpdateCheck, String> {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn manual_channel_requires_explicit_complete_build_configuration() {
+        assert!(configured_release_urls(None, None).is_none());
+        assert!(configured_release_urls(Some("https://api.example.com/latest"), None).is_none());
+        assert!(configured_release_urls(Some("http://example.com/latest"), Some("https://example.com")).is_none());
+        assert_eq!(configured_release_urls(Some(" https://api.example.com/latest "), Some("https://example.com/releases")),
+            Some(("https://api.example.com/latest", "https://example.com/releases")));
+    }
 
     #[test]
     fn parse_semver_strips_v_and_prerelease() {
@@ -560,6 +592,18 @@ mod tests {
         let (url, name) = pick_platform_asset_for("windows", "x86_64", Some(&assets));
         assert_eq!(name.as_deref(), Some("Grok_windows_x64-setup.exe"));
         assert!(url.unwrap().ends_with("/Grok_windows_x64-setup.exe"));
+    }
+
+    #[test]
+    fn missing_platform_or_architecture_never_selects_incompatible_asset() {
+        let assets = vec![gh_asset("Grok_0.2.37_x64.dmg"), gh_asset("Grok_0.2.37_aarch64.AppImage")];
+        assert_eq!(pick_platform_asset_for("macos", "aarch64", Some(&assets)), (None, None));
+        assert_eq!(pick_platform_asset_for("windows", "x86_64", Some(&assets)), (None, None));
+        assert_eq!(pick_platform_asset_for("linux", "x86_64", Some(&assets)), (None, None));
+        assert_eq!(pick_platform_asset_for("linux", "aarch64", Some(&assets)).1.as_deref(), Some("Grok_0.2.37_aarch64.AppImage"));
+        assert!(!compatible_installer("macos", "aarch64", "grok.dmg"));
+        assert!(compatible_installer("macos", "aarch64", "grok_universal.dmg"));
+        assert!(compatible_installer("linux", "x86_64", "grok_amd64.deb"));
     }
 
     #[test]

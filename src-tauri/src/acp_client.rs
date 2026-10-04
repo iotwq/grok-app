@@ -199,6 +199,42 @@ struct Pending {
     /// fallback free only the right waiter when one process hosts several
     /// concurrent turns (concurrent multi-session).
     session_id: Option<String>,
+    // Request-scoped stderr evidence; never reuse another turn's failure.
+    provider_failure: Option<&'static str>,
+}
+
+fn response_decode_failed(message: &str) -> bool {
+    message.contains("serialization error: missing field `output`")
+}
+
+fn capture_provider_failure(pending: &mut HashMap<u64, Pending>, line: &str) {
+    if !line.contains("Failed to deserialize ResponseStreamEvent") {
+        return;
+    }
+    let Some(start) = line.find('{') else { return };
+    let Some(Ok(event)) = serde_json::Deserializer::from_str(&line[start..])
+        .into_iter::<Value>()
+        .next()
+    else {
+        return;
+    };
+    if event.get("type").and_then(Value::as_str) != Some("response.failed")
+        || event
+            .pointer("/response/error/code")
+            .and_then(Value::as_str)
+            != Some("gateway_concurrency_limit")
+    {
+        return;
+    }
+    // CLI stderr is unstamped. Attribute only when one prompt owns the process.
+    let mut prompts = pending
+        .values_mut()
+        .filter(|p| p.method == "session/prompt");
+    if let Some(prompt) = prompts.next() {
+        if prompts.next().is_none() {
+            prompt.provider_failure = Some("gateway_concurrency_limit");
+        }
+    }
 }
 
 const HANDSHAKE_TIMEOUT_SECS: u64 = 45;
@@ -383,6 +419,10 @@ pub struct AcpClient {
     rewind_supported: ParkingMutex<Option<bool>>,
     /// OpenSSH alias this process was spawned with. Remote cwd is not local.
     ssh_alias: Option<String>,
+    /// Native process profile; remote agents own their own global rules.
+    local_grok_home: Option<PathBuf>,
+    /// Grok ACP applies these to the default system prompt at session creation.
+    session_rules: Option<String>,
 }
 
 /// Options applied at agent process start (CLI flags).
@@ -435,6 +475,7 @@ pub struct SpawnOptions {
 }
 
 mod spawn_flags;
+mod user_rules;
 use spawn_flags::apply_grok_build_proxy_env;
 pub use spawn_flags::*;
 
@@ -492,6 +533,12 @@ impl AcpClient {
         ),
         AgentError,
     > {
+        if crate::updater::shutdown_started() {
+            return Err(AgentError::new(
+                AgentErrorCode::CliNotFound,
+                "App update is in progress; restart Grok App before reconnecting.",
+            ));
+        }
         // API mode: if an ACP server address is configured, connect over TCP
         // instead of spawning a local CLI. The server drives an agent running
         // elsewhere (WSL/SSH/container) but speaks the identical ACP protocol.
@@ -818,10 +865,12 @@ impl AcpClient {
                 cmd.arg(s);
             }
         }
-        // Top-level `grok --rules <RULES>` (before `agent`) — session-only
-        // system-prompt append; not accepted under `grok agent` / `stdio`.
-        for a in extra_rules_spawn_flags(opts.extra_rules.as_deref()) {
-            cmd.arg(a);
+        // Remote/legacy launchers retain their flags; bundled ACP receives
+        // rules on session/new, since it does not forward the top-level flag.
+        if ssh_alias.is_some() || wsl_launch.is_some() {
+            for a in extra_rules_spawn_flags(opts.extra_rules.as_deref()) {
+                cmd.arg(a);
+            }
         }
         // Top-level `grok --system-prompt-override <PROMPT>` (before `agent`) —
         // session-only full system prompt replacement (alias: --system-prompt).
@@ -1058,6 +1107,12 @@ impl AcpClient {
             custom_route,
             rewind_supported: ParkingMutex::new(None),
             ssh_alias: ssh_alias.clone(),
+            session_rules: opts.extra_rules.clone(),
+            local_grok_home: if ssh_alias.is_none() && wsl_launch.is_none() {
+                Some(grok_home)
+            } else {
+                None
+            },
         });
 
         client.start_read_loop(Box::new(stdout));
@@ -1157,6 +1212,8 @@ impl AcpClient {
             custom_route: false,
             rewind_supported: ParkingMutex::new(None),
             ssh_alias: None,
+            local_grok_home: None,
+            session_rules: None,
         });
         client.start_read_loop(Box::new(read_half));
         Ok((client, event_rx))
@@ -1227,6 +1284,7 @@ impl AcpClient {
     }
 
     fn push_stderr(&self, line: &str) {
+        capture_provider_failure(&mut self.pending.lock(), line);
         let mut buf = self.stderr_tail.lock();
         buf.push(line.to_string());
         const MAX: usize = 40;
@@ -1280,7 +1338,12 @@ impl AcpClient {
                     pending_method = Some(p.method.clone());
                     pending_session = p.session_id.clone();
                     if let Some(err) = msg.get("error") {
-                        let full = format_jsonrpc_error(err);
+                        let mut full = format_jsonrpc_error(err);
+                        if response_decode_failed(&full) {
+                            if let Some(cause) = p.provider_failure {
+                                full = format!("{cause}: {full}");
+                            }
+                        }
                         warn!("acp ← {} id={id} error: {}", p.method, full);
                         let _ = p.tx.send(Err(full));
                     } else {
@@ -2006,6 +2069,7 @@ impl AcpClient {
                 method: method.to_string(),
                 tx,
                 session_id: None,
+                provider_failure: None,
             },
         );
         let msg = json!({
@@ -2073,6 +2137,7 @@ impl AcpClient {
                 method: method.to_string(),
                 tx,
                 session_id: prompt_sid.clone(),
+                provider_failure: None,
             },
         );
         let msg = json!({
@@ -2320,6 +2385,28 @@ impl AcpClient {
             ));
         }
 
+        // Refresh before session/new (including an already-running prewarm).
+        // The native rules loader keeps project/profile instructions intact;
+        // unlike --rules, it is honored by the bundled ACP runtime.
+        if let Some(home) = self.local_grok_home.clone() {
+            tokio::task::spawn_blocking(move || {
+                user_rules::sync(&crate::process_util::user_home(), &home)
+            })
+            .await
+            .map_err(|e| {
+                AgentError::new(
+                    AgentErrorCode::ConnectFailed,
+                    format!("user rules sync task: {e}"),
+                )
+            })?
+            .map_err(|e| {
+                AgentError::new(
+                    AgentErrorCode::ConnectFailed,
+                    format!("user rules sync: {e}"),
+                )
+            })?;
+        }
+
         // Build ACP mcpServers off the async runtime. **Never block connect** on
         // MCP/OAuth: connect builder skips network refresh + CLI list, and a
         // hard budget falls back to `[]` so session/new|load always proceeds.
@@ -2360,6 +2447,7 @@ impl AcpClient {
                     serde_json::json!([])
                 }
             };
+            let servers = crate::browser_mcp::for_transport(servers, self.owns_local_process_tree);
             let mcp_count = servers.as_array().map(|a| a.len()).unwrap_or(0);
             info!("acp session open injecting mcpServers count={mcp_count}");
             servers
@@ -2436,10 +2524,7 @@ impl AcpClient {
         let result = self
             .request_timeout(
                 "session/new",
-                json!({
-                    "cwd": cwd,
-                    "mcpServers": mcp_servers
-                }),
+                new_session_params(&cwd, mcp_servers, self.session_rules.as_deref()),
                 HANDSHAKE_TIMEOUT_SECS,
             )
             .await
@@ -2568,6 +2653,8 @@ impl AcpClient {
         session_id: &str,
         mcp_servers: Value,
     ) -> Result<Value, String> {
+        let mcp_servers =
+            crate::browser_mcp::for_transport(mcp_servers, self.owns_local_process_tree);
         self.request_timeout(
             "_x.ai/session/update_mcp_servers",
             json!({
@@ -4812,6 +4899,8 @@ fn classify_rpc_error(e: &str) -> AgentError {
         return AgentError::new(AgentErrorCode::NetworkProvider, e);
     }
     if lower.contains("quota")
+        || lower.contains("gateway_concurrency_limit")
+        || lower.contains("concurrency limit exceeded")
         || lower.contains("rate limit")
         || lower.contains("rate_limit")
         || lower.contains("429")
@@ -4878,8 +4967,15 @@ fn classify_rpc_error(e: &str) -> AgentError {
         || lower.contains("broken pipe")
         || lower.contains("econnreset")
         || lower.contains("temporarily unavailable")
+        || lower.contains("failed to deserialize responsestreamevent")
+        || lower.contains("failed to deserialize chatcompletionchunk")
+        || lower.contains("stream_read_error")
+        || response_decode_failed(&lower)
+        || (lower.contains("serialization error:")
+            && lower.contains("control character")
+            && lower.contains("while parsing a string"))
     {
-        // Timeouts / provider 5xx / mid-stream flaps are network-provider, not process crash.
+        // Provider transport and stream decoding failures do not imply a child exit.
         AgentError::new(AgentErrorCode::NetworkProvider, e)
     } else if lower.contains("not found") && lower.contains("cli") {
         AgentError::new(AgentErrorCode::CliNotFound, e)
@@ -4891,6 +4987,24 @@ fn classify_rpc_error(e: &str) -> AgentError {
 #[cfg(test)]
 mod classify_rpc_error_tests {
     use super::*;
+
+    #[test]
+    fn provider_stream_decode_failure_is_not_process_crash() {
+        for message in [
+            r#"Internal error (code -32603, data: {"message":"serialization error: control character (\\u0000-\\u001F) found while parsing a string at line 2 column 0"})"#,
+            "Failed to deserialize ResponseStreamEvent from stream",
+            "Failed to deserialize ChatCompletionChunk",
+            "upstream_error: stream_read_error",
+        ] {
+            let error = classify_rpc_error(message);
+            assert_eq!(error.code, AgentErrorCode::NetworkProvider, "{message}");
+            assert_eq!(error.message, message);
+        }
+        assert_eq!(
+            classify_rpc_error("serialization error: invalid local settings").code,
+            AgentErrorCode::AgentCrashed
+        );
+    }
 
     #[test]
     fn missing_model_is_provider_error_not_process_crash() {
@@ -4992,10 +5106,6 @@ mod classify_rpc_error_tests {
         );
     }
 }
-
-/// Hard transport failures (no HTTP response) — fail after a few attempts so
-/// a broken proxy / DNS outage cannot pin the UI as "thinking" for minutes.
-const HARD_TRANSPORT_ABORT_ATTEMPTS: u32 = 3;
 
 /// Terminal official/credit exhaustion — not a flaky 429 the host should ride out.
 ///
@@ -5105,41 +5215,20 @@ pub fn provider_retry_abort_rpc_message(reason: &str) -> String {
     }
 }
 
-/// True when the retry reason looks like a hard transport failure (not a flaky 5xx).
-pub fn is_hard_transport_retry_reason(reason: &str) -> bool {
-    let r = reason.to_ascii_lowercase();
-    if r.is_empty() {
-        return false;
-    }
-    r.contains("error sending request")
-        || r.contains("connection reset")
-        || r.contains("connection refused")
-        || r.contains("network is unreachable")
-        || r.contains("name or service not known")
-        || r.contains("dns error")
-        || r.contains("failed to lookup address")
-        || r.contains("no route to host")
-        || (r.contains("timed out") && (r.contains("connect") || r.contains("sending request")))
-        || (r.contains("timeout") && r.contains("connect"))
-}
-
 /// Whether host should stop waiting and fail the turn.
 ///
 /// - Terminal statuses (`exhausted` / `gave_up`) always abort.
 /// - Terminal quota reasons (see [`is_terminal_quota_reason`]) abort immediately
 ///   so included-usage exhaustion is not ridden out as a flaky 429.
-/// - Hard transport reasons (see [`is_hard_transport_retry_reason`]) abort after
-///   a few attempts so the chat does not stay busy for the full 15-retry budget.
-/// - Bare `failed` / `error` only abort once we have used most of the budget —
-///   some relays emit `failed` on a single stream blip while still retrying.
-/// - Otherwise abort when `attempt` reaches the host/agent cap.
+/// - Transport errors and bare `failed` / `error` statuses can describe one
+///   failed attempt while the runtime is still retrying; use its full budget.
+/// - Otherwise abort when `attempt` reaches the agent cap (at most 15).
 #[allow(dead_code)]
 pub fn should_abort_provider_retry(attempt: u32, max_retries: u32, status: &str) -> bool {
     should_abort_provider_retry_ex(attempt, max_retries, status, "")
 }
 
-/// Like [`should_abort_provider_retry`] but consults the human-readable reason
-/// for hard-transport fail-fast and terminal quota.
+/// Like [`should_abort_provider_retry`] but also recognizes terminal quota.
 pub fn should_abort_provider_retry_ex(
     attempt: u32,
     max_retries: u32,
@@ -5157,16 +5246,7 @@ pub fn should_abort_provider_retry_ex(
     if is_terminal_quota_reason(reason) {
         return true;
     }
-    if is_hard_transport_retry_reason(reason) && attempt >= HARD_TRANSPORT_ABORT_ATTEMPTS {
-        return true;
-    }
     let cap = max_retries.clamp(1, HOST_PROVIDER_MAX_RETRIES);
-    // Soft-fail statuses: wait until we are near the cap so mid-stream flaps
-    // (common on 中转) get more reconnect room before the turn is killed.
-    if status.contains("fail") || status == "error" {
-        let soft_floor = (cap.saturating_mul(2) / 3).max(1);
-        return attempt >= soft_floor;
-    }
     attempt >= cap
 }
 
@@ -5470,12 +5550,17 @@ mod retry_tests {
     }
 
     #[test]
-    fn soft_fail_waits_until_near_cap() {
-        // Bare "failed" mid-budget should not kill a flaky relay immediately.
-        assert!(!should_abort_provider_retry(1, 12, "failed"));
-        assert!(!should_abort_provider_retry(7, 12, "failed"));
-        assert!(should_abort_provider_retry(8, 12, "failed")); // 2/3 of 12
-        assert!(should_abort_provider_retry(1, 15, "exhausted"));
+    fn soft_fail_preserves_advertised_retry_budget() {
+        // These describe a failed attempt; the runtime can still be retrying.
+        for status in ["failed", "error"] {
+            for attempt in [1, 7, 8, 11] {
+                assert!(
+                    !should_abort_provider_retry(attempt, 12, status),
+                    "{status} attempt {attempt}"
+                );
+            }
+            assert!(should_abort_provider_retry(12, 12, status));
+        }
     }
 
     #[test]
@@ -5485,22 +5570,36 @@ mod retry_tests {
     }
 
     #[test]
-    fn hard_transport_fails_fast() {
-        let reason = "request error: error sending request for url (https://cli-chat-proxy.grok.com/v1/responses)";
-        assert!(!should_abort_provider_retry_ex(1, 15, "retrying", reason));
-        assert!(!should_abort_provider_retry_ex(2, 15, "retrying", reason));
-        assert!(should_abort_provider_retry_ex(3, 15, "retrying", reason));
-        // Transient 5xx-style reasons still use the full budget when status is retrying.
-        assert!(!should_abort_provider_retry_ex(
-            3,
-            15,
-            "retrying",
-            "HTTP 503 Service Unavailable"
-        ));
-        assert!(is_hard_transport_retry_reason(reason));
-        assert!(!is_hard_transport_retry_reason(
-            "HTTP 503 Service Unavailable"
-        ));
+    fn transient_transport_uses_advertised_retry_budget() {
+        for reason in [
+            "request error: error sending request for url (https://relay.example/v1/responses)",
+            "connection reset by peer",
+            "connection refused",
+            "dns error: failed to lookup address",
+            "connect timed out",
+            "HTTP 503 Service Unavailable",
+            "gateway_concurrency_limit: retry later",
+        ] {
+            for attempt in [1, 2, 3, 8, 11] {
+                assert!(
+                    !should_abort_provider_retry_ex(attempt, 12, "retrying", reason),
+                    "{reason}, attempt {attempt}"
+                );
+            }
+            assert!(should_abort_provider_retry_ex(12, 12, "retrying", reason));
+            assert!(!should_abort_provider_retry_ex(14, 20, "retrying", reason));
+            assert!(should_abort_provider_retry_ex(15, 20, "retrying", reason));
+        }
+    }
+
+    #[test]
+    fn explicit_terminal_retry_status_still_aborts_immediately() {
+        for status in ["exhausted", "gave_up", "give_up", "aborted"] {
+            assert!(
+                should_abort_provider_retry_ex(1, 12, status, "connection reset"),
+                "{status}"
+            );
+        }
     }
 
     #[test]
@@ -5586,6 +5685,7 @@ mod prompt_fallback_tests {
                 method: "session/prompt".into(),
                 tx: first_tx,
                 session_id: Some("sidA".into()),
+                provider_failure: None,
             },
         );
 
@@ -5602,6 +5702,7 @@ mod prompt_fallback_tests {
                 method: "session/prompt".into(),
                 tx: second_tx,
                 session_id: Some("sidA".into()),
+                provider_failure: None,
             },
         );
 
@@ -6093,6 +6194,31 @@ mod plugin_dir_spawn_tests {
     }
 }
 
+fn new_session_params(cwd: &str, mcp_servers: Value, rules: Option<&str>) -> Value {
+    let mut params = json!({ "cwd": cwd, "mcpServers": mcp_servers });
+    if let Some(rules) = rules.map(str::trim).filter(|s| !s.is_empty()) {
+        params["_meta"] = json!({ "rules": rules });
+    }
+    params
+}
+
+#[cfg(test)]
+mod session_rules_tests {
+    use super::*;
+
+    #[test]
+    fn new_session_rules_are_scoped_and_do_not_override_default_prompt() {
+        let a = new_session_params("/a", json!([]), Some("  会话 A\n供应商规则  "));
+        let b = new_session_params("/b", json!([]), Some("会话 B"));
+        assert_eq!(a["_meta"]["rules"], "会话 A\n供应商规则");
+        assert_eq!(b["_meta"]["rules"], "会话 B");
+        assert!(a["_meta"].get("systemPromptOverride").is_none());
+        for empty in [None, Some(" \n")] {
+            assert!(new_session_params("/c", json!([]), empty).get("_meta").is_none());
+        }
+    }
+}
+
 #[cfg(test)]
 mod extra_rules_spawn_tests {
     use super::*;
@@ -6502,21 +6628,7 @@ mod live_handshake_tests {
             eprintln!("skip live ACP (set GROK_APP_LIVE_ACP=1)");
             return;
         }
-        let cli = which::which("grok")
-            .or_else(|_| {
-                let p = crate::process_util::user_home().join(".grok/bin/grok");
-                if p.exists() {
-                    Ok(p)
-                } else {
-                    let p2 = crate::process_util::user_home().join(r".grok\bin\grok.exe");
-                    if p2.exists() {
-                        Ok(p2)
-                    } else {
-                        Err(which::Error::CannotFindBinaryPath)
-                    }
-                }
-            })
-            .expect("grok cli");
+        let cli = crate::bundled_runtime::path();
         let cwd = std::env::current_dir().unwrap();
         let t0 = std::time::Instant::now();
         let (client, mut events) = AcpClient::spawn(cli, cwd).await.expect("spawn");
@@ -6534,5 +6646,64 @@ mod live_handshake_tests {
         eprintln!("OK session={} in {:?}", sid, t0.elapsed());
         client.kill().await;
         assert!(!sid.is_empty());
+    }
+}
+
+#[cfg(test)]
+mod provider_failure_tests {
+    use super::*;
+    const DECODE: &str = "serialization error: missing field `output`";
+    const LOG: &str = r#"ERROR Failed to deserialize ResponseStreamEvent from stream error=missing field `output` raw_data={"type":"response.failed","response":{"status":"failed","error":{"code":"gateway_concurrency_limit","message":"Concurrency limit exceeded for account, please retry later"}}}"#;
+    fn prompt() -> Pending {
+        let (tx, _) = oneshot::channel();
+        Pending {
+            method: "session/prompt".into(),
+            tx,
+            session_id: Some("s".into()),
+            provider_failure: None,
+        }
+    }
+    #[test]
+    fn failed_response_is_provider_failure_and_original_limit_wins() {
+        assert_eq!(
+            classify_rpc_error(DECODE).code,
+            AgentErrorCode::NetworkProvider
+        );
+        assert_eq!(
+            classify_rpc_error(&format!("gateway_concurrency_limit: {DECODE}")).code,
+            AgentErrorCode::QuotaExceeded
+        );
+        assert_eq!(
+            classify_rpc_error("serialization error: invalid local settings").code,
+            AgentErrorCode::AgentCrashed
+        );
+        assert_eq!(
+            classify_rpc_error("Agent process exited").code,
+            AgentErrorCode::AgentCrashed
+        );
+    }
+    #[test]
+    fn stderr_evidence_belongs_only_to_the_unambiguous_pending_prompt() {
+        let mut pending = HashMap::from([(1, prompt())]);
+        capture_provider_failure(&mut pending, LOG);
+        assert_eq!(
+            pending[&1].provider_failure,
+            Some("gateway_concurrency_limit")
+        );
+        pending.remove(&1);
+        pending.insert(2, prompt());
+        assert_eq!(
+            pending[&2].provider_failure, None,
+            "next turn cannot inherit stale evidence"
+        );
+        pending.insert(3, prompt());
+        capture_provider_failure(&mut pending, LOG);
+        assert!(
+            pending.values().all(|p| p.provider_failure.is_none()),
+            "unstamped diagnostics cannot blame a different concurrent session"
+        );
+        pending.remove(&3);
+        capture_provider_failure(&mut pending, "tool printed gateway_concurrency_limit");
+        assert!(pending[&2].provider_failure.is_none());
     }
 }

@@ -1,5 +1,13 @@
 /** ja messages — domain: core */
 export const jaCore = {
+  "resource.openLink": "リンクを開く",
+  "resource.openSide": "サイドブラウザーで開く",
+  "resource.copyAddress": "画像のアドレスをコピー",
+  "resource.copyFailed": "コピーできませんでした。もう一度お試しください。",
+  "resource.openFailed": "このリソースを開けませんでした。もう一度お試しください。",
+  "resource.working": "処理中…",
+  "image.saveAs": "名前を付けて画像を保存…",
+  "image.saveFailed": "画像を保存できませんでした。もう一度お試しください。",
   "app.name": "Grok",
   "image.loadingOriginal": "元のファイルを読み込み中…",
   "image.originalFailed": "元のファイルを読み込めませんでした。プレビューは引き続き表示できます。",
@@ -36,7 +44,7 @@ export const jaCore = {
   "office.pageOf": "{page} / {total}",
   "image.view": "画像を表示",
   "image.copy": "画像をコピー",
-  "image.copyHint": "右クリックで画像をコピー",
+  "image.copyHint": "右クリックで画像の操作を表示",
   "image.next": "次の画像",
   "image.prev": "前の画像",
   "image.close": "閉じる",

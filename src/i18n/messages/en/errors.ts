@@ -1,5 +1,7 @@
 /** English messages — domain: errors */
 export const enErrors = {
+  "error.deck.concurrency.problem": "Account concurrency limit reached",
+  "error.deck.concurrency.cause": "Wait for running requests to finish, or reduce simultaneous tasks before retrying.",
   "error.deck.model.problem": "Model unavailable",
   "error.deck.model.cause": "The provider rejected this model. Open Providers and choose a model supported by that service.",
   "error.details": "Details",

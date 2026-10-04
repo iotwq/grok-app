@@ -477,7 +477,7 @@ export const zhTWSettingsUi = {
   "settings.autoUpdateReady": "更新已下載 — 請確認「安裝並重新啟動」後再安裝。",
   "settings.autoUpdateInstall": "安裝並重新啟動",
   "settings.autoUpdateConfirm.title": "安裝更新並重新啟動？",
-  "settings.autoUpdateConfirm.message": "將安裝版本 {version}，應用程式會隨後重新啟動。",
+  "settings.autoUpdateConfirm.message": "將安裝 {version} 及其內建 Grok Build。執行中的任務將停止，Grok App 將重新啟動。",
   "settings.autoUpdateConfirm.confirm": "安裝並重新啟動",
   "settings.autoUpdateConfirm.cancel": "取消",
   "settings.autoUpdateInstalling": "正在安裝…",

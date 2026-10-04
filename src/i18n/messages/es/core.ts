@@ -1,5 +1,13 @@
 /** es messages — domain: core */
 export const esCore = {
+  "resource.openLink": "Abrir enlace",
+  "resource.openSide": "Abrir en el navegador lateral",
+  "resource.copyAddress": "Copiar dirección de la imagen",
+  "resource.copyFailed": "No se pudo copiar. Inténtalo de nuevo.",
+  "resource.openFailed": "No se pudo abrir este recurso. Inténtalo de nuevo.",
+  "resource.working": "Procesando…",
+  "image.saveAs": "Guardar imagen como…",
+  "image.saveFailed": "No se pudo guardar la imagen. Inténtalo de nuevo.",
   "app.name": "Grok",
   "image.loadingOriginal": "Cargando original…",
   "image.originalFailed": "No se pudo cargar el original. La vista previa sigue disponible.",
@@ -36,7 +44,7 @@ export const esCore = {
   "office.pageOf": "{page} / {total}",
   "image.view": "Ver imagen",
   "image.copy": "Copiar imagen",
-  "image.copyHint": "Haz clic derecho para copiar la imagen",
+  "image.copyHint": "Clic derecho para ver las acciones de imagen",
   "image.next": "Imagen siguiente",
   "image.prev": "Imagen anterior",
   "image.close": "Cerrar",

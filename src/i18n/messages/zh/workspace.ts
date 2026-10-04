@@ -1,5 +1,7 @@
 /** Simplified Chinese messages — domain: workspace */
 export const zhWorkspace = {
+  "side.browser.back": "后退",
+  "side.browser.forward": "前进",
   "resources.title": "资源",
   "resources.files": "文件",
   "resources.preview": "请选择文件",

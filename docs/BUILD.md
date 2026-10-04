@@ -7,10 +7,24 @@
 | macOS Apple Silicon | `aarch64-apple-darwin` | ✅ | `.dmg` |
 | macOS Intel | `x86_64-apple-darwin` | ✅（在 Apple Silicon 上交叉） | `.dmg` |
 | Windows x64 | `x86_64-pc-windows-msvc` | ✅ 本机 Windows，或 **macOS/Linux 经 cargo-xwin** | NSIS `*-setup.exe` + **绿色版** `*-portable.zip` |
+| Windows ARM64 | `aarch64-pc-windows-msvc` | ✅ Windows runner 交叉构建 | NSIS `*-arm64-setup.exe` + **绿色版** `*-arm64-portable.zip` |
 | Linux x64 | `x86_64-unknown-linux-gnu` | ✅ 本机 Linux | **AppImage** + **.deb** + **.rpm** |
 
 > macOS / Linux 交叉打 Windows 安装包使用 Tauri 官方 runner：`cargo-xwin` + `makensis`（NSIS）。  
 > 见 [Build Windows apps on Linux and macOS](https://v2.tauri.app/distribute/windows-installer/#build-windows-apps-on-linux-and-macos)。
+
+## 内置 Grok Build
+
+安装包现在包含 App 管理的 Grok Build，用户无需另行安装终端 CLI。
+正式打包钩子自动查询官方 `stable` 通道；有新版时下载全部支持平台的制品、记录
+SHA-256 并更新许可快照，再校验当前目标的运行时后编译。无法查询最新版或更新
+失败时中止打包，不会静默沿用旧版本。该步骤只更新仓库内制品，不修改终端 CLI。
+手动刷新可运行 `node scripts/prepare-bundled-runtime.mjs --refresh --target aarch64-apple-darwin`。
+开发或直接 cargo 验证可运行 `node scripts/prepare-bundled-runtime.mjs`，交叉编译添加
+`--target <Rust triple>`；不带 `--refresh` 时使用 manifest 固定版本，已有合格缓存
+可以离线使用，但不声称是最新稳定版。
+运行程序和许可证均随 App 打包，Windows portable 也必须包含二者。
+维护与更新规则见 [bundled-runtime.md](llm-wiki/bundled-runtime.md)。
 
 ## 窗口 chrome
 
@@ -62,6 +76,8 @@ pnpm setup:cross   # rust targets + (macOS) cargo-xwin / nsis / llvm 检查
 
 ### Linux（含 Arch / Ubuntu / Debian）
 
+浏览器截图和跨域 iframe 自动化需要 **WebKitGTK 4.1 ≥ 2.40**（构建及运行时），用于独立内容世界中的原生消息回复接口。发行版过旧时需先更新 WebKitGTK；不是安装另一个 Chromium 浏览器。
+
 ```bash
 # Debian/Ubuntu
 # Prefer Ayatana only (libappindicator3-dev conflicts with libayatana-appindicator3-dev).
@@ -99,6 +115,15 @@ Issue [#539](https://github.com/RongleCat/grok-app/issues/539) 对照实验：�
 AppImage 宿主进程在启动时若检测到系统 WebKitGTK 4.1，会带 `WEBKIT_EXEC_PATH` / `LD_LIBRARY_PATH` 再 exec 自身（`src-tauri/src/linux_webkit.rs`）。这覆盖 #539 黑屏，也避免退出时 FUSE 卸载仍映射在 squashfs 上的 `WebKitNetworkProcess`（SIGBUS / `BUS_ADRERR`）。`GROK_SKIP_SYSTEM_WEBKIT=1` 可退回内置 WebKit。不要为了此问题单独把 Linux CI 升到 Ubuntu 24.04——会抬高 glibc 底线。
 
 ## 2. 本地构建命令
+
+安装包必须通过 `pnpm build:mac-arm` 等脚本或 `pnpm exec tauri build` 构建。
+不要将普通 `cargo build --release` 的产物直接交给 `tauri bundle`：缺少
+`tauri/custom-protocol` 时，主窗口仍访问开发服务器，安装后会空白。构建脚本
+现在会拒绝这种 release 编译。必须拆开步骤时，先生成前端，再执行带
+`--features tauri/custom-protocol` 的 Cargo 编译，最后 bundle；优先使用完整 Tauri 流程。
+
+交付前必须在未运行 Vite 开发服务器时，从最终 DMG 启动 App，确认主页面、
+输入框和设置可以显示及操作；只校验签名、镜像或内置 CLI 不代表桌面页面可用。
 
 ```bash
 pnpm build:help         # 打印全部平台命令说明
@@ -315,4 +340,4 @@ Tag 格式：`v0.1.1`（前缀 `v` + semver）。
 | cargo-xwin 首次很慢 | 正常：在拉 CRT/SDK；缓存目录 `~/.cache/cargo-xwin` |
 | Windows 本机无法交叉 | 用 `pnpm build:win`（cargo-xwin）或 CI |
 | macOS 下载后打不开 | 未签名：系统设置 → 隐私与安全性 → 仍要打开；或 `xattr -cr /path/to/Grok.app` |
-| Windows 找不到 grok CLI | 安装 Grok Build 并确保 `%USERPROFILE%\.grok\bin` 或 PATH 上有 `grok.exe` |
+| Windows 内置 Grok Build 无法启动 | 重新安装完整 Grok App；portable 必须包含 `grok-build.exe`，外部 PATH 不再用于修复 |

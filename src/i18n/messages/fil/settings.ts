@@ -1,5 +1,13 @@
 /** fil messages — domain: settings */
 export const filSettings = {
+  "settings.updateNoCompatibleInstaller": "Walang installer sa release na ito na tugma sa system at processor na ito.",
+  "settings.updateSourceUnconfigured": "Walang nakatakdang pinagmulan ng update para sa build na ito. I-install ang mga update mula sa tagapamahagi nito.",
+  "runtime.bundled.updateRecovery": "Hindi natapos ang update. I-restart ang Grok App upang maibalik ang mga serbisyo sa background, at subukan muli ang update.",
+  "runtime.bundled.restart": "I-restart ang Grok App",
+  "runtime.bundled.title": "Kasamang Grok Build",
+  "runtime.bundled.description": "Kasama ang Grok Build at ina-update kasama ng Grok App. Hiwalay na pinamamahalaan ang CLI na naka-install sa terminal.",
+  "runtime.bundled.missing": "Nawawala o hindi masimulan ang kasamang runtime. I-install muli ang Grok App at subukan ulit.",
+  "runtime.bundled.download": "I-download ang Grok App",
   "settings.sessionMuteSummary": "Mga naka-mute na session",
   "settings.sessionMuteSummaryDesc": "Naka-mute ang desktop notifications para sa mga chat na ito. Lumalabas pa rin ang sidebar unread dots kapag natapos ang background reply.",
   "settings.sessionMuteCount": "{n} naka-mute",
@@ -345,7 +353,7 @@ export const filSettings = {
   "settings.backBottomAlways": "Palaging ipakita ang bumalik-sa-ibaba",
   "settings.backBottomAlwaysDesc": "Panatilihing nakikita ang kontrol na mag-scroll sa pinakabago kahit nasa ibaba na. Naka-off bilang default (lumalabas lang pagkatapos kang mag-scroll pataas).",
   "settings.selectionToolbar": "Toolbar ng seleksyon",
-  "settings.selectionToolbarDesc": "Magpakita ng copy / add-to-chat bar kapag nag-highlight ng text. Gumagana pa rin ang right-click kung naka-off.",
+  "settings.selectionToolbarDesc": "Ipakita ang “Idagdag sa chat” at “Magtanong sa side chat” kapag pumili ng teksto. Available pa rin sa right-click kapag naka-off.",
   "settings.confirmExternalLinks": "Kumpirmahin bago magbukas ng link",
   "settings.confirmExternalLinksDesc": "Magtanong bago magbukas ng http(s) link mula sa chat sa iyong browser. Naka-off bilang default.",
   "settings.messageActions": "Mga aksyon ng mensahe",

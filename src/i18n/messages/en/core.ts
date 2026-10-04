@@ -1,5 +1,13 @@
 /** English messages — domain: core */
 export const enCore = {
+  "resource.openLink": "Open link",
+  "resource.openSide": "Open in side browser",
+  "resource.copyAddress": "Copy image address",
+  "resource.copyFailed": "Could not copy. Please try again.",
+  "resource.openFailed": "Could not open this resource. Please try again.",
+  "resource.working": "Working…",
+  "image.saveAs": "Save image as…",
+  "image.saveFailed": "Could not save the image. Please try again.",
   "app.name": "Grok",
   "image.loadingOriginal": "Loading original...",
   "image.originalFailed": "Could not load the original. The preview is still available.",
@@ -36,7 +44,7 @@ export const enCore = {
   "office.pageOf": "{page} / {total}",
   "image.view": "View image",
   "image.copy": "Copy image",
-  "image.copyHint": "Right-click to copy image",
+  "image.copyHint": "Right-click for image actions",
   "image.next": "Next image",
   "image.prev": "Previous image",
   "image.close": "Close",

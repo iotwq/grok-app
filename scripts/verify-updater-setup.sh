@@ -94,7 +94,7 @@ REPO="${GITHUB_REPOSITORY:-}"
 if [[ -z "$REPO" ]] && command -v gh >/dev/null 2>&1; then
   REPO="$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null || true)"
 fi
-REPO="${REPO:-RongleCat/grok-app}"
+REPO="${REPO:-iotwq/grok-app}"
 
 if command -v gh >/dev/null 2>&1; then
   if secret_list="$(gh secret list --repo "$REPO" 2>/dev/null)"; then

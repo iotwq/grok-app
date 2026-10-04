@@ -1578,7 +1578,7 @@ pub fn inject_session_rules() -> Option<String> {
 ///
 /// Soft guidance only — Host still normalizes shell escapes / rejects site-root
 /// paths. Prefer disambiguated project-relative code paths; absolute only for
-/// local media. Always-on via [`merge_extra_rules`] → `grok --rules`.
+/// local media. Always-on via [`merge_extra_rules`] → ACP `session/new` `_meta.rules`.
 pub fn path_citation_session_rules() -> &'static str {
     // Keep compact: injected on every session spawn. Inline backticks only —
     // fenced ``` blocks are NOT turned into FilePathCards in the chat UI.
@@ -1602,7 +1602,7 @@ pub fn merge_extra_rules(user: Option<&str>) -> Option<String> {
         .map(|s| s.to_string());
     // Channel-level rules from the active custom provider (Settings → Providers).
     let channel = crate::providers::active_provider_append_prompt();
-    let mut parts: Vec<String> = Vec::with_capacity(4);
+    let mut parts: Vec<String> = Vec::with_capacity(5);
     if let Some(u) = user {
         parts.push(u);
     }
@@ -1613,6 +1613,9 @@ pub fn merge_extra_rules(user: Option<&str>) -> Option<String> {
     if !path.is_empty() {
         parts.push(path.to_string());
     }
+    // Ordinary research must not select the visible browser merely because its
+    // MCP tools are discoverable. This policy also applies without official aux.
+    parts.push(crate::browser_mcp::USAGE_RULES.trim().to_string());
     if let Some(i) = inject {
         parts.push(i);
     }
@@ -2522,7 +2525,12 @@ A UI screenshot.
         assert!(m.as_deref().unwrap_or("").contains("prefer tests"));
         // Path citation rules always merge (display stays short in UI).
         assert!(m.as_deref().unwrap_or("").contains("Path citations"));
+        assert!(m
+            .as_deref()
+            .unwrap_or("")
+            .contains(crate::browser_mcp::USAGE_RULES.trim()));
         let only_path = merge_extra_rules(None).expect("path rules alone");
+        assert!(only_path.contains(crate::browser_mcp::USAGE_RULES.trim()));
         assert!(only_path.contains("Path citations"));
         assert!(only_path.contains("project-relative"));
         // Product guidance: inline backticks, not fenced-only handoff.

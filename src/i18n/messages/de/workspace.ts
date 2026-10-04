@@ -1,5 +1,7 @@
 /** de messages — domain: workspace */
 export const deWorkspace = {
+  "side.browser.back": "Zurück",
+  "side.browser.forward": "Vorwärts",
   "resources.title": "Ressourcen",
   "resources.files": "Dateien",
   "resources.preview": "Datei wählen",

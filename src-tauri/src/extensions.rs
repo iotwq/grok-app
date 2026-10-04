@@ -1350,6 +1350,12 @@ pub fn build_session_mcp_servers_with_opts(
         Vec::new()
     };
 
+    // Built-in browser tools are available for both official and custom models.
+    if let Some(entry) = crate::browser_mcp::acp_entry(project_cwd) {
+        arr.retain(|v| v.get("name").and_then(Value::as_str) != Some("grok-browser"));
+        arr.push(entry);
+    }
+
     // Strip user-configured official-aux duplicates before App inject.
     arr.retain(|v| {
         v.get("name")

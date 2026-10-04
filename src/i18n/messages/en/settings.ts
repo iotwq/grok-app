@@ -1,5 +1,13 @@
 /** English messages — domain: settings */
 export const enSettings = {
+  "settings.updateNoCompatibleInstaller": "No installer matching this system and processor was found in this release.",
+  "settings.updateSourceUnconfigured": "This build has no update source configured. Install updates provided by its distributor.",
+  "runtime.bundled.updateRecovery": "The update could not finish. Restart Grok App to restore background services, then retry the update.",
+  "runtime.bundled.restart": "Restart Grok App",
+  "runtime.bundled.title": "Bundled Grok Build",
+  "runtime.bundled.description": "Grok Build is included and updated with Grok App. Terminal CLI installations are managed separately.",
+  "runtime.bundled.missing": "The bundled runtime is missing or cannot start. Reinstall Grok App and try again.",
+  "runtime.bundled.download": "Download Grok App",
   "settings.sessionMuteSummary": "Muted sessions",
   "settings.sessionMuteSummaryDesc": "Desktop notifications are muted for these chats. Sidebar unread dots still appear when a background reply finishes.",
   "settings.sessionMuteCount": "{n} muted",
@@ -369,7 +377,7 @@ export const enSettings = {
   "settings.backBottomAlways": "Always show back-to-bottom",
   "settings.backBottomAlwaysDesc": "Keep the scroll-to-latest control visible even when already at the bottom. Off by default (shows only after you scroll up).",
   "settings.selectionToolbar": "Selection toolbar",
-  "settings.selectionToolbarDesc": "Show a copy / add-to-chat bar when you highlight transcript text. Right-click still works when this is off.",
+  "settings.selectionToolbarDesc": "Show “Add to chat” and “Ask in side chat” when you select transcript text. Right-click opens the same actions when this is off.",
   "settings.confirmExternalLinks": "Confirm before opening links",
   "settings.confirmExternalLinksDesc": "Ask before opening http(s) links from chat in your browser. Off by default.",
   "settings.messageActions": "Message actions",

@@ -202,11 +202,40 @@ fn resolve_agent_dir(session_id: &str) -> Option<std::path::PathBuf> {
     crate::paths::find_agent_session_dir(agent_id, cwd_hint.as_deref(), &mode)
 }
 
+pub(crate) fn is_terminal_turn_error(message: &ChatMessageStored) -> bool {
+    message.role == "assistant"
+        && message.is_error
+        && (message.marker.as_deref() == Some("turn_error")
+            || [
+                "AGENT_CRASHED",
+                "NETWORK_PROVIDER",
+                "QUOTA_EXCEEDED",
+                "AUTH_FAILED",
+                "CONNECT_FAILED",
+                "CLI_NOT_FOUND",
+                "CLI_TOO_OLD",
+                "PROCESS_LIMIT",
+                "SANDBOX_BLOCKED",
+            ]
+            .iter()
+            .any(|code| message.content.starts_with(&format!("**{code}**"))))
+}
+
 /// Journal `turn_cancelled|host_exit` when the last user turn was abandoned.
 /// Idempotent: skips when an end-of-turn chip already exists.
 /// Returns the new chip message id when a row was written.
 pub fn heal_interrupted_turn(session_id: &str) -> Option<String> {
     if session_id.trim().is_empty() {
+        return None;
+    }
+    let messages = store::load_messages(session_id);
+    let turn_start = messages
+        .iter()
+        .rposition(|m| m.role == "user")
+        .map_or(0, |i| i + 1);
+    if messages[turn_start..].iter().any(is_terminal_turn_error) {
+        // Older App versions saved an error but left an Active lease behind.
+        crate::turn_lease::clear_lease(session_id);
         return None;
     }
     if has_turn_end_marker_after_last_user(session_id) {
@@ -456,6 +485,51 @@ mod tests {
             .unwrap();
             begin_active(sid, None, None);
             assert!(heal_interrupted_turn(sid).is_none());
+            assert_eq!(host_exit_count(sid), 1);
+        });
+    }
+
+    #[test]
+    fn failed_turn_with_stale_lease_is_not_a_host_restart() {
+        with_home(|_| {
+            let sid = "failed-with-stale-lease";
+            seed_user(sid);
+            begin_active(sid, Some("agent-1"), Some("turn-1"));
+            store::append_message(
+                sid,
+                ChatMessageStored {
+                    id: "error".into(),
+                    role: "assistant".into(),
+                    content: "**AGENT_CRASHED**\nserialization error: missing field `output`"
+                        .into(),
+                    thought: None,
+                    created_at: Utc::now(),
+                    is_error: true,
+                    attachments: None,
+                    marker: None,
+                },
+            )
+            .unwrap();
+            assert!(heal_interrupted_turn(sid).is_none());
+            assert!(read_lease(sid).is_none());
+            assert_eq!(host_exit_count(sid), 0);
+            // A later user turn still needs genuine interrupted-turn recovery.
+            store::append_message(
+                sid,
+                ChatMessageStored {
+                    id: "u2".into(),
+                    role: "user".into(),
+                    content: "continue".into(),
+                    thought: None,
+                    created_at: Utc::now(),
+                    is_error: false,
+                    attachments: None,
+                    marker: None,
+                },
+            )
+            .unwrap();
+            begin_active(sid, Some("agent-1"), Some("turn-2"));
+            assert!(heal_interrupted_turn(sid).is_some());
             assert_eq!(host_exit_count(sid), 1);
         });
     }

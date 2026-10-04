@@ -1,5 +1,7 @@
 /** ru messages — domain: errors */
 export const ruErrors = {
+  "error.deck.concurrency.problem": "Достигнут лимит одновременных запросов",
+  "error.deck.concurrency.cause": "Дождитесь завершения текущих запросов или уменьшите число одновременных задач перед повторной попыткой.",
   "error.deck.model.problem": "Модель недоступна",
   "error.deck.model.cause": "Провайдер отклонил эту модель. Откройте настройки провайдеров и выберите поддерживаемую модель.",
   "error.details": "Подробности",

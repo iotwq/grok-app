@@ -28,6 +28,7 @@ jobs:
       - name: Production dependency audit
         # Fail on moderate+ so known CVE bumps (e.g. DOMPurify / Mermaid) cannot silently regress.
         run: pnpm run audit:prod
+      - run: node --test scripts/prepare-bundled-runtime.test.mjs
       - run: pnpm typecheck
       - run: pnpm test
       - name: ESLint (minimal quality rules)
@@ -54,6 +55,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Prepare bundled Grok Build
+        run: node scripts/prepare-bundled-runtime.mjs
       - name: Install Linux WebKit deps
         if: matrix.os == 'ubuntu-latest'
         run: |

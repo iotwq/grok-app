@@ -1,5 +1,7 @@
 /** ja messages — domain: workspace */
 export const jaWorkspace = {
+  "side.browser.back": "戻る",
+  "side.browser.forward": "進む",
   "resources.title": "リソース",
   "resources.files": "ファイル",
   "resources.preview": "ファイルを選択",

@@ -1,5 +1,13 @@
 /** Simplified Chinese messages — domain: settings */
 export const zhSettings = {
+  "settings.updateNoCompatibleInstaller": "此版本未找到与你的系统和芯片匹配的安装包。",
+  "settings.updateSourceUnconfigured": "此构建尚未配置更新来源，请安装本版本分发者提供的新安装包。",
+  "runtime.bundled.updateRecovery": "更新未能完成。请重启 Grok App 恢复后台服务，再重试更新。",
+  "runtime.bundled.restart": "重启 Grok App",
+  "runtime.bundled.title": "内置 Grok Build",
+  "runtime.bundled.description": "Grok Build 已内置，随 Grok App 一起更新。终端安装的 CLI 独立管理。",
+  "runtime.bundled.missing": "内置运行程序缺失或无法启动。请重新安装 Grok App 后重试。",
+  "runtime.bundled.download": "下载 Grok App",
   "settings.sessionMuteSummary": "已静音会话",
   "settings.sessionMuteSummaryDesc": "这些会话已静音桌面通知。后台回复完成时，侧栏仍会显示未读圆点。",
   "settings.sessionMuteCount": "{n} 个已静音",
@@ -369,7 +377,7 @@ export const zhSettings = {
   "settings.backBottomAlways": "始终显示回到底部",
   "settings.backBottomAlwaysDesc": "即使已在底部也保留「回到最新」按钮。默认关闭（仅在上滚后显示）。",
   "settings.selectionToolbar": "选中文字工具栏",
-  "settings.selectionToolbarDesc": "在会话里划选文字后弹出复制 / 加入输入框。关掉后仍可用右键菜单。",
+  "settings.selectionToolbarDesc": "选中文字时显示“添加到对话”和“在侧边聊天中提问”。关闭后仍可通过右键打开这两个操作。",
   "settings.confirmExternalLinks": "打开链接前确认",
   "settings.confirmExternalLinksDesc": "从聊天打开 http(s) 链接前先询问。默认关闭，减少打扰。",
   "settings.messageActions": "消息操作按钮",

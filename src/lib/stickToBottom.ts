@@ -48,16 +48,14 @@ export const STICK_MEDIA_FOLLOW_DELAY_MS = 64;
 export const STICK_OPEN_FOLLOW_MS = 800;
 
 /**
- * Minimum upward scroll (px) to leave stick-lock.
- * Keep this aligned with {@link STICK_ESCAPE_WHEEL_DELTA}: a 10–12px
- * trackpad nudge used to be clamped by the scroll handler and then
- * unpinned by wheel, which is the #703 jitter.
+ * Minimum upward scroll-event displacement to leave stick-lock when no
+ * wheel intent is available. Explicit upward wheel input escapes immediately.
  */
 export const STICK_ESCAPE_MIN_DELTA_PX = 10;
 
 /**
- * Wheel deltaY (negative = read history) must exceed this to escape pin.
- * Tiny trackpad ticks at the bottom otherwise unstick then re-snap.
+ * Minimum downward wheel intent used to re-engage at the bottom.
+ * Upward wheel input has no threshold, so slow trackpad browsing wins over follow.
  */
 export const STICK_ESCAPE_WHEEL_DELTA = 10;
 

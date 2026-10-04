@@ -44,9 +44,8 @@ export function resolveTranscriptContentNotifyMs(
 }
 
 /**
- * Historical threshold for the old plain-pre stream body. Kept as a length
- * breakpoint for adaptive markdown parse throttling only — we no longer drop
- * to bare markdown mid-turn (that caused visible `**` / fence flashes).
+ * Historical threshold for the old plain-pre stream body. Kept for call-site
+ * compatibility — we no longer drop to bare markdown mid-turn.
  */
 export const STREAM_PLAIN_TEXT_CHAR_THRESHOLD = 2000;
 
@@ -73,17 +72,14 @@ export function shouldUsePlainStreamBody(
 }
 
 /**
- * Adaptive ReactMarkdown re-parse interval while streaming.
- * Longer bodies re-parse less often so the hot path stays cheap without
- * switching to plain text.
+ * Bound live paint latency regardless of answer length. Memoized segments
+ * avoid re-parsing unchanged text between deadlines and freeze stable blocks.
  */
 export function resolveStreamMarkdownParseMs(
-  contentLength: number,
+  _contentLength: number,
   streaming: boolean,
 ): number {
   if (!streaming) return 0;
-  if (contentLength >= 12_000) return 280;
-  if (contentLength >= STREAM_PLAIN_TEXT_CHAR_THRESHOLD) return 220;
   return STREAM_MARKDOWN_PARSE_MS;
 }
 

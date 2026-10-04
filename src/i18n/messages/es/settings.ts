@@ -1,5 +1,13 @@
 /** es messages — domain: settings */
 export const esSettings = {
+  "settings.updateNoCompatibleInstaller": "No se encontró un instalador compatible con este sistema y procesador en esta versión.",
+  "settings.updateSourceUnconfigured": "Esta compilación no tiene una fuente de actualizaciones configurada. Instala las actualizaciones de su distribuidor.",
+  "runtime.bundled.updateRecovery": "No se pudo completar la actualización. Reinicia Grok App para restaurar los servicios en segundo plano y vuelve a intentarlo.",
+  "runtime.bundled.restart": "Reiniciar Grok App",
+  "runtime.bundled.title": "Grok Build integrado",
+  "runtime.bundled.description": "Grok Build viene incluido y se actualiza con Grok App. Las instalaciones de CLI del terminal se gestionan por separado.",
+  "runtime.bundled.missing": "El entorno integrado no está disponible o no puede iniciarse. Reinstala Grok App e inténtalo de nuevo.",
+  "runtime.bundled.download": "Descargar Grok App",
   "settings.sessionMuteSummary": "Sesiones silenciadas",
   "settings.sessionMuteSummaryDesc": "Las notificaciones de escritorio están silenciadas para estos chats. Los puntos de no leídos de la barra lateral siguen apareciendo cuando termina una respuesta en segundo plano.",
   "settings.sessionMuteCount": "{n} silenciadas",
@@ -345,7 +353,7 @@ export const esSettings = {
   "settings.backBottomAlways": "Mostrar siempre volver al final",
   "settings.backBottomAlwaysDesc": "Mantén visible el control de ir al más reciente incluso si ya estás al final. Desactivado de forma predeterminada (solo aparece al desplazarte hacia arriba).",
   "settings.selectionToolbar": "Barra de selección",
-  "settings.selectionToolbarDesc": "Mostrar una barra de copiar / añadir al chat al seleccionar texto. El clic derecho sigue funcionando si está desactivada.",
+  "settings.selectionToolbarDesc": "Muestra «Añadir al chat» y «Preguntar en el chat lateral» al seleccionar texto. El clic derecho mantiene estas acciones si se desactiva.",
   "settings.confirmExternalLinks": "Confirmar antes de abrir enlaces",
   "settings.confirmExternalLinksDesc": "Preguntar antes de abrir enlaces http(s) del chat en el navegador. Desactivado de forma predeterminada.",
   "settings.messageActions": "Acciones del mensaje",

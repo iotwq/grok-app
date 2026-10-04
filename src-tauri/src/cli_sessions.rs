@@ -1667,6 +1667,47 @@ fn strip_numbered_markers(content: &str) -> String {
     out.trim_end().to_string()
 }
 
+/// Older failed turns overwrote the streaming answer, then appended recovered
+/// text after the error. Keep each turn's terminal failure last and remove the
+/// redundant host-exit chip produced by that already-failed turn's stale lease.
+fn repair_failed_turn_order(journal: &mut Vec<ChatMessageStored>) -> u32 {
+    let mut changed = 0;
+    let mut start = 0;
+    while start < journal.len() {
+        let end = journal
+            .iter()
+            .enumerate()
+            .skip(start + 1)
+            .find(|(_, m)| m.role == "user")
+            .map_or(journal.len(), |(i, _)| i);
+        if journal[start..end]
+            .iter()
+            .any(crate::turn_interrupt::is_terminal_turn_error)
+        {
+            let before: Vec<_> = journal[start..end].iter().map(|m| m.id.clone()).collect();
+            let mut rows = Vec::new();
+            let mut errors = Vec::new();
+            for row in journal.drain(start..end) {
+                if crate::turn_interrupt::is_terminal_turn_error(&row) {
+                    errors.push(row);
+                } else if !(row.role == "tool" && row.content == "turn_cancelled|host_exit") {
+                    rows.push(row);
+                }
+            }
+            rows.extend(errors);
+            if before != rows.iter().map(|m| m.id.clone()).collect::<Vec<_>>() {
+                changed += 1;
+            }
+            let next = start + rows.len();
+            journal.splice(start..start, rows);
+            start = next;
+        } else {
+            start = end;
+        }
+    }
+    changed
+}
+
 /// Merge missing assistant bodies **and** backfill user file/image cards from
 /// CLI `chat_history.jsonl` into the App journal.
 ///
@@ -1825,6 +1866,7 @@ pub fn reconcile_journal_from_chat_history(
     }
 
     changed += backfill_user_attachments_from_agent_pairs(&mut journal, &pairs);
+    changed += repair_failed_turn_order(&mut journal);
 
     if changed > 0 {
         store::save_messages(app_session_id, &journal)?;
@@ -2974,5 +3016,40 @@ Total: 1
     #[test]
     fn linked_reconcile_allows_ordinary_linked_session() {
         assert!(linked_reconcile_allowed(&fork_meta(false, None)));
+    }
+}
+
+#[cfg(test)]
+mod failed_turn_order_tests {
+    use super::*;
+    fn row(id: &str, role: &str, content: &str, is_error: bool) -> ChatMessageStored {
+        ChatMessageStored {
+            id: id.into(),
+            role: role.into(),
+            content: content.into(),
+            thought: None,
+            created_at: Utc::now(),
+            is_error,
+            attachments: None,
+            marker: None,
+        }
+    }
+    #[test]
+    fn recovered_output_precedes_failure_without_crossing_user_turns() {
+        let mut rows = vec![
+            row("u1", "user", "draw", false),
+            row("e1", "assistant", "**AGENT_CRASHED**\nmissing output", true),
+            row("t1", "tool", "tool_step|completed|list_dir", false),
+            row("a1", "assistant", "Creating SVG", false),
+            row("h1", "tool", "turn_cancelled|host_exit", true),
+            row("u2", "user", "next", false),
+            row("h2", "tool", "turn_cancelled|host_exit", true),
+        ];
+        assert_eq!(repair_failed_turn_order(&mut rows), 1);
+        assert_eq!(
+            rows.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(),
+            ["u1", "t1", "a1", "e1", "u2", "h2"]
+        );
+        assert_eq!(repair_failed_turn_order(&mut rows), 0);
     }
 }

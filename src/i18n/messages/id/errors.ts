@@ -1,5 +1,7 @@
 /** id messages — domain: errors */
 export const idErrors = {
+  "error.deck.concurrency.problem": "Batas permintaan bersamaan tercapai",
+  "error.deck.concurrency.cause": "Tunggu permintaan yang berjalan selesai atau kurangi tugas bersamaan sebelum mencoba lagi.",
   "error.deck.model.problem": "Model tidak tersedia",
   "error.deck.model.cause": "Penyedia menolak model ini. Buka Penyedia dan pilih model yang didukung layanan tersebut.",
   "error.details": "Detail",

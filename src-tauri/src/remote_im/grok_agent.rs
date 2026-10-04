@@ -59,6 +59,7 @@ async fn wait_for_cancellation(cancel: &mut Option<oneshot::Receiver<()>>) {
 }
 
 fn configure_process_tree(cmd: &mut Command) {
+    crate::bundled_runtime::configure_tokio(cmd);
     #[cfg(unix)]
     {
         // SAFETY: pre_exec runs in the child before exec. setsid gives every
@@ -132,21 +133,7 @@ async fn await_stdio_or_cancel<T: Default>(
 }
 
 pub fn resolve_grok_binary() -> PathBuf {
-    if let Ok(p) = which::which("grok") {
-        return p;
-    }
-    let home = crate::process_util::user_home();
-    let candidates = [
-        home.join(".grok/bin/grok"),
-        PathBuf::from("/usr/local/bin/grok"),
-        PathBuf::from("/opt/homebrew/bin/grok"),
-    ];
-    for c in candidates {
-        if c.is_file() {
-            return c;
-        }
-    }
-    PathBuf::from("grok")
+    crate::bundled_runtime::path()
 }
 
 /// Same GROK_HOME the App uses for ACP (independent → agent-home, shared → ~/.grok).

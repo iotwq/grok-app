@@ -5,7 +5,7 @@
  * http(s) links open the OS default browser (Tauri `target=_blank` is a no-op).
  */
 
-import { useMemo, type MouseEvent, type ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import { createT, type Locale } from "@/i18n";
 import {
@@ -14,6 +14,7 @@ import {
 } from "@/lib/markdownMath";
 import { ImageUi, imageUiLabels } from "@/components/ImageUi";
 import { VideoUi, videoUiLabels } from "@/components/VideoUi";
+import { OutputLink } from "@/components/OutputLink";
 import { MermaidBlock } from "@/components/lobe-chat/MermaidBlock";
 import { isMermaidLanguage } from "@/lib/mermaidRender";
 import {
@@ -24,10 +25,7 @@ import {
   resolveInlineMediaToken,
   resolveMediaHref,
 } from "@/lib/attachments";
-import {
-  isExternalHttpUrl,
-  openExternalHttpUrl,
-} from "@/lib/externalLinkPref";
+import { isExternalHttpUrl } from "@/lib/externalLinkPref";
 import {
   isRealLocalAbsolutePath,
   isSiteRootAbsolutePath,
@@ -114,23 +112,10 @@ export function MarkdownBody({
             if (abs) return renderMedia(abs, text || pathBasename(abs));
             const hrefStr = typeof href === "string" ? href : "";
             if (isExternalHttpUrl(hrefStr)) {
-              const onClick = (e: MouseEvent<HTMLAnchorElement>) => {
-                e.preventDefault();
-                if (onOpenExternalLink) {
-                  onOpenExternalLink(hrefStr);
-                  return;
-                }
-                openExternalHttpUrl(hrefStr);
-              };
               return (
-                <a
-                  className="md-body__link"
-                  href={hrefStr}
-                  rel="noreferrer noopener"
-                  onClick={onClick}
-                >
+                <OutputLink className="md-body__link" href={hrefStr} locale={locale} onOpen={onOpenExternalLink}>
                   {c}
-                </a>
+                </OutputLink>
               );
             }
             return (
@@ -144,6 +129,9 @@ export function MarkdownBody({
             const inline = !className;
             if (inline) {
               const raw = textFromChildren(c).replace(/\n$/, "").trim();
+              if (isExternalHttpUrl(raw)) {
+                return <OutputLink className="md-body__link" href={raw} locale={locale} onOpen={onOpenExternalLink}>{c}</OutputLink>;
+              }
               if (isSiteRootAbsolutePath(raw)) {
                 return <code className="md-body__code-inline">{c}</code>;
               }

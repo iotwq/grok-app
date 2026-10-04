@@ -477,7 +477,7 @@ export const ruSettingsUi = {
   "settings.autoUpdateReady": "Обновление скачано — подтвердите «Установить и перезапустить», когда будете готовы.",
   "settings.autoUpdateInstall": "Установить и перезапустить",
   "settings.autoUpdateConfirm.title": "Установить обновление и перезапустить?",
-  "settings.autoUpdateConfirm.message": "Будет установлена версия {version}, после чего приложение перезапустится.",
+  "settings.autoUpdateConfirm.message": "Будет установлена версия {version} со встроенным Grok Build. Выполняемые задачи будут остановлены, а Grok App перезапустится.",
   "settings.autoUpdateConfirm.confirm": "Установить и перезапустить",
   "settings.autoUpdateConfirm.cancel": "Отмена",
   "settings.autoUpdateInstalling": "Установка…",

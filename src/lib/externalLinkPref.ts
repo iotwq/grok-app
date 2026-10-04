@@ -94,6 +94,14 @@ export type OpenExternalHttpUrlDeps = {
   openWindow?: (url: string) => void;
 };
 
+/** Awaitable path for UI actions that show a visible failure instead of a silent WebView fallback. */
+export async function openExternalHttpUrlChecked(url: string): Promise<void> {
+  const href = url.trim();
+  if (!isExternalHttpUrl(href)) throw new Error("invalid_external_url");
+  if (isTauri()) await openExternalUrl(href);
+  else window.open(href, "_blank", "noopener,noreferrer");
+}
+
 function defaultOpenWindow(url: string): void {
   if (typeof window === "undefined") return;
   try {

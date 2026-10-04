@@ -1,0 +1,31 @@
+{
+  "version": "1.0.46",
+  "source": "https://github.com/xai-org/grok-build",
+  "noticesRevision": "2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8",
+  "artifacts": {
+    "aarch64-apple-darwin": {
+      "file": "grok-1.0.46-macos-aarch64",
+      "sha256": "e8daa302364c9c3b6a5546d511cfbd1ab5e5d407a9b04282f660665ea405f9f3"
+    },
+    "x86_64-apple-darwin": {
+      "file": "grok-1.0.46-macos-x86_64",
+      "sha256": "5bfc1251b1a7307b9366d0cb5a1fd3f2563b5b319df49f9a9b09b4efe557fea8"
+    },
+    "x86_64-pc-windows-msvc": {
+      "file": "grok-1.0.46-windows-x86_64.exe",
+      "sha256": "e09c0893cee4850a569bd90e7aed956ea503b34f551637d58187ca4dfb931611"
+    },
+    "aarch64-pc-windows-msvc": {
+      "file": "grok-1.0.46-windows-aarch64.exe",
+      "sha256": "974d78433d07ed3de0a28d0257fc514b70a57c13e29f7f02d754c6cb757038ef"
+    },
+    "x86_64-unknown-linux-gnu": {
+      "file": "grok-1.0.46-linux-x86_64",
+      "sha256": "41626a53292324140b92556b9d42ff5542e3dcd04aff85eafb8689dd4adb44fc"
+    },
+    "aarch64-unknown-linux-gnu": {
+      "file": "grok-1.0.46-linux-aarch64",
+      "sha256": "45b0943e736f00a249b9cf02af2be9e0749d97c09a6f55cfcf3029a1a836f23e"
+    }
+  }
+}

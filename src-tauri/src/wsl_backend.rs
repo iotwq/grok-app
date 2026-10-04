@@ -26,6 +26,7 @@ use crate::store::AppSettings;
 /// Settings value for native Windows/macOS/Linux CLI spawn.
 pub const CLI_BACKEND_NATIVE: &str = "native";
 /// Settings value for spawning through `wsl.exe` (Windows only).
+#[cfg(test)]
 pub const CLI_BACKEND_WSL: &str = "wsl";
 
 const VERSION_PROBE_TIMEOUT: Duration = Duration::from_secs(8);
@@ -40,19 +41,13 @@ pub struct WslLaunch {
 }
 
 /// Whether settings request the WSL spawn path on this host.
-pub fn wsl_backend_active(settings: &AppSettings) -> bool {
-    #[cfg(not(target_os = "windows"))]
-    {
-        let _ = settings;
-        false
-    }
-    #[cfg(target_os = "windows")]
-    {
-        normalize_cli_backend(&settings.cli_backend) == CLI_BACKEND_WSL
-    }
+pub fn wsl_backend_active(_settings: &AppSettings) -> bool {
+    // Desktop packages own the native runtime; legacy WSL settings are ignored.
+    false
 }
 
 /// Normalize stored backend id (`native` | `wsl`). Unknown → `native`.
+#[cfg(test)]
 pub fn normalize_cli_backend(raw: &str) -> String {
     match raw.trim().to_ascii_lowercase().as_str() {
         CLI_BACKEND_WSL => CLI_BACKEND_WSL.into(),

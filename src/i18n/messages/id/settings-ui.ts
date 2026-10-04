@@ -477,7 +477,7 @@ export const idSettingsUi = {
   "settings.autoUpdateReady": "Pembaruan diunduh — konfirmasi Instal dan mulai ulang saat Anda siap.",
   "settings.autoUpdateInstall": "Instal dan mulai ulang",
   "settings.autoUpdateConfirm.title": "Instal pembaruan dan mulai ulang?",
-  "settings.autoUpdateConfirm.message": "Versi {version} akan diinstal dan aplikasi akan mulai ulang.",
+  "settings.autoUpdateConfirm.message": "Versi {version} akan diinstal dengan Grok Build bawaan. Tugas yang sedang berjalan akan berhenti dan Grok App akan dimulai ulang.",
   "settings.autoUpdateConfirm.confirm": "Instal dan mulai ulang",
   "settings.autoUpdateConfirm.cancel": "Batal",
   "settings.autoUpdateInstalling": "Menginstal…",

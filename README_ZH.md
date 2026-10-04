@@ -17,7 +17,7 @@
 <p align="center">
   <a href="https://grok-app.com"><img src="https://img.shields.io/badge/website-grok--app.com-0ea5e9" alt="Website" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License" /></a>
-  <a href="https://github.com/RongleCat/grok-app/stargazers"><img src="https://img.shields.io/github/stars/RongleCat/grok-app?style=social" alt="GitHub stars" /></a>
+  <a href="https://github.com/iotwq/grok-app/stargazers"><img src="https://img.shields.io/github/stars/iotwq/grok-app?style=social" alt="GitHub stars" /></a>
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey" alt="Platforms" />
   <img src="https://img.shields.io/badge/Tauri-2-orange" alt="Tauri 2" />
   <img src="https://img.shields.io/badge/note-unofficial-yellow" alt="Unofficial" />
@@ -37,9 +37,9 @@
 ---
 
 > [!NOTE]
-> **关于 Grok App：** 本项目是面向本机 [Grok Build](https://x.ai) CLI（`grok agent stdio`）的开源桌面客户端与工作台，**非 xAI 官方产品**。应用本身不打包专有模型权重，所有会话推理、工具调用与权限执行均基于你本地安装的 `grok` CLI。
+> **关于 Grok App：** 本项目是面向本机 [Grok Build](https://x.ai) CLI（`grok agent stdio`）的开源桌面客户端与工作台，**非 xAI 官方产品**。应用本身不打包专有模型权重，所有会话推理、工具调用与权限执行均通过内置 Grok Build 运行程序完成。
 >
-> 完整智能体能力需要本地安装并登录 Grok Build CLI。首次启动时内置向导可一键协助安装；前端独立开发也可通过 `GROK_APP_ACP=mock` 进行联调。
+> Grok Build 已内置，随 Grok App 一起更新，终端 CLI 独立管理。首次启动检查内置运行程序并提供账号配置；前端独立开发也可通过 `GROK_APP_ACP=mock` 进行联调。
 
 ---
 
@@ -124,13 +124,14 @@
 
 ### 1. 下载预编译包
 
-从官网 [grok-app.com](https://grok-app.com) 或 [GitHub Releases](https://github.com/RongleCat/grok-app/releases) 下载适合当前操作系统的安装包：
+从官网 [grok-app.com](https://grok-app.com) 或 [GitHub Releases](https://github.com/iotwq/grok-app/releases) 下载适合当前操作系统的安装包：
 
 | 平台 | 安装包格式 | 说明 |
 |:---|:---|:---|
 | **macOS (Apple Silicon)** | `Grok_*_aarch64.dmg` | 适用于 M1/M2/M3/M4 系列 Mac |
 | **macOS (Intel)** | `Grok_*_x64.dmg` | 适用于 Intel 处理器 Mac |
 | **Windows (x64)** | `*-setup.exe` / `*-portable.zip` | 包含安装版与免安装绿色版 |
+| **Windows (ARM64)** | `*-arm64-setup.exe` / `*-arm64-portable.zip` | ARM64 安装版与免安装绿色版 |
 | **Linux (x64)** | `AppImage` / `.deb` / `.rpm` | 通用 AppImage，以及 Debian/Ubuntu/Fedora 格式 |
 
 > 💡 **提示**：安装包名称为 **Grok**。预编译版本无需安装 Node.js、pnpm 或 Rust 等开发环境，开箱即用。
@@ -149,13 +150,13 @@ Get-FileHash .\Grok_*_x64-setup.exe -Algorithm SHA256
 
 ### 2. 首次运行与准备
 
-1. **启动与环境检查**：首次打开应用时，向导会自动检测本机是否已安装 Grok Build CLI（支持一键多源快速安装）。
+1. **启动与环境检查**：首次打开应用时，向导会检查内置 Grok Build，无需另行安装 CLI。
 2. **账号或中转配置**：支持登录官方账号、绑定 API Key 或配置第三方中转。若本地 CLI 已完成登录，可直接选择 **使用现有 CLI 登录**，无需重复授权。
 3. **添加项目**：选择并信任本地工作目录。
 4. **开始对话**：连接 Agent，选择 **Ask** 或 **YOLO** 模式，开始享受高效的桌面开发辅助！
 
 #### 系统与依赖要求
-- 本机已安装 **Grok Build CLI**（`grok`）**0.2.112 或更高版本**（可通过终端运行 `grok update` 进行更新）。
+- **Grok Build 已内置**，随 Grok App 更新；在 App 内配置账号或模型服务即可，终端 CLI 可独立安装和维护。
 - Windows 环境需要 **WebView2 Runtime**（Windows 11 通常已内置；若缺失安装包会自动引导安装）。
 - Linux AppImage：宿主需要 `libEGL.so.1` 以及 WebKitGTK 4.1 / Ayatana，见 [Linux 运行时库](#linux-运行时库appimage)。
 
@@ -201,7 +202,7 @@ sudo apt-get install -y libegl1 libgles2 libwebkit2gtk-4.1-0 libayatana-appindic
 
 然后 `chmod +x` 再运行 AppImage（或解压后的 `usr/bin/grok-app`）。`.deb` 已声明 `libwebkit2gtk-4.1-0` 与 `libgtk-3-0`。
 
-这是**进程启动时缺共享库**，不是下面 [Linux 渲染提示](#linux-渲染提示-webkitgtk) 的 Wayland / `EGL_BAD_PARAMETER` 情况。见 [#899](https://github.com/RongleCat/grok-app/issues/899)。
+这是**进程启动时缺共享库**，不是下面 [Linux 渲染提示](#linux-渲染提示-webkitgtk) 的 Wayland / `EGL_BAD_PARAMETER` 情况。见 [#899](https://github.com/iotwq/grok-app/issues/899)。
 
 ---
 
@@ -362,7 +363,7 @@ Windows（可选）：双击 [`install-latest.cmd`](./install-latest.cmd) 会把
   <a href="https://github.com/Yux-c" title="Yux-c"><img src="https://github.com/Yux-c.png?size=96" width="72" height="72" alt="Yux-c" style="border-radius:50%" /></a>
 </p>
 
-[完整贡献图 →](https://github.com/RongleCat/grok-app/graphs/contributors)
+[完整贡献图 →](https://github.com/iotwq/grok-app/graphs/contributors)
 <!-- CONTRIBUTORS:END -->
 
 ---

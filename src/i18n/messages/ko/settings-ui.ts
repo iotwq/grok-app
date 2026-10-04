@@ -477,7 +477,7 @@ export const koSettingsUi = {
   "settings.autoUpdateReady": "업데이트를 다운로드했습니다 — 준비가 되면 「설치하고 다시 시작」을 확인하세요.",
   "settings.autoUpdateInstall": "설치하고 다시 시작",
   "settings.autoUpdateConfirm.title": "업데이트를 설치하고 다시 시작할까요?",
-  "settings.autoUpdateConfirm.message": "버전 {version}이 설치되며 앱이 다시 시작됩니다.",
+  "settings.autoUpdateConfirm.message": "버전 {version}과 내장 Grok Build를 설치합니다. 실행 중인 작업이 중지되고 Grok App이 다시 시작됩니다.",
   "settings.autoUpdateConfirm.confirm": "설치하고 다시 시작",
   "settings.autoUpdateConfirm.cancel": "취소",
   "settings.autoUpdateInstalling": "설치 중…",

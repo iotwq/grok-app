@@ -33,9 +33,12 @@ import { Tip } from "@/components/ui/tooltip";
 import { ContextMenu, type ContextMenuItem } from "@/components/ContextMenu";
 import { createT, type Locale } from "@/i18n";
 import { pathBasename } from "@/lib/attachments";
+import { useResourceActionFeedback } from "./ResourceActionNotice";
+import { isExternalHttpUrl, openExternalHttpUrlChecked } from "@/lib/externalLinkPref";
 import { revealInOsLabel } from "@/lib/appPlatform";
 
 export interface VideoUiLabels {
+  locale?: Locale;
   open: string;
   reveal: string;
   copyPath: string;
@@ -347,69 +350,52 @@ export const VideoUi = memo(function VideoUi({
     [localPath],
   );
 
+  const tr = createT(labels.locale ?? "en");
+  const feedback = useResourceActionFeedback();
+  const remoteUrl = !localPath && isExternalHttpUrl(src) ? src : null;
+
   const startPlayback = () => {
     setError(false);
     setStarted(true);
   };
 
-  const openExternal = async () => {
-    if (!localPath || !api.isTauri()) return;
-    try {
-      await api.pathOpen(localPath);
-    } catch (e) {
-      console.error(e);
-    }
-  };
+  const openExternal = () => feedback.run(async () => {
+    if (localPath && api.isTauri()) await api.pathOpen(localPath);
+    else if (remoteUrl) await openExternalHttpUrlChecked(remoteUrl);
+    else throw new Error("host_only");
+  }, tr("resource.openFailed"));
 
-  const revealPath = async () => {
-    if (!localPath || !api.isTauri()) return;
-    try {
-      await api.pathReveal(localPath);
-    } catch (e) {
-      console.error(e);
-    }
-  };
+  const revealPath = () => feedback.run(async () => {
+    if (!localPath || !api.isTauri()) throw new Error("host_only");
+    await api.pathReveal(localPath);
+  }, tr("resource.openFailed"));
 
-  const copyPath = async () => {
-    if (!localPath) return;
-    try {
-      await navigator.clipboard.writeText(localPath);
-    } catch {
-      /* ignore */
-    }
-  };
+  const copyPath = () => feedback.run(
+    () => navigator.clipboard.writeText(localPath || remoteUrl || ""),
+    tr("resource.copyFailed"), tr("message.copied"),
+  );
 
   const displayTitle = title || (localPath ? pathBasename(localPath) : "");
   const playLabel = labels.play || "Play";
 
-  const menuItems: ContextMenuItem[] = [];
-  if (localPath) {
-    menuItems.push(
-      {
-        id: "open",
-        label: labels.open,
-        icon: <IconExternalLink size={16} />,
-        onClick: () => {
-          void openExternal();
-        },
-      },
-      {
-        id: "reveal",
-        label: labels.reveal,
-        icon: <IconFolder size={16} />,
-        onClick: () => {
-          void revealPath();
-        },
-      },
-      {
-        id: "copy-path",
-        label: labels.copyPath,
-        icon: <IconCopy size={16} />,
-        onClick: () => {
-          void copyPath();
-        },
-      },
-    );
+  const menuItems: ContextMenuItem[] = [
+    { id: "play", label: playLabel, onClick: startPlayback },
+  ];
+  if (localPath || remoteUrl) {
+    menuItems.push({
+      id: "open", label: labels.open, icon: <IconExternalLink size={16} />,
+      disabled: feedback.busy || (!!localPath && !api.isTauri()),
+      onClick: () => void openExternal(),
+    });
+    if (localPath && api.isTauri()) menuItems.push({
+      id: "reveal", label: labels.reveal, icon: <IconFolder size={16} />,
+      disabled: feedback.busy, onClick: () => void revealPath(),
+    });
+    menuItems.push({
+      id: "copy-path", label: remoteUrl ? tr("message.copyLink") : labels.copyPath,
+      icon: <IconCopy size={16} />, disabled: feedback.busy,
+      onClick: () => void copyPath(),
+    });
   }
 
   const ar =
@@ -450,6 +436,7 @@ export const VideoUi = memo(function VideoUi({
           (className ? " " + className : "")
         }
         style={cardStyle}
+        data-output-resource="video"
         onContextMenu={(e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -533,6 +520,7 @@ export const VideoUi = memo(function VideoUi({
           </Tip>
         ) : null}
       </div>
+      {feedback.notice}
       <ContextMenu
         open={!!menu}
         x={menu?.x ?? 0}
@@ -552,6 +540,7 @@ export function videoUiLabels(locale: Locale): VideoUiLabels {
   if (!cached) {
     const tr = createT(locale);
     cached = {
+      locale,
       open: tr("attach.open"),
       reveal: revealInOsLabel(tr),
       copyPath: tr("attach.copyPath"),

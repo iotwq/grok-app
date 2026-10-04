@@ -2,43 +2,21 @@
 
 Product rules for the **full-screen initialization wizard** before the workbench home.
 
-## Goals
+## Goals and runtime gate
 
-1. **Hard gate:** Grok Build CLI must be found and runnable before entering home.
-2. **Soft gate:** Official login / API key / custom relay may be **skipped**.
-3. Match app chrome (tokens, logo, dark/light); **no scrollbars** on the gate page.
-4. Install uses **multi-mirror** download with retries (same bases as official `install.sh`).
-
-## Flow
+Desktop packages include their own pinned Grok Build runtime. See
+[bundled-runtime.md](./bundled-runtime.md) for packaging, update and license rules.
 
 ```
-boot → probe CLI (≤3s per --version; Host spawn_blocking)
-  ├─ timeout (FE 12s) → loading chrome + Retry / open Setup (not infinite spin)
-  ├─ no CLI → SetupWizard step Runtime (install required)
-  ├─ CLI ok + !setupWizardCompleted → Account step (skippable)
-  └─ CLI ok + setupWizardCompleted → home
+boot → probe bundled runtime (≤3s --version)
+  ├─ missing/unrunnable → recovery step: download/reinstall App or retry
+  ├─ ready + !setupWizardCompleted → Account step (skippable)
+  └─ ready + setupWizardCompleted → home
 ```
 
-### Step 1 — Runtime (cannot skip)
-
-| Action | Host |
-|--------|------|
-| Detect | `probe_cli` — mac + Windows (see below) |
-| Auto install | `cli_install_latest` + event `setup://cli-install-progress` |
-| Manual path | `pick_cli_binary` → `manualCliPath` |
-| **WSL backend (Windows)** | Settings → Runtime → CLI → **Use WSL for Grok Build** (`cliBackend=wsl`). Spawns `wsl.exe [-d distro] --cd /mnt/… -- grok agent stdio` when the binary exists only inside WSL. Optional `wslDistro` / `wslCliPath`. **ACP server (API mode)** still wins when `acpServerAddr` is set. |
-| Fallback | Copy official install command / open docs |
-
-Mirrors (order):
-
-1. `https://storage.googleapis.com/grok-build-public-artifacts/cli` (preferred — more reliable in CN)
-2. `https://x.ai/cli`
-
-Each mirror is tried multiple times before failing over.
-
-**Checksum trust:** download is HTTPS-allowlisted; streamed SHA-256 is always computed. If the mirror publishes a sidecar, **mismatch aborts**. Official mirrors currently omit sidecars (same as `install.sh` / `install.ps1`), so **missing checksum is allowed by default** and stored as `checksum_verified: false`. Strict fail-closed: `GROK_CLI_REQUIRE_CHECKSUM=1` (override with Settings → Runtime “Allow unverified CLI install” or `GROK_CLI_ALLOW_UNVERIFIED=1`).
-
-**Trust grades (UI):** pure `src/lib/cliTrustSupplyChain.ts` maps install outcomes to grades `verified` · `missing_sidecar` · `mismatch` · `unverified_allowed` · `unknown` — never invents sidecar presence. Setup shows a risk chip on missing sidecar / mismatch (hard-fail honesty; no force on mismatch). Settings → Runtime shows a trust chip for the last App-managed install; Doctor adds a `cli_checksum` finding when `lastCliChecksumVerified` is known.
+No external binary picker, PATH scan, WSL CLI selection or separate CLI installer.
+An old `manualCliPath` setting cannot override the bundled binary. Account remains
+optional; the runtime readiness gate cannot be skipped.
 
 ### Step 2 — Account (skippable)
 
@@ -87,31 +65,14 @@ Pure helpers: `src/lib/setupGatePro.ts` (+ tests).
 | Ready checklist | Never soft-ok CLI; auth row is soft when skipped |
 | Legacy migrate | Older `onboardingDone` / `setupSkipped` + CLI → write `setupWizardCompleted` once |
 
-Checksum: missing sidecar may offer **Install without checksum**; **mismatch never** offers unverified force. Grades + chips: `cliTrustSupplyChain` (`resolveChecksumTrustGrade` / `planInstallWithoutChecksum`).
+## Runtime probing and recovery
 
-## CLI probe (mac + Windows)
+`probe_cli` resolves only the bundled executable; `--version` must succeed within
+the existing timeout. A missing or failed executable cannot fall back to a terminal
+installation. Packaging verifies the pinned artifact SHA-256 before it is included.
 
-`cli_probe::probe_cli` must work when the app is launched from Dock / Explorer (sparse PATH):
-
-| Source | macOS | Windows |
-|--------|-------|---------|
-| Official install | `~/.grok/bin/grok` (+ downloads) | `%USERPROFILE%\.grok\bin\grok.exe` (+ downloads) |
-| Package managers | Homebrew `/opt/homebrew`, `/usr/local` | WinGet Links, Scoop shims, Chocolatey |
-| PATH | process PATH + enriched PATH scan | same; names `grok.exe` / `.cmd` / `.bat` |
-| Manual | `~` expansion | `~` / `%USERPROFILE%` / auto-append `.exe` |
-| Home dir | `$HOME` | **`USERPROFILE` first** (not MSYS `$HOME`) |
-
-`--version` is preferred; a runnable binary without version still counts as found.
-
-## Commands
-
-| Command | Role |
-|---------|------|
-| `probe_cli` | Detect binary (cross-platform) |
-| `cli_install_latest` | Download + link into `~/.grok` |
-| `cli_install_commands` | Platform shell command + docs URL |
-| `pick_cli_binary` | File picker |
-| `open_external_url` | Open install docs |
+Legacy install/update/picker/sidecar-repair commands are disabled in the backend.
+Recovery offers reinstalling Grok App and retrying the probe, not CLI installation.
 
 ## Managed configuration (enterprise, optional)
 
@@ -153,15 +114,12 @@ Doctor / Windows day-use checklist may surface related rows but **must not inven
 
 ## Non-goals
 
-- Embedding the CLI binary in the app package (B04).
-- Silent download without multi-mirror retry.
 - Forcing project selection before home.
 - App-side re-implementation of managed-config crypto verification.
 - Claiming silent auto-update for unsigned / local builds (see [desktop-auto-update.md](../desktop-auto-update.md)).
 
 ### CLI execution readiness
 
-Executable permission alone is insufficient. Startup probes skip CLI candidates that
-cannot spawn, exit unsuccessfully, or time out. A successful `--version` without a
-banner remains a compatible fallback; a later candidate with a version is preferred.
-If every candidate fails, Setup stays in the CLI installation/selection step.
+Executable permission alone is insufficient. The bundled executable must spawn and finish successfully within the timeout.
+A successful `--version` without a banner remains compatible. If it fails, Setup
+stays in the App recovery step.

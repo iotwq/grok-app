@@ -1,5 +1,13 @@
 /** ja messages — domain: settings */
 export const jaSettings = {
+  "settings.updateNoCompatibleInstaller": "このリリースには、お使いのシステムとプロセッサに対応するインストーラーが見つかりません。",
+  "settings.updateSourceUnconfigured": "このビルドには更新元が設定されていません。配布元が提供する更新をインストールしてください。",
+  "runtime.bundled.updateRecovery": "更新を完了できませんでした。Grok App を再起動してバックグラウンドサービスを復元し、更新を再試行してください。",
+  "runtime.bundled.restart": "Grok App を再起動",
+  "runtime.bundled.title": "内蔵 Grok Build",
+  "runtime.bundled.description": "Grok Build は内蔵されており、Grok App と一緒に更新されます。ターミナルにインストールした CLI は個別に管理されます。",
+  "runtime.bundled.missing": "内蔵ランタイムが見つからないか起動できません。Grok App を再インストールしてお試しください。",
+  "runtime.bundled.download": "Grok App をダウンロード",
   "settings.sessionMuteSummary": "ミュート中のセッション",
   "settings.sessionMuteSummaryDesc": "これらのチャットはデスクトップ通知がミュートされています。バックグラウンドで返信が終わっても、サイドバーの未読ドットは出ます。",
   "settings.sessionMuteCount": "{n} 件ミュート",
@@ -345,7 +353,7 @@ export const jaSettings = {
   "settings.backBottomAlways": "最新へ戻るを常に表示",
   "settings.backBottomAlwaysDesc": "すでに一番下にいても、最新へスクロールする操作を表示したままにします。既定はオフ（上にスクロールしたときだけ表示）。",
   "settings.selectionToolbar": "選択ツールバー",
-  "settings.selectionToolbarDesc": "会話テキストを選択するとコピー／入力へ追加バーを表示します。オフでも右クリックは使えます。",
+  "settings.selectionToolbarDesc": "テキストを選択すると「チャットに追加」と「サイドチャットで質問」を表示します。オフの場合も右クリックで利用できます。",
   "settings.confirmExternalLinks": "リンクを開く前に確認",
   "settings.confirmExternalLinksDesc": "チャットの http(s) リンクをブラウザで開く前に確認します。既定はオフ。",
   "settings.messageActions": "メッセージ操作",

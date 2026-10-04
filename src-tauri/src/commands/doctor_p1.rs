@@ -165,7 +165,7 @@ pub async fn doctor_report() -> Result<serde_json::Value, String> {
             "path": probe.path,
             "version": probe.version,
             "source": probe.source,
-            "checksumVerified": settings.last_cli_checksum_verified,
+            "checksumVerified": serde_json::Value::Null,
             "minVersion": probe.min_version,
             "recommendedVersion": probe.recommended_version,
             "meetsRecommended": probe.meets_recommended,
@@ -204,7 +204,7 @@ pub async fn doctor_report() -> Result<serde_json::Value, String> {
     let mut checks: Vec<DoctorCheck> = Vec::with_capacity(6);
 
     // 1) CLI
-    let checksum_verified = settings.last_cli_checksum_verified;
+    let checksum_verified: Option<bool> = None; // Runtime integrity is checked during packaging, not by the old installer.
     if probe.found {
         let ver = probe.version.as_deref().unwrap_or("unknown");
         let path = probe.path.as_deref().unwrap_or("—");
@@ -253,7 +253,7 @@ pub async fn doctor_report() -> Result<serde_json::Value, String> {
             "cli",
             "fail",
             "Grok Build CLI",
-            "Grok Build CLI not found. Install from Settings → Runtime or the setup wizard."
+            "Bundled Grok Build is missing or cannot start. Reinstall Grok App."
                 .into(),
             serde_json::json!({
                 "found": false,
@@ -296,7 +296,7 @@ pub async fn doctor_report() -> Result<serde_json::Value, String> {
             "CLI vs ACP agentVersion skew",
             format!(
                 "probed grok reports {:?} but last ACP initialize reported {:?}. \
-                 Restart sessions after CLI update, reinstall Grok Build CLI, or \
+                 Restart Grok App after an App update, reinstall Grok App, or \
                  (API mode) confirm the remote agent binary matches Settings → Runtime.",
                 probe.version, probe.acp_agent_version
             ),

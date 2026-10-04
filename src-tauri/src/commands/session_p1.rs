@@ -418,25 +418,7 @@ pub async fn cli_install_commands() -> Result<serde_json::Value, String> {
 /// Native file picker for a Grok Build binary (manual path).
 #[tauri::command]
 pub async fn pick_cli_binary() -> Result<Option<String>, String> {
-    let file = tauri::async_runtime::spawn_blocking(|| {
-        // Windows rebinds after add_filter; other platforms keep the builder immutable.
-        #[cfg(target_os = "windows")]
-        {
-            let dlg = rfd::FileDialog::new()
-                .set_title("Select Grok Build binary / 选择 Grok Build 可执行文件")
-                .add_filter("Executable", &["exe", "cmd", "bat"]);
-            dlg.pick_file()
-        }
-        #[cfg(not(target_os = "windows"))]
-        {
-            rfd::FileDialog::new()
-                .set_title("Select Grok Build binary / 选择 Grok Build 可执行文件")
-                .pick_file()
-        }
-    })
-    .await
-    .map_err(|e| e.to_string())?;
-    Ok(file.map(|p| p.display().to_string()))
+    Err(crate::bundled_runtime::MANAGED_UPDATE_ERROR.into())
 }
 
 /// Native file picker for an agent profile (markdown / any file).

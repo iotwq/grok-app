@@ -1,5 +1,13 @@
 /** fr messages — domain: settings */
 export const frSettings = {
+  "settings.updateNoCompatibleInstaller": "Aucun programme d’installation compatible avec ce système et ce processeur n’a été trouvé dans cette version.",
+  "settings.updateSourceUnconfigured": "Aucune source de mise à jour n’est configurée pour cette version. Installez les mises à jour fournies par son distributeur.",
+  "runtime.bundled.updateRecovery": "La mise à jour a échoué. Redémarrez Grok App pour rétablir les services en arrière-plan, puis réessayez.",
+  "runtime.bundled.restart": "Redémarrer Grok App",
+  "runtime.bundled.title": "Grok Build intégré",
+  "runtime.bundled.description": "Grok Build est inclus et mis à jour avec Grok App. Les installations CLI du terminal sont gérées séparément.",
+  "runtime.bundled.missing": "Le moteur intégré est absent ou ne démarre pas. Réinstallez Grok App et réessayez.",
+  "runtime.bundled.download": "Télécharger Grok App",
   "settings.sessionMuteSummary": "Sessions en sourdine",
   "settings.sessionMuteSummaryDesc": "Les notifications de bureau sont coupées pour ces conversations. Les points non lus de la barre latérale s’affichent encore lorsqu’une réponse d’arrière-plan se termine.",
   "settings.sessionMuteCount": "{n} en sourdine",
@@ -345,7 +353,7 @@ export const frSettings = {
   "settings.backBottomAlways": "Toujours afficher retour en bas",
   "settings.backBottomAlwaysDesc": "Garder le contrôle aller au plus récent visible même déjà en bas. Désactivé par défaut (s’affiche seulement après défilement vers le haut).",
   "settings.selectionToolbar": "Barre de sélection",
-  "settings.selectionToolbarDesc": "Afficher une barre copier / ajouter au chat quand vous sélectionnez du texte. Le clic droit reste disponible si c’est désactivé.",
+  "settings.selectionToolbarDesc": "Affiche « Ajouter au chat » et « Poser une question dans le chat latéral » lors de la sélection de texte. Le clic droit reste disponible si cette option est désactivée.",
   "settings.confirmExternalLinks": "Confirmer avant d’ouvrir les liens",
   "settings.confirmExternalLinksDesc": "Demander avant d’ouvrir des liens http(s) du chat dans le navigateur. Désactivé par défaut.",
   "settings.messageActions": "Actions de message",

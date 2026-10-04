@@ -1,5 +1,7 @@
 /** fil messages — domain: workspace */
 export const filWorkspace = {
+  "side.browser.back": "Bumalik",
+  "side.browser.forward": "Pasulong",
   "resources.title": "Mga Resources",
   "resources.files": "Mga file",
   "resources.preview": "Pumili ng file",

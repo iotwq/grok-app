@@ -477,7 +477,7 @@ export const ukSettingsUi = {
   "settings.autoUpdateReady": "Оновлення завантажено — підтвердіть «Установити й перезапустити», коли будете готові.",
   "settings.autoUpdateInstall": "Установити й перезапустити",
   "settings.autoUpdateConfirm.title": "Установити оновлення й перезапустити?",
-  "settings.autoUpdateConfirm.message": "Буде встановлено версію {version}, після чого застосунок перезапуститься.",
+  "settings.autoUpdateConfirm.message": "Буде встановлено версію {version} із вбудованим Grok Build. Поточні завдання буде зупинено, а Grok App перезапуститься.",
   "settings.autoUpdateConfirm.confirm": "Установити й перезапустити",
   "settings.autoUpdateConfirm.cancel": "Скасувати",
   "settings.autoUpdateInstalling": "Встановлення…",

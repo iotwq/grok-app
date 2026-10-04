@@ -10,7 +10,7 @@ publishes unchanging aliases:
 
 Usage (CI, after versioned assets are on the tag):
   python3 scripts/publish-website-downloads.py \\
-    --dir /tmp/release-assets --tag v0.2.20 --repo RongleCat/grok-app --write-aliases
+    --dir /tmp/release-assets --tag v0.2.20 --repo iotwq/grok-app --write-aliases
 
   python3 scripts/publish-website-downloads.py --self-test
 """
@@ -35,8 +35,10 @@ DOWNLOADS_JSON_NAME = "downloads.json"
 REQUIRED_IDS = (
     "mac-aarch64",
     "mac-x64",
-    "windows-x64",
-    "windows-x64-portable",
+  "windows-x64",
+  "windows-x64-portable",
+  "windows-arm64",
+  "windows-arm64-portable",
     "linux-x64-appimage",
     "linux-x64-deb",
     "linux-x64-rpm",
@@ -79,6 +81,24 @@ INSTALLER_SPEC: tuple[dict[str, Any], ...] = (
         "label": "Windows x64 portable",
         "stable": "Grok_windows_x64-portable.zip",
         "sources": ("Grok_{ver}_x64-portable.zip",),
+    },
+    {
+        "id": "windows-arm64",
+        "os": "windows",
+        "arch": "arm64",
+        "kind": "nsis",
+        "label": "Windows ARM64",
+        "stable": "Grok_windows_arm64-setup.exe",
+        "sources": ("Grok_{ver}_arm64-setup.exe",),
+    },
+    {
+        "id": "windows-arm64-portable",
+        "os": "windows",
+        "arch": "arm64",
+        "kind": "portable-zip",
+        "label": "Windows ARM64 portable",
+        "stable": "Grok_windows_arm64-portable.zip",
+        "sources": ("Grok_{ver}_arm64-portable.zip",),
     },
     {
         "id": "linux-x64-appimage",
@@ -238,7 +258,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dir", type=Path, help="Directory of downloaded release assets")
     parser.add_argument("--tag", help="Release tag, e.g. v0.2.20")
-    parser.add_argument("--repo", default="RongleCat/grok-app", help="owner/name")
+    parser.add_argument("--repo", default="iotwq/grok-app", help="owner/name")
     parser.add_argument(
         "--write-aliases",
         action="store_true",
@@ -292,6 +312,8 @@ class WebsiteDownloadsTests(unittest.TestCase):
                 "Grok_0.2.20_x64.dmg": b"intel-dmg",
                 "Grok_0.2.20_x64-setup.exe": b"win-setup",
                 "Grok_0.2.20_x64-portable.zip": b"win-zip",
+                "Grok_0.2.20_arm64-setup.exe": b"win-arm-setup",
+                "Grok_0.2.20_arm64-portable.zip": b"win-arm-zip",
                 "Grok_0.2.20_amd64.AppImage": b"appimage",
                 "Grok_0.2.20_amd64.deb": b"deb",
                 "Grok-0.2.20-1.x86_64.rpm": b"rpm",
@@ -303,21 +325,25 @@ class WebsiteDownloadsTests(unittest.TestCase):
             payload = build_manifest(
                 root,
                 tag="v0.2.20",
-                repo="RongleCat/grok-app",
+                repo="iotwq/grok-app",
                 write_aliases=True,
             )
             installers = payload["manifest"]["installers"]
             self.assertEqual(
                 installers["mac-x64"]["url"],
-                "https://github.com/RongleCat/grok-app/releases/latest/download/Grok_mac_x64.dmg",
+                "https://github.com/iotwq/grok-app/releases/latest/download/Grok_mac_x64.dmg",
             )
             self.assertEqual(
                 installers["windows-x64"]["url"],
-                "https://github.com/RongleCat/grok-app/releases/latest/download/Grok_windows_x64-setup.exe",
+                "https://github.com/iotwq/grok-app/releases/latest/download/Grok_windows_x64-setup.exe",
+            )
+            self.assertEqual(
+                installers["windows-arm64"]["url"],
+                "https://github.com/iotwq/grok-app/releases/latest/download/Grok_windows_arm64-setup.exe",
             )
             self.assertEqual(
                 installers["mac-x64"]["versionedUrl"],
-                "https://github.com/RongleCat/grok-app/releases/download/v0.2.20/Grok_0.2.20_x64.dmg",
+                "https://github.com/iotwq/grok-app/releases/download/v0.2.20/Grok_0.2.20_x64.dmg",
             )
             self.assertEqual(installers["mac-x64"]["sha256"], hashlib.sha256(b"intel-dmg").hexdigest())
             self.assertEqual((root / "Grok_mac_x64.dmg").read_bytes(), b"intel-dmg")
@@ -346,7 +372,7 @@ class WebsiteDownloadsTests(unittest.TestCase):
                 build_manifest(
                     root,
                     tag="v0.2.20",
-                    repo="RongleCat/grok-app",
+                    repo="iotwq/grok-app",
                     write_aliases=False,
                 )
             self.assertIn("mac-x64", str(ctx.exception))

@@ -373,6 +373,7 @@ fn normalize_ver(s: &str) -> String {
 
 /// Resolve CLI binary and run `update --check --json`.
 pub fn check_cli_update(manual_path: Option<&str>) -> Result<CliUpdateCheck, String> {
+    crate::bundled_runtime::reject_separate_update()?;
     let probe = cli_probe::probe_cli(manual_path);
     let path = probe.path.filter(|_| probe.found).ok_or_else(|| {
         "Grok Build CLI not found — install or set the path under Runtime".to_string()
@@ -419,6 +420,7 @@ pub async fn install_cli_update(
     app: tauri::AppHandle,
     opts: CliUpdateInstallOpts,
 ) -> Result<CliInstallResult, String> {
+    crate::bundled_runtime::reject_separate_update()?;
     let app_ver = env!("CARGO_PKG_VERSION");
     if !opts.acknowledge_app_behind {
         let mut behind = app_version_below_cli_upgrade_floor(app_ver);

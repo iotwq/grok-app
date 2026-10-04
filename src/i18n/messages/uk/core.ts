@@ -1,5 +1,13 @@
 /** uk messages — domain: core */
 export const ukCore = {
+  "resource.openLink": "Відкрити посилання",
+  "resource.openSide": "Відкрити в бічному браузері",
+  "resource.copyAddress": "Копіювати адресу зображення",
+  "resource.copyFailed": "Не вдалося скопіювати. Спробуйте ще раз.",
+  "resource.openFailed": "Не вдалося відкрити цей ресурс. Спробуйте ще раз.",
+  "resource.working": "Обробка…",
+  "image.saveAs": "Зберегти зображення як…",
+  "image.saveFailed": "Не вдалося зберегти зображення. Спробуйте ще раз.",
   "app.name": "Grok",
   "image.loadingOriginal": "Завантаження оригіналу…",
   "image.originalFailed": "Не вдалося завантажити оригінал. Попередній перегляд залишається доступним.",
@@ -36,7 +44,7 @@ export const ukCore = {
   "office.pageOf": "{page} / {total}",
   "image.view": "Переглянути зображення",
   "image.copy": "Копіювати зображення",
-  "image.copyHint": "Клацніть правою кнопкою, щоб скопіювати зображення",
+  "image.copyHint": "Клацніть правою кнопкою для дій із зображенням",
   "image.next": "Наступне зображення",
   "image.prev": "Попереднє зображення",
   "image.close": "Закрити",

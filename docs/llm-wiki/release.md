@@ -7,7 +7,7 @@
 - 每次正式版 = **一个 git tag `vX.Y.Z`** + **GitHub Release** + **多平台安装包**  
   - macOS Apple Silicon (`aarch64` `.dmg`)  
   - macOS Intel (`x64` `.dmg`)  
-  - Windows x64 安装版 (`*-setup.exe`) + **绿色版** (`*-portable.zip`)  
+  - Windows x64 / ARM64 安装版 (`*-setup.exe`) + **绿色版** (`*-portable.zip`)
   - Linux x64：**AppImage** + **.deb**（Debian/Ubuntu 系）+ **.rpm**（Fedora/RHEL 系）
 - Release 正文**只保留本版变更**（`CHANGELOG.md` 对应 `## [X.Y.Z]` 章节）。  
   下载资产由 GitHub 自动挂在下方；安装 / Gatekeeper / SmartScreen / CLI 说明见 README，**不要**在每个 Release 重复长文。
@@ -121,7 +121,7 @@ python3 scripts/changelog-for-release.py 0.1.0
 | 项 | 约定 |
 |----|------|
 | 脚本 | `python3 scripts/update-contributors.py` |
-| 数据源 | GitHub Contributors API（`RongleCat/grok-app`），过滤 bot |
+| 数据源 | GitHub Contributors API（`iotwq/grok-app`），过滤 bot |
 | 展示 | **仅圆形头像**（`border-radius:50%`），中英 README 同一结构 |
 | 写入位置 | `README.md` / `README_EN.md` / `README_ZH.md` / `README_RU.md` 内 `<!-- CONTRIBUTORS:START -->` … `END` |
 | 禁止 | 贡献者表格 + 方形头像 + `contrib.rocks` 条带（避免双轨维护） |
@@ -139,6 +139,11 @@ git commit -m "docs: refresh README contributors gallery"   # 若有变更
 手工 `git tag` 而不走脚本时，**仍须**先跑 `update-contributors.py` 并提交。
 
 ## 标准发版步骤（复制即用）
+
+本地安装包也必须使用完整 `tauri build` 流程，不能直接打包缺少
+`tauri/custom-protocol` 的 Cargo release 产物。最终交付检查需关闭 Vite
+开发服务器，并从最终安装包实际启动桌面主页面、检查输入框和设置；
+内置 CLI、签名与 DMG 校验不能替代桌面启动验证。详见 `docs/BUILD.md`。
 
 ```bash
 # 0) 工作区干净、main 最新
@@ -181,7 +186,7 @@ git push origin vX.Y.Z
 | 工作流 | 触发 | 作用 |
 |--------|------|------|
 | `.github/workflows/ci.yml` | push/PR → main | typecheck、test、`build:ui`、mac/win `cargo test` |
-| `.github/workflows/release.yml` | tag `v*` 或手动 | 矩阵：mac×2 + win（setup+portable）+ linux（AppImage/deb/rpm）→ 同一 Release |
+| `.github/workflows/release.yml` | tag `v*` 或手动 | 矩阵：mac×2 + win×2（x64/ARM64，setup+portable）+ linux（AppImage/deb/rpm）→ 同一 Release |
 
 Release job 关键：
 
@@ -219,7 +224,7 @@ open /Applications/Grok.app
 - **安装版** NSIS + **绿色版** zip（解压即用）均上传到同一 Release。  
 - SmartScreen 可能提示未知发布者 →「更多信息」→「仍要运行」。  
 - 需 **WebView2**（Win10/11 多已预装）。  
-- 真 Agent 需本机 **Grok Build CLI**（`grok.exe`）。
+- 安装包与 portable 内置固定 Grok Build；用户不必另装终端 CLI，发版需验证 `grok-build.exe` 与许可目录齐全。
 
 ## Linux 说明
 
@@ -244,10 +249,10 @@ pnpm build:win   # tauri + cargo-xwin + makensis
 
 **Agent 必须盯到整条 `release` 工作流结束**，不能只看 tag 已推或 mac/linux 先绿。`fail-fast: false` 时某一平台失败仍可能先挂上其它安装包，形成「Latest 缺 Windows」这类半成品（见 v0.2.32 / #1039）。
 
-- [ ] Actions `release`：**四个 Build job 全绿**（macOS-ARM64 / macOS-x64 / Windows-x64 / Linux-x64）  
+- [ ] Actions `release`：**五个 Build job 全绿**（macOS-ARM64 / macOS-x64 / Windows-ARM64 / Windows-x64 / Linux-x64）
 - [ ] **`Gate — all platform installers present` 全绿**（`scripts/assert-release-assets.sh`；缺 setup.exe / portable.zip 等会硬失败）  
 - [ ] `Publish SHA256SUMS + website downloads` 全绿  
-- [ ] GitHub Release 页含：两 dmg、**`*-setup.exe`、`*-portable.zip`**、AppImage、deb、rpm  
+- [ ] GitHub Release 页含：两 dmg、Windows x64/ARM64 的 **`*-setup.exe`、`*-portable.zip`**、AppImage、deb、rpm
 - [ ] 同一 Release 含稳定别名（`Grok_mac_x64.dmg` / `Grok_windows_x64-setup.exe` 等）+ `downloads.json`
 - [ ] Release body 仅为该版本变更列表（无整页下载表/安装长文）  
 - [ ] README 下载链接指向 Releases（相对路径已写）  
@@ -256,7 +261,7 @@ pnpm build:win   # tauri + cargo-xwin + makensis
 本地快速核对（tag 已出包后）：
 
 ```bash
-bash scripts/assert-release-assets.sh vX.Y.Z --repo RongleCat/grok-app
+bash scripts/assert-release-assets.sh vX.Y.Z --repo iotwq/grok-app
 gh release view vX.Y.Z --json assets --jq '[.assets[].name]'
 ```
 
@@ -293,3 +298,12 @@ gh release view vX.Y.Z --json assets --jq '[.assets[].name]'
 | [website-downloads.md](./website-downloads.md) | 官网下载对接契约（完整） |
 | `docs/BUILD.md` | 本地构建细节 |
 | `README.md` / `README_EN.md` | 用户安装与 Gatekeeper |
+
+### Distributor update source (2026-10-04)
+
+Local/fork builds do not default to the upstream repository's release channel.
+For manual updates, supply both `GROK_APP_RELEASES_URL` and
+`GROK_APP_RELEASES_HTML_URL` at build time. Release CI derives them from its own
+`github.repository`; signed updater configuration remains separate. With neither
+source configured, About explains that the distributor must provide a new package.
+See [desktop update configuration](../desktop-auto-update.md).

@@ -39,6 +39,7 @@ import { type Project, type SessionRow } from "@/lib/app/sidebarModels";
 import type { ChatMessage, SessionSnapshot } from "@/lib/session";
 import { UiErrorBoundary } from "@/components/UiErrorBoundary";
 import { ConversationThreadLive } from "@/components/lobe-chat";
+import { ChatWithSideChat } from "@/components/TranscriptSideChat";
 import { GoalOrchSessionChip } from "@/components/GoalOrchSessionChip";
 import { PlanStatusBar } from "@/components/PlanStatusBar";
 import { ChatFindLive } from "@/components/ChatFindLive";
@@ -584,6 +585,13 @@ export function WorkbenchChatStage(p: WorkbenchChatStageProps) {
             </div>
           )}
 
+          <ChatWithSideChat
+            sourceKey={session.sessionId ?? `draft-${activeProject?.id ?? "general"}`}
+            locale={resolveLocale(locale)}
+            project={activeProject}
+            projectPath={effectiveProjectPath}
+            onOpenSession={openSession}
+          >
           <div
             className="main__stage"
             style={
@@ -660,6 +668,7 @@ export function WorkbenchChatStage(p: WorkbenchChatStageProps) {
           </AttachedChatLookupContext.Provider>
           {children}
           </div>
+          </ChatWithSideChat>
     </>
   );
 }

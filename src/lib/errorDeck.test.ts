@@ -309,3 +309,30 @@ describe("unavailable provider models", () => {
     expect(resolveErrorDeckCode("AGENT_CRASHED", "Agent process exited")).toBe("AGENT_CRASHED");
   });
 });
+
+describe("provider stream decoding failures", () => {
+  it.each([
+    'Internal error (code -32603, data: {"message":"serialization error: control character (\\\\u0000-\\\\u001F) found while parsing a string at line 2 column 0"})',
+    "Failed to deserialize ResponseStreamEvent from stream",
+    "Failed to deserialize ChatCompletionChunk",
+    "upstream_error: stream_read_error",
+  ])("recognizes the provider failure even under an old crash label: %s", (message) => {
+    expect(classifyErrorMessage(message)).toBe("NETWORK_PROVIDER");
+    expect(resolveErrorDeckCode("AGENT_CRASHED", message)).toBe("NETWORK_PROVIDER");
+  });
+
+  it("keeps a real process exit and unrelated serialization failure distinct", () => {
+    expect(resolveErrorDeckCode("AGENT_CRASHED", "Agent process exited (code 1)")).toBe("AGENT_CRASHED");
+    expect(resolveErrorDeckCode("AGENT_CRASHED", "serialization error: invalid local settings")).toBe("AGENT_CRASHED");
+  });
+});
+
+
+describe("failed Responses payloads", () => {
+  it("does not label a missing output failure as a process crash", () => {
+    expect(resolveErrorDeckCode("AGENT_CRASHED", "serialization error: missing field `output`")).toBe("NETWORK_PROVIDER");
+  });
+  it("prefers the original concurrency limit over the decoding wrapper", () => {
+    expect(resolveErrorDeckCode("AGENT_CRASHED", "gateway_concurrency_limit: serialization error: missing field `output`")).toBe("CONCURRENCY_LIMITED");
+  });
+});

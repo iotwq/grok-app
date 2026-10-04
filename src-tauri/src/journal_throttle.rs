@@ -1,8 +1,8 @@
 //! Streaming journal write throttle (I04).
 //!
 //! Mid-stream assistant persistence must not rewrite `messages.json` on every
-//! token. Flush at most every [`DEFAULT_JOURNAL_FLUSH_MS`], on paragraph
-//! boundaries, or when forced (turn end / stop / disconnect).
+//! token or paragraph. Flush at most every [`DEFAULT_JOURNAL_FLUSH_MS`],
+//! unless forced (turn end / stop / disconnect).
 
 use std::time::{Duration, Instant};
 
@@ -29,9 +29,9 @@ pub fn should_flush_journal(
     min_interval: Duration,
     now: Instant,
     force: bool,
-    paragraph_break: bool,
+    _paragraph_break: bool,
 ) -> bool {
-    if force || paragraph_break {
+    if force {
         return true;
     }
     match last_flush {
@@ -154,7 +154,7 @@ mod tests {
     }
 
     #[test]
-    fn force_and_paragraph_bypass_interval() {
+    fn only_force_bypasses_interval() {
         let t0 = Instant::now();
         let t1 = t0 + Duration::from_millis(10);
         assert!(should_flush_journal(
@@ -164,13 +164,29 @@ mod tests {
             true,
             false
         ));
-        assert!(should_flush_journal(
+        assert!(!should_flush_journal(
             Some(t0),
             Duration::from_millis(500),
             t1,
             false,
             true
         ));
+    }
+
+    #[test]
+    fn dense_paragraphs_do_not_rewrite_the_journal_on_every_chunk() {
+        let mut throttle = JournalWriteThrottle::default();
+        let start = Instant::now();
+        let mut writes = 0;
+        for chunk in 0..100 {
+            let now = start + Duration::from_millis(chunk * 10);
+            if throttle.should_flush(now, false, true) {
+                writes += 1;
+                throttle.mark_flushed(now);
+            }
+        }
+        assert_eq!(writes, 2);
+        assert!(throttle.should_flush(start + Duration::from_millis(999), true, false));
     }
 
     #[test]

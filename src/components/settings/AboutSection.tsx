@@ -4,7 +4,7 @@
 import { useSettingsModel } from "@/providers/SettingsModelContext";
 
 import { IconHelp, IconInfo, IconSparkles } from "@/components/icons";
-import { CliUpdateRow } from "@/components/CliUpdateRow";
+import { BundledRuntimeInfo } from "@/components/BundledRuntimeInfo";
 import { AboutUpdateRow } from "./AboutUpdateRow";
 import { DeveloperModeSection } from "./DeveloperModeSection";
 import { requestWhatsNewOpen } from "@/lib/whatsNew";
@@ -42,7 +42,7 @@ export function AboutSection() {
           }
           id="settings-anchor-aboutCli"
         >
-          <CliUpdateRow t={t} cliFound={cliInfo.found} autoCheck />
+          <BundledRuntimeInfo t={t} cliInfo={cliInfo} />
         </div>
       </div>
       <DeveloperModeSection t={t} rowHighlight={rowHighlight} />

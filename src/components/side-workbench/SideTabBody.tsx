@@ -20,6 +20,7 @@ export type SideTabBodyProps = {
   projectPath?: string | null;
   sshAlias?: string | null;
   active?: boolean;
+  onBrowserUrlChange?: (url: string) => void;
 };
 
 export function SideTabBody({
@@ -28,6 +29,7 @@ export function SideTabBody({
   projectPath = null,
   sshAlias = null,
   active = true,
+  onBrowserUrlChange,
 }: SideTabBodyProps) {
   const tr = useMemo(() => createT(locale as Locale), [locale]);
 
@@ -39,7 +41,8 @@ export function SideTabBody({
         url={tab.url}
         title={tab.title || tab.name}
         active={active}
-        sshAlias={sshAlias}
+        onUrlChange={onBrowserUrlChange}
+        sshAlias={tab.id.startsWith("agent-") ? null : sshAlias}
       />
     );
   }

@@ -5,8 +5,8 @@
  *   install → relaunch. About “Check for updates” stops at `ready`.
  * - Local / unsigned / plugin off: GitHub Releases via `app_check_update` → open page.
  *
- * P0: `prepare_for_app_update` runs only AFTER successful `install()`, so a failed
- * install never kills agents / voice / IM / mirror.
+ * macOS/Linux tear down after installation. Windows must stop children first:
+ * its installer exits this process and cannot replace a running bundled executable.
  */
 
 import { useState, useRef, useCallback, useEffect } from "react";
@@ -14,6 +14,7 @@ import { check, type Update } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { invoke } from "@tauri-apps/api/core";
 import { isDesktopHost, type AppUpdateCheck } from "@/lib/api";
+import { detectAppPlatform } from "@/lib/appPlatform";
 import {
   planUserCheckUpdate,
   shouldInstallWhenReady,
@@ -39,7 +40,7 @@ export type UpdateStatus =
   | { state: "ready"; version: string }
   /** Install staged; process is about to relaunch (or sim page reload). */
   | { state: "restarting"; version: string }
-  | { state: "error"; message: string }
+  | { state: "error"; message: string; restartRequired?: boolean }
   | {
       state: "manual-required";
       version: string;
@@ -60,11 +61,6 @@ const BACKGROUND_BLOCKED_STATES = new Set<UpdateStatus["state"]>([
   "restarting",
   "manual-required",
 ]);
-
-/** Override via VITE_GROK_RELEASES_URL when the repo path differs. */
-const GITHUB_RELEASES_URL =
-  (import.meta.env.VITE_GROK_RELEASES_URL as string | undefined) ||
-  "https://github.com/RongleCat/grok-app/releases/latest";
 
 function toErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
@@ -109,7 +105,7 @@ async function isUpdaterPluginEnabled(): Promise<boolean> {
   }
 }
 
-/** Tear down ACP / mirror / voice / IM — only after successful install. */
+/** Tear down managed children at the platform-specific installation boundary. */
 async function prepareForAppUpdate(): Promise<void> {
   if (!isDesktopHost()) return;
   await invoke("prepare_for_app_update");
@@ -131,6 +127,8 @@ export type UpdaterChannelInfo = {
   pluginEnabled: boolean;
   platformSupported: boolean;
   endpoint: string;
+  manualConfigured?: boolean;
+  releaseUrl?: string;
 };
 
 export type ApplyUpdateResult =
@@ -149,6 +147,7 @@ export function useUpdater() {
     platformSupported: false,
     endpoint: "",
   });
+  const releaseUrlRef = useRef("");
   const statusRef = useRef<UpdateStatus>(initialUpdateStatus());
   const updateRef = useRef<Update | null>(null);
   const checkInFlightRef = useRef(false);
@@ -238,19 +237,19 @@ export function useUpdater() {
 
       installInFlightRef.current = true;
       installWhenReadyRef.current = false;
+      const windowsInstaller = detectAppPlatform() === "win";
       try {
         setStatus({ state: "installing", version });
-        // P0: stage the update first. Only tear down children after install succeeds
-        // so a failed install leaves agents / IM / mirror intact.
+        // Windows install() launches NSIS/MSI and calls process::exit: code after
+        // it never runs. Release the bundled .exe before handing off to Windows.
+        if (windowsInstaller) await prepareForAppUpdate();
         await update.install();
-        try {
-          await prepareForAppUpdate();
-        } catch (prepErr) {
-          // Install already staged — still relaunch so the new binary can start.
-          console.warn(
-            "prepare_for_app_update failed; continuing relaunch",
-            prepErr,
-          );
+        if (!windowsInstaller) {
+          try {
+            await prepareForAppUpdate();
+          } catch (prepErr) {
+            console.warn("prepare_for_app_update failed; continuing relaunch", prepErr);
+          }
         }
         updateRef.current = null;
         if (!aliveRef.current) return;
@@ -258,7 +257,7 @@ export function useUpdater() {
         await relaunch();
       } catch (err) {
         if (!aliveRef.current) return;
-        setStatus({ state: "error", message: toErrorMessage(err) });
+        setStatus({ state: "error", message: toErrorMessage(err), restartRequired: windowsInstaller });
       } finally {
         installInFlightRef.current = false;
       }
@@ -315,9 +314,20 @@ export function useUpdater() {
     [performInstall, setStatus],
   );
 
+  const restartAfterFailedUpdate = useCallback(async () => {
+    const current = statusRef.current;
+    if (current.state !== "error" || !current.restartRequired) return;
+    try {
+      await relaunch();
+    } catch (err) {
+      setStatus({ state: "error", message: toErrorMessage(err), restartRequired: true });
+    }
+  }, [setStatus]);
+
   const installAndRelaunch = useCallback(async () => {
     // Only install when download has finished (status ready).
     const current = statusRef.current;
+    if (current.state === "error" && current.restartRequired) return;
     if (current.state !== "ready") {
       setStatus({
         state: "error",
@@ -343,7 +353,7 @@ export function useUpdater() {
       setStatus({
         state: "manual-required",
         version: r.latestVersion,
-        releaseUrl: r.htmlUrl || GITHUB_RELEASES_URL,
+        releaseUrl: r.htmlUrl || releaseUrlRef.current,
         downloadUrl: r.downloadUrl,
         assetNames: r.assetNames,
       });
@@ -352,9 +362,16 @@ export function useUpdater() {
   );
 
   const runGithubFallback = useCallback(
-    async ({ background }: { background: boolean }) => {
+    async ({ background, failure }: { background: boolean; failure?: string }) => {
       const shouldShow = !background || manualResultRequestedRef.current;
       try {
+        const source = await invoke<{ manualConfigured?: boolean }>("updater_status");
+        if (source.manualConfigured === false) {
+          installWhenReadyRef.current = false;
+          if (aliveRef.current) setStatus(failure && shouldShow
+            ? { state: "error", message: failure } : { state: "idle" });
+          return;
+        }
         const r = await githubCheckUpdate();
         if (!aliveRef.current) return;
         if (shouldShow || r.updateAvailable) {
@@ -373,6 +390,7 @@ export function useUpdater() {
 
   const runUpdateCheck = useCallback(
     async ({ background }: { background: boolean }) => {
+      if (statusRef.current.state === "error" && statusRef.current.restartRequired) return;
       const simMode = readUpdateSimMode();
 
       // DEV simulation: skip host/plugin I/O entirely.
@@ -404,8 +422,8 @@ export function useUpdater() {
             setStatus({
               state: "manual-required",
               version: UPDATE_SIM_VERSION,
-              releaseUrl: GITHUB_RELEASES_URL,
-              downloadUrl: GITHUB_RELEASES_URL,
+              releaseUrl: releaseUrlRef.current,
+              downloadUrl: releaseUrlRef.current,
               assetNames: ["GrokApp-sim.dmg", "GrokApp-sim.exe"],
             });
             return;
@@ -479,14 +497,14 @@ export function useUpdater() {
             console.warn(
               `updater unavailable, falling back to GitHub: ${message}`,
             );
-            await runGithubFallback({ background });
+            await runGithubFallback({ background, failure: message });
             return;
           }
           // Plugin on but endpoint/network failed — fall back so one button still works.
           console.warn(
             `updater check failed, falling back to GitHub: ${message}`,
           );
-          await runGithubFallback({ background });
+          await runGithubFallback({ background, failure: message });
           return;
         }
 
@@ -527,11 +545,7 @@ export function useUpdater() {
               /* ignore */
             }
             await adoptUpdate(null);
-            setStatus({
-              state: "manual-required",
-              version: update.version,
-              releaseUrl: GITHUB_RELEASES_URL,
-            });
+            await runGithubFallback({ background });
           }
         } else if (shouldShowQuietResult) {
           installWhenReadyRef.current = false;
@@ -575,6 +589,7 @@ export function useUpdater() {
    */
   const applyAvailableUpdate = useCallback(async (): Promise<ApplyUpdateResult> => {
     const current = statusRef.current;
+    if (current.state === "error" && current.restartRequired) return { kind: "busy" };
 
     if (current.state === "manual-required") {
       return {
@@ -635,6 +650,8 @@ export function useUpdater() {
         pluginEnabled: boolean;
         channel: string;
         endpoint: string;
+        manualConfigured?: boolean;
+        releaseUrl?: string;
       }>("updater_status");
       if (!aliveRef.current) return;
       // Prefer host string when known; derive unsupported from flags so a
@@ -654,7 +671,10 @@ export function useUpdater() {
       } else if (!s.pluginEnabled) {
         channel = "github_manual";
       }
+      releaseUrlRef.current = s.releaseUrl || "";
       setChannelInfo({
+        manualConfigured: s.manualConfigured,
+        releaseUrl: s.releaseUrl,
         channel,
         pluginEnabled: !!s.pluginEnabled,
         platformSupported: !!s.platformSupported,
@@ -670,6 +690,7 @@ export function useUpdater() {
    * background discovery is not stuck on a previous sim `ready`.
    */
   const reseedFromPrefs = useCallback(async () => {
+    if (statusRef.current.state === "error" && statusRef.current.restartRequired) return;
     clearUpdateSimIfDeveloperModeOff();
     installUpdateSimConsoleApi();
     installWhenReadyRef.current = false;
@@ -727,7 +748,8 @@ export function useUpdater() {
     channelInfo,
     checkForUpdate,
     installAndRelaunch,
+    restartAfterFailedUpdate,
     applyAvailableUpdate,
-    githubReleasesUrl: GITHUB_RELEASES_URL,
+    githubReleasesUrl: releaseUrlRef.current,
   };
 }

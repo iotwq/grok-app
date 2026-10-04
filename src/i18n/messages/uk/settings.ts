@@ -1,5 +1,13 @@
 /** uk messages — domain: settings */
 export const ukSettings = {
+  "settings.updateNoCompatibleInstaller": "У цьому випуску не знайдено інсталятора для вашої системи та процесора.",
+  "settings.updateSourceUnconfigured": "Для цієї збірки не налаштовано джерело оновлень. Установлюйте оновлення від її розповсюджувача.",
+  "runtime.bundled.updateRecovery": "Оновлення не завершено. Перезапустіть Grok App для відновлення фонових служб і повторіть оновлення.",
+  "runtime.bundled.restart": "Перезапустити Grok App",
+  "runtime.bundled.title": "Вбудований Grok Build",
+  "runtime.bundled.description": "Grok Build входить до Grok App та оновлюється разом із ним. Встановлення CLI у терміналі керуються окремо.",
+  "runtime.bundled.missing": "Вбудоване середовище відсутнє або не запускається. Перевстановіть Grok App і спробуйте ще раз.",
+  "runtime.bundled.download": "Завантажити Grok App",
   "settings.sessionMuteSummary": "Сесії без сповіщень",
   "settings.sessionMuteSummaryDesc": "Сповіщення на робочому столі для цих чатів вимкнено. Непрочитані крапки на бічній панелі все ще з’являються, коли фонова відповідь завершується.",
   "settings.sessionMuteCount": "Без сповіщень: {n}",
@@ -345,7 +353,7 @@ export const ukSettings = {
   "settings.backBottomAlways": "Завжди показувати «вниз»",
   "settings.backBottomAlwaysDesc": "Тримайте елемент керування прокруткою до останнього видимим, навіть якщо він уже знаходиться внизу. За замовчуванням вимкнено (відображається лише після прокручування вгору).",
   "settings.selectionToolbar": "Панель виділення",
-  "settings.selectionToolbarDesc": "Показувати панель «копіювати / додати в чат» при виділенні тексту. Правий клік лишається, якщо вимкнути.",
+  "settings.selectionToolbarDesc": "Показувати «Додати до чату» й «Запитати в бічному чаті» під час виділення тексту. Після вимкнення ці дії доступні правою кнопкою миші.",
   "settings.confirmExternalLinks": "Підтверджувати перед відкриттям посилань",
   "settings.confirmExternalLinksDesc": "Запитуйте, перш ніж відкривати посилання http(s) із чату у вашому браузері. За замовчуванням вимкнено.",
   "settings.messageActions": "Дії повідомлення",

@@ -40,11 +40,15 @@ import {
   IconFolder,
   IconInfo,
 } from "@/components/icons";
+import { createT, type Locale } from "@/i18n";
+import { useResourceActionFeedback } from "./ResourceActionNotice";
+import { openExternalHttpUrlChecked } from "@/lib/externalLinkPref";
 import { ContextMenu, type ContextMenuItem } from "@/components/ContextMenu";
 
 export type FilePathCardKind = "file" | "url" | "dir";
 
 export interface FilePathCardLabels {
+  locale?: Locale;
   open: string;
   reveal: string;
   copyPath: string;
@@ -171,6 +175,8 @@ export function FilePathCard({
     line != null && Number.isInteger(line) && line >= 1 ? line : null;
   const focusColumn =
     column != null && Number.isInteger(column) && column >= 1 ? column : null;
+  const tr = createT(labels.locale ?? "en");
+  const feedback = useResourceActionFeedback();
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const isUrl = kind === "url" || isHttpUrl(path);
@@ -434,7 +440,7 @@ export function FilePathCard({
 
   const openExternal = async () => {
     if (isUrl) {
-      window.open(path, "_blank", "noopener,noreferrer");
+      await feedback.run(() => openExternalHttpUrlChecked(path), tr("resource.openFailed"));
       return;
     }
     if (!api.isTauri()) {
@@ -492,14 +498,10 @@ export function FilePathCard({
     }
   };
 
-  const copy = async () => {
-    try {
-      const abs = resolvedAbs || (await resolveAbsolute());
-      await navigator.clipboard.writeText(abs || path);
-    } catch {
-      /* ignore */
-    }
-  };
+  const copy = () => feedback.run(async () => {
+    const abs = resolvedAbs || (await resolveAbsolute());
+    await navigator.clipboard.writeText(abs || path);
+  }, tr("resource.copyFailed"), tr("message.copied"));
 
   const typeLabel = isUrl
     ? labels.typeUrl || "URL"
@@ -568,6 +570,7 @@ export function FilePathCard({
   return (
     <>
       <span
+        data-output-resource="file"
         className={
           "file-path-card" +
           (isUrl ? " file-path-card--url" : "") +
@@ -601,6 +604,7 @@ export function FilePathCard({
         </button>
       </span>
 
+      {feedback.notice}
       <ContextMenu
         open={!!menu}
         x={menu?.x ?? 0}

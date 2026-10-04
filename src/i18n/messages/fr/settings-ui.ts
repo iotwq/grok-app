@@ -477,7 +477,7 @@ export const frSettingsUi = {
   "settings.autoUpdateReady": "Mise à jour téléchargée — confirmez Installer et redémarrer quand vous êtes prêt.",
   "settings.autoUpdateInstall": "Installer et redémarrer",
   "settings.autoUpdateConfirm.title": "Installer la mise à jour et redémarrer ?",
-  "settings.autoUpdateConfirm.message": "La version {version} sera installée et l’app redémarrera.",
+  "settings.autoUpdateConfirm.message": "La version {version} sera installée avec Grok Build intégré. Les tâches en cours seront arrêtées et Grok App redémarrera.",
   "settings.autoUpdateConfirm.confirm": "Installer et redémarrer",
   "settings.autoUpdateConfirm.cancel": "Annuler",
   "settings.autoUpdateInstalling": "Installation…",

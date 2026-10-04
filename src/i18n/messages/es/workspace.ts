@@ -1,5 +1,7 @@
 /** es messages — domain: workspace */
 export const esWorkspace = {
+  "side.browser.back": "Atrás",
+  "side.browser.forward": "Adelante",
   "resources.title": "Recursos",
   "resources.files": "Archivos",
   "resources.preview": "Selecciona un archivo",

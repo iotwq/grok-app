@@ -10,9 +10,10 @@
 //!
 //! ## Teardown ordering (P0)
 //!
-//! Call [`prepare_for_app_update`] **only after** `update.install()` succeeds and
-//! **before** `relaunch()`. If install fails, children must stay alive — there is
-//! no in-process recovery for recycled agents / stopped IM / mirror.
+//! macOS/Linux call prepare after successful install and before relaunch.
+//! Windows calls it before install: the updater exits immediately after starting
+//! NSIS/MSI, and a running bundled .exe would block replacement. On a failed
+//! Windows handoff the UI requires restarting the existing App to restore services.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -27,9 +28,13 @@ use crate::voice_host::VoiceHost;
 
 /// Process-wide guard so prepare-for-update does not race with itself.
 ///
-/// Only set after a successful install path begins teardown. Not reset on
-/// failure because prepare is no longer called before install (see module docs).
+/// Set when confirmed installation reaches teardown. A Windows handoff failure
+/// requires an App restart; another install must not reuse this guard in-process.
 static UPDATE_SHUTDOWN_DONE: AtomicBool = AtomicBool::new(false);
+
+pub fn shutdown_started() -> bool {
+    UPDATE_SHUTDOWN_DONE.load(Ordering::SeqCst)
+}
 
 /// Returns `true` when the running install supports Tauri's auto-updater.
 ///
@@ -71,6 +76,8 @@ pub struct UpdaterStatusDto {
     pub channel: String,
     /// Compile-time endpoint (empty when plugin off).
     pub endpoint: String,
+    pub manual_configured: bool,
+    pub release_url: String,
 }
 
 #[tauri::command]
@@ -99,13 +106,15 @@ pub fn updater_status() -> UpdaterStatusDto {
         plugin_enabled,
         channel,
         endpoint,
+        manual_configured: crate::app_update::release_urls().is_some(),
+        release_url: crate::app_update::release_urls().map(|(_, page)| page).unwrap_or("").to_string(),
     }
 }
 
 /// Stop managed agent children / hosts before process relaunch after a staged install.
 ///
-/// Must run **after** a successful `update.install()` and **before** `relaunch()`
-/// so a failed install never leaves the app without agents / IM / mirror.
+/// After install on macOS/Linux; before the exiting installer on Windows.
+/// See module documentation for Windows failure recovery.
 ///
 /// `remote_im.inner` is held only for the duration of `stop_async`. That method
 /// uses a separate global `runtime_slot` mutex (not `remote_im.inner`) and
@@ -143,6 +152,9 @@ pub async fn prepare_for_app_update(
 
     // Mirror HTTP host + cloudflared tunnel.
     mirror.stop_sync();
+
+    #[cfg(windows)]
+    crate::bundled_runtime::stop_windows_processes().await?;
 
     info!(target: "grok_app::updater", "managed processes stopped; safe to relaunch");
     Ok(())

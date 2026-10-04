@@ -1,5 +1,7 @@
 /** Simplified Chinese messages — domain: errors */
 export const zhErrors = {
+  "error.deck.concurrency.problem": "账号并发已达上限",
+  "error.deck.concurrency.cause": "请等待正在运行的请求完成，或减少同时进行的任务后重试。",
   "error.deck.model.problem": "模型不可用",
   "error.deck.model.cause": "服务商不支持此模型。请打开提供商设置，选择该服务支持的模型。",
   "error.details": "详情",

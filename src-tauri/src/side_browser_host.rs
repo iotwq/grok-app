@@ -671,6 +671,12 @@ pub fn close(app: &AppHandle, label: String) -> Result<(), String> {
     if let Some(wv) = app.get_webview(&label) {
         wv.close().map_err(|e| format!("side browser close: {e}"))?;
     }
+    #[cfg(target_os = "macos")]
+    crate::browser_webkit::forget(app, &label);
+    #[cfg(target_os = "windows")]
+    crate::browser_windows::forget(app, &label);
+    #[cfg(target_os = "linux")]
+    crate::browser_linux::forget(app, &label);
     Ok(())
 }
 

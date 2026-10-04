@@ -1,5 +1,7 @@
 /** es messages — domain: errors */
 export const esErrors = {
+  "error.deck.concurrency.problem": "Límite de solicitudes simultáneas alcanzado",
+  "error.deck.concurrency.cause": "Espera a que terminen las solicitudes en curso o reduce las tareas simultáneas antes de reintentar.",
   "error.deck.model.problem": "Modelo no disponible",
   "error.deck.model.cause": "El proveedor rechazó este modelo. Abre Proveedores y elige un modelo compatible con el servicio.",
   "error.details": "Detalles",

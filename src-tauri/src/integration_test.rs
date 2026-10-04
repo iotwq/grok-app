@@ -61,13 +61,7 @@ mod integration {
         assert!(!r.candidates_tried.is_empty(), "should try common paths");
         // Auth flag always populated
         let _ = r.cli_auth_present;
-        if std::path::Path::new(&format!(
-            "{}/.grok/bin/grok",
-            std::env::var("HOME").unwrap_or_default()
-        ))
-        .is_file()
-            || which::which("grok").is_ok()
-        {
+        if crate::bundled_runtime::path().is_file() {
             assert!(r.found);
             assert!(r.path.is_some());
             assert!(r.version.is_some());

@@ -1,5 +1,13 @@
 /** Simplified Chinese messages — domain: core */
 export const zhCore = {
+  "resource.openLink": "打开链接",
+  "resource.openSide": "在侧边浏览器打开",
+  "resource.copyAddress": "复制图片地址",
+  "resource.copyFailed": "复制失败，请重试。",
+  "resource.openFailed": "无法打开此资源，请重试。",
+  "resource.working": "正在处理…",
+  "image.saveAs": "图片另存为…",
+  "image.saveFailed": "图片保存失败，请重试。",
   "app.name": "Grok",
   "image.loadingOriginal": "正在加载原文件…",
   "image.originalFailed": "原文件加载失败，仍可查看预览。",
@@ -36,7 +44,7 @@ export const zhCore = {
   "office.pageOf": "{page} / {total}",
   "image.view": "查看大图",
   "image.copy": "复制图片",
-  "image.copyHint": "右键可复制图片",
+  "image.copyHint": "右键查看图片操作",
   "image.next": "下一张",
   "image.prev": "上一张",
   "image.close": "关闭",

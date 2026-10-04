@@ -1,5 +1,7 @@
 /** uk messages — domain: workspace */
 export const ukWorkspace = {
+  "side.browser.back": "Назад",
+  "side.browser.forward": "Уперед",
   "resources.title": "Ресурси",
   "resources.files": "Файли",
   "resources.preview": "Виберіть файл",

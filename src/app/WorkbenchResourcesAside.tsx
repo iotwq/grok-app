@@ -13,6 +13,7 @@ import { PaneToggleButton } from "@/components/PaneToggleButton";
 import { UiErrorBoundary } from "@/components/UiErrorBoundary";
 import { createT, type Locale } from "@/i18n";
 import { usePaneUnreadDot } from "@/hooks/usePaneUnreadDot";
+import { useAgentBrowser } from "@/hooks/useAgentBrowser";
 import { DEFAULT_LAYOUT } from "@/lib/layout";
 import { paneSplitSizeStyle } from "@/lib/paneSplitMotion";
 import type { SessionPlanState } from "@/lib/planSession";
@@ -123,6 +124,8 @@ export function WorkbenchResourcesAside(props: WorkbenchResourcesAsideProps) {
     skillsLoadError,
     onSelectSkill,
   } = props;
+
+  useAgentBrowser({ projectPath: effectiveProjectPath, setState: setSideWorkbench, collapsed: layout.asideCollapsed, openPane: onToggleSide });
 
   const asideMin = layout.asideWidth || DEFAULT_LAYOUT.asideWidth;
   const toggleUnread = usePaneUnreadDot({

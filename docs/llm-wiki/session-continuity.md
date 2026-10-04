@@ -309,10 +309,19 @@ still ends the turn.
 | Mechanism | Behavior |
 |-----------|----------|
 | Stream emit coalesce | Per-turn buffer for `session://stream`. Flush on ~40ms idle, ≥600 chars, thought phase open/new, or `done`. Live + background paths. |
+| Stream persistence | Intermediate cumulative snapshots are limited to one every ≥500ms, including paragraph boundaries. A per-session blocking worker holds at most one in-flight and one newest pending snapshot; the ACP event pump does not wait for disk. |
+| Durable boundaries | End, stop, interjection and failure flush synchronously through the same writer. Revision barriers discard late pre-boundary snapshots; final text precedes terminal error/cancel rows. Only forced stream flushes update the shared session index. |
+| Store locks | In-process reservations are per canonical sidecar path, together with cross-process file locks. Both waits share a 3s deadline; one journal cannot block writes to unrelated files. |
 | Tool heartbeat | While `open_tool_ids` non-empty and turn busy: every **25s** re-arm `last_stream_progress` and emit `session://tool_heartbeat` `{ sessionId, toolCallIds, openCount, intervalSecs }`. Stops after **3h** age on oldest open tool (safety). |
 | Stall interaction | Soft/hard stream stall only sees pure silence; heartbeats count as progress so long shell/find/subagent tools are not false-ended. |
 
-Frontend also coalesces stream tokens (~48ms) before React `setState`.
+Frontend coalesces stream tokens every 72–128ms according to hardware concurrency;
+transcript content notifications use a leading/trailing 64–110ms throttle.
+Markdown paints at most every 110ms regardless of answer length, keeping the
+first deadline while chunks arrive. Both stable blocks and the live tail are
+memoized so unchanged text is not parsed again on intermediate parent renders.
+Open code fences retain code-block rendering, and completed answers paint in full
+immediately. These bounds apply to UI scheduling, not model/network latency.
 
 ### 4f. Main chat virtualization (scroll-safe)
 
@@ -483,3 +492,30 @@ preserves the transcript. Reconnect and retry; local-only truncation is not a fa
 关闭、重新打开或切换项目后，旧的加载、选目录和保存结果不得覆盖当前草稿或关闭新弹窗。工作区主项目不可改绑，主根目录必须匹配该项目目录；后端在写入前检查。
 
 解除会话工作区绑定仅在 Host 成功后关闭弹窗；失败必须保留错误和重试入口，过期结果不得关闭新项目弹窗。
+
+
+### Provider failure is a terminal turn, not a host restart
+
+- A failed Responses stream reporting `serialization error: missing field \`output\`` is a provider/response compatibility error, not evidence that the Agent process exited.
+- Grok Build may print the original `response.failed` with `gateway_concurrency_limit` only to stderr, then return the decoding wrapper over ACP. Preserve that known cause on the pending request only when exactly one prompt owns the process; never attribute unstamped diagnostics to concurrent sessions or a later turn. If evidence is absent or ambiguous, retain the generic provider error rather than guessing a concurrency limit. ACP requests are unchanged; the narrow generic Responses payload compatibility is documented in [providers.md](providers.md#failed-responses-compatibility).
+- The UI displays a dedicated localized account-concurrency message when that cause is known. Server-side limits remain in force; this does not retry automatically or claim to bypass the limit.
+- Before saving a terminal error, flush any partial assistant text/thought/attachments and give the error a separate message ID. Empty optimistic placeholders may still become the error. The error row uses the existing free-form `marker` field with `turn_error`; no message schema changes.
+- Clear the on-disk active lease only after the error is durable, outside session locks. Reconnect recognizes legacy machine-coded assistant error rows and clears their stale leases without inserting `host_exit`.
+- During linked history reconciliation, keep each failed turn's recovered content before its error and remove a redundant `host_exit` chip from that already-terminated turn. Preserve genuine interruption chips in other turns and preserve failed tool rows. Reconciliation is idempotent.
+
+Regression coverage: `provider_failure_tests`, `failed_turn_order_tests`, `turn_interrupt::tests`, the stream failed-turn persist test, `errorDeck.test.ts`, and `session.projection-snapshot.test.ts`. These use local fixtures; no live model request is needed.
+
+### Provider retry budget
+
+The runtime owns request retries. Foreground and background turns share one Host
+policy: transient transport failures, rate limits, and per-attempt `failed` /
+`error` statuses can continue until the advertised `max_retries` budget, capped
+at 15. The Host no longer cancels on the third network failure or at two-thirds
+of the budget. Explicit exhausted/gave-up/abort statuses and terminal quota or
+credit exhaustion still end the turn immediately.
+
+Retry updates remain visible and user Stop remains available. The Host does not
+reissue the whole prompt or tools. Reconnect/session-load replay without an
+active Host-owned turn cannot trigger this abort policy or append failure rows.
+Regression coverage: `acp_client::retry_tests` and
+`provider_retry_abort_skips_idle_and_connecting_reconnect`.

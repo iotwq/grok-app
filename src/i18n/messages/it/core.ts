@@ -1,5 +1,13 @@
 /** it messages — domain: core */
 export const itCore = {
+  "resource.openLink": "Apri link",
+  "resource.openSide": "Apri nel browser laterale",
+  "resource.copyAddress": "Copia indirizzo immagine",
+  "resource.copyFailed": "Impossibile copiare. Riprova.",
+  "resource.openFailed": "Impossibile aprire questa risorsa. Riprova.",
+  "resource.working": "Elaborazione…",
+  "image.saveAs": "Salva immagine con nome…",
+  "image.saveFailed": "Impossibile salvare l’immagine. Riprova.",
   "app.name": "Grok",
   "image.loadingOriginal": "Caricamento dell’originale…",
   "image.originalFailed": "Impossibile caricare l’originale. L’anteprima è ancora disponibile.",
@@ -36,7 +44,7 @@ export const itCore = {
   "office.pageOf": "{page} / {total}",
   "image.view": "Visualizza immagine",
   "image.copy": "Copia immagine",
-  "image.copyHint": "Clic destro per copiare l’immagine",
+  "image.copyHint": "Clic destro per le azioni sull’immagine",
   "image.next": "Immagine successiva",
   "image.prev": "Immagine precedente",
   "image.close": "Chiudi",

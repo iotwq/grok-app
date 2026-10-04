@@ -2,7 +2,19 @@
 
 Grok App uses the same **Tauri 2 updater** shape as Minos / Buzz: signed release
 artifacts, a rolling `latest.json` endpoint, in-app check/download/install, and
-a hard stop of managed agent / mirror / voice / IM processes before binary swap.
+a platform-specific stop of managed agent / mirror / voice / IM processes during installation and restart.
+
+## Bundled runtime update (2026-09-20)
+
+App updates include the pinned Grok Build executable and its license notices.
+Terminal CLI installations are independent; no separate CLI update prompt is shown.
+macOS/Linux keep install → stop services → relaunch. On Windows, stop services and
+release all processes using this App's exact bundled executable path **before**
+`install()`, because Tauri starts NSIS/MSI and exits without returning to JavaScript.
+If stopping or installation fails after teardown begins, About requires restarting
+the existing App to restore services before retrying. The frontend does not claim it
+can observe installer failure/cancellation after the Windows process has exited.
+See [bundled runtime](llm-wiki/bundled-runtime.md) for validation and distribution.
 
 ## Architecture
 
@@ -14,12 +26,16 @@ CI release
                  ▲
                  │ check()
         Desktop  tauri-plugin-updater  (release builds only)
-                 │ prepare_for_app_update → stop agents / mirror / voice / IM
-                 │ install + relaunch
+                 │ install + service teardown (platform order below)
+                 │ relaunch / installer handoff
         UI: Settings → About
 ```
 
-Unsigned / local builds keep the previous GitHub “open release page” path.
+Local builds have no update source by default. Manual updates require both build-time
+`GROK_APP_RELEASES_URL` (HTTPS release API) and `GROK_APP_RELEASES_HTML_URL`
+(HTTPS release page). These are embedded in the binary; runtime shell variables
+and frontend-only overrides do not select a different distributor. Release CI
+sets both from its own `github.repository`. There is no upstream fallback.
 
 ## App pieces
 
@@ -29,9 +45,9 @@ Unsigned / local builds keep the previous GitHub “open release page” path.
 | Release conf delta | `scripts/build-release-config.mjs` → `src-tauri/tauri.release.conf.json` (gitignored — always regenerate) |
 | Plugin register | `src-tauri/src/lib.rs` (cfg + non-debug only) |
 | Platform support | `is_auto_update_supported` — Linux requires AppImage (`APPIMAGE` env) |
-| Pre-relaunch teardown | `prepare_for_app_update` — **only after** successful `install()`, never before |
+| Pre-relaunch teardown | `prepare_for_app_update` — after install on macOS/Linux; before installer handoff on Windows |
 | Frontend state machine | `src/hooks/useUpdater.ts` + `UpdaterProvider` (single path: plugin or GitHub) |
-| Path honesty (copy / channel) | `src/lib/appUpdateHonesty.ts` — signed auto vs GitHub manual vs unsupported vs host-only; soft-fail error classes; agents stop only after install prepare |
+| Path honesty (copy / channel) | `src/lib/appUpdateHonesty.ts` — signed auto vs GitHub manual vs unsupported vs host-only; soft-fail error classes; platform-specific service teardown boundary |
 | UI | Settings → About (`AboutUpdateRow`) |
 | Capabilities | `updater:allow-*`, `process:allow-restart` |
 
@@ -41,10 +57,12 @@ feature, no env), so dev binaries never hit a production endpoint.
 ### Install / teardown order (P0)
 
 ```
-download → install() → prepare_for_app_update() → relaunch()
+macOS/Linux: download → install() → prepare_for_app_update() → relaunch()
+Windows: download → prepare_for_app_update() → install() → installer owns exit/relaunch
 ```
 
-If `install()` fails, agents / voice / IM / mirror stay running.
+If `install()` fails on macOS/Linux, agents / voice / IM / mirror stay running.
+On Windows, restart the existing App to restore services before another attempt.
 
 ## Secrets (GitHub Actions)
 
@@ -75,8 +93,8 @@ Before treating silent update as “on” for users:
    ```
 3. **Release cut:** tag `vX.Y.Z` so CI builds installers **and** refreshes `grok-desktop-latest` + `latest.json` + `.sig`.
 4. **Smoke on a prior signed build:** Settings → About shows **Update channel: in-app (signed release)** → Check → Download → Install and restart → version matches tag.
-5. **Failure path:** if install fails, agents / Remote IM / mirror must keep running (`prepare_for_app_update` only after successful `install()`).
-6. **Unsigned / local builds:** About must show **GitHub download** channel and still open Release / download installer (no crash; never claims silent update).
+5. **Failure path:** on macOS/Linux, installation failure must keep agents / Remote IM / mirror running. On Windows, preparation failure must prevent installer launch; a handoff failure after teardown must offer restarting the current App and block another update attempt until restart.
+6. **Unsigned / local builds:** with no source configured, About explains that updates must come from the distributor and does not offer checks or downloads. With an explicit source, verify that manual downloads stay within that distribution.
 7. **Linux non-AppImage:** About shows **unsupported** package-type channel + AppImage-only note when the plugin is compiled in.
 
 In-app host command `updater_status` reports `{ channel, pluginEnabled, platformSupported, endpoint }` for Doctor / About (`channel` is `silent` | `github_manual` | `unsupported`).
@@ -142,3 +160,12 @@ post-build.
 3. Settings → About shows **manual GitHub check** on local builds (expected)
 4. Release smoke: build with both env vars, confirm `is_updater_plugin_enabled`
    is true in a release binary, and that check hits `latest.json`
+
+## Compatible manual installers (2026-10-04)
+
+Manual asset selection first requires a matching OS format and CPU architecture,
+then ranks compatible files. macOS uses DMG (including explicitly universal DMGs),
+Windows EXE/MSI, and Linux AppImage/DEB/RPM. Architecture tokens must identify
+ARM64/aarch64 or x64/x86_64/amd64; an unknown architecture is not assumed compatible.
+Missing matches leave the download URL empty and About explains that no matching
+installer was found. It never substitutes another OS or CPU's asset.

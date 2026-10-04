@@ -157,6 +157,7 @@ fn sample_live_for_empty_run(body: &str, thought: &str, tools: u32, mode: &str) 
         last_stall_emit: None,
         stall_soft_emits: 0,
         journal_throttle: JournalWriteThrottle::with_default_interval(),
+        journal_writer: Default::default(),
         open_tool_ids: HashSet::new(),
         open_tool_seen_at: HashMap::new(),
         terminal_tool_ids: HashSet::new(),

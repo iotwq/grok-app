@@ -1,5 +1,13 @@
 /** id messages — domain: settings */
 export const idSettings = {
+  "settings.updateNoCompatibleInstaller": "Tidak ditemukan penginstal yang sesuai dengan sistem dan prosesor ini pada rilis ini.",
+  "settings.updateSourceUnconfigured": "Build ini belum memiliki sumber pembaruan. Pasang pembaruan yang disediakan distributornya.",
+  "runtime.bundled.updateRecovery": "Pembaruan tidak selesai. Mulai ulang Grok App untuk memulihkan layanan latar belakang, lalu coba perbarui lagi.",
+  "runtime.bundled.restart": "Mulai ulang Grok App",
+  "runtime.bundled.title": "Grok Build bawaan",
+  "runtime.bundled.description": "Grok Build disertakan dan diperbarui bersama Grok App. Instalasi CLI di terminal dikelola secara terpisah.",
+  "runtime.bundled.missing": "Runtime bawaan tidak ditemukan atau tidak dapat dimulai. Instal ulang Grok App lalu coba lagi.",
+  "runtime.bundled.download": "Unduh Grok App",
   "settings.sessionMuteSummary": "Sesi dibisukan",
   "settings.sessionMuteSummaryDesc": "Notifikasi desktop dibisukan untuk obrolan ini. Titik belum dibaca di bilah sisi tetap muncul saat balasan latar selesai.",
   "settings.sessionMuteCount": "{n} dibisukan",
@@ -345,7 +353,7 @@ export const idSettings = {
   "settings.backBottomAlways": "Selalu tampilkan kembali-ke-bawah",
   "settings.backBottomAlwaysDesc": "Jaga kontrol gulir-ke-terbaru terlihat bahkan saat sudah di bawah. Mati secara bawaan (hanya tampil setelah Anda menggulir ke atas).",
   "settings.selectionToolbar": "Bilah pemilihan",
-  "settings.selectionToolbarDesc": "Tampilkan bilah salin / tambah ke chat saat teks dipilih. Klik kanan tetap ada jika dimatikan.",
+  "settings.selectionToolbarDesc": "Tampilkan “Tambahkan ke obrolan” dan “Tanya di obrolan samping” saat memilih teks. Klik kanan tetap membuka tindakan ini saat dinonaktifkan.",
   "settings.confirmExternalLinks": "Konfirmasi sebelum membuka tautan",
   "settings.confirmExternalLinksDesc": "Tanya sebelum membuka tautan http(s) dari obrolan di peramban. Mati secara bawaan.",
   "settings.messageActions": "Tindakan pesan",

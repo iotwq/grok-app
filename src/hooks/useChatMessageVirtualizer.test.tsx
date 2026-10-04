@@ -5,7 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, renderHook, act } from "@testing-library/react";
 import { useChatMessageVirtualizer } from "./useChatMessageVirtualizer";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 describe("useChatMessageVirtualizer", () => {
   it("renders full non-virtualized window when itemCount is below threshold and height is small", () => {
@@ -299,6 +302,24 @@ describe("useChatMessageVirtualizer touch freeze", () => {
       viewport.dispatchEvent(new Event("scroll"));
     });
     expect(viewport.dataset.scrolling).toBeUndefined();
+  });
+
+  it("does not undo a newer stream follow when a measured window commits", () => {
+    vi.stubGlobal("ResizeObserver", undefined);
+    const { viewport, result } = mount({ pinned: true });
+    const row = document.createElement("div");
+    vi.spyOn(row, "getBoundingClientRect").mockReturnValue({ height: 200 } as DOMRect);
+
+    act(() => {
+      // A streaming row grew. The virtual window observes it before the
+      // stick hook follows; React commits the queued window afterwards.
+      Object.defineProperty(viewport, "scrollHeight", { value: 8100, configurable: true });
+      result.current.measureRef(79)(row);
+      vi.advanceTimersByTime(100);
+      viewport.scrollTop = 7500;
+    });
+
+    expect(viewport.scrollTop).toBe(7500);
   });
 
   it("still exposes the scrolling UI flag for explicit wheel input", () => {

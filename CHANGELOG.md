@@ -14,18 +14,50 @@ See `docs/llm-wiki/release.md`.
 ## [Unreleased]
 
 ### Added
+
+**中文 · 新增**
+
+### Changed
+
+**中文 · 变更**
+
+### Fixed
+
+**中文 · 修复**
+
+## [0.2.36] - 2026-10-04
+
+> **Highlight:** Bundled runtime updates and a complete ARM64/x64 desktop release matrix.
+>
+> **中文 · 亮点：** 内置运行时更新，并补齐 ARM64 与 x64 桌面安装包。
+
+### Added
+- Grok Build is bundled and updated with the desktop app.
+- Global user instructions are available in all local agent profiles.
 - Shell commands show the full command, with one-click copy of command and output.
 - File diffs on a turn and in Review can be copied in one click.
 
 **中文 · 新增**
+- Grok Build 已内置，随桌面应用一起更新。
+- 本地 Agent 的所有配置模式均支持用户全局规则。
 - 终端命令会显示完整命令，并可一键复制命令和输出。
 - 回合变更和 Review 里的文件 diff 可一键复制。
 
+### Changed
+- Installers include the latest stable Grok Build available at build time.
+- Windows releases include ARM64 and x64 installers and portable archives.
+
+**中文 · 变更**
+- 打包时自动集成当时最新的稳定版 Grok Build。
+- Windows 发布包同时提供 ARM64 与 x64 安装版和绿色版。
+
 ### Fixed
+- Release builds reject configurations that leave the installed app's window blank.
 - Sending or finishing a chat moves it to the top of that project's list. Pinned chats stay first.
 - Esc in an image preview closes the preview instead of stopping the turn.
 
 **中文 · 修复**
+- 阻止会导致安装后窗口空白的错误正式构建配置。
 - 发送或完成一轮对话后，该会话会排到所属项目列表顶部。置顶会话仍在最前。
 - 图片预览打开时按 Esc 会关掉预览，而不会停止当前生成。
 

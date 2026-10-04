@@ -285,18 +285,46 @@ export function ContextMenu({
       if (t?.closest?.(".context-menu")) return;
       onClose();
     };
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        onClose();
+        previousFocus?.focus({ preventScroll: true });
+      }
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        if (document.activeElement?.closest(".context-menu--flyout")) return;
+        const buttons = Array.from(rootRef.current?.querySelectorAll<HTMLButtonElement>("button[role=menuitem]:not(:disabled)") ?? []);
+        if (!buttons.length) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const current = buttons.indexOf(document.activeElement as HTMLButtonElement);
+        const next = current < 0
+          ? (e.key === "ArrowDown" ? 0 : buttons.length - 1)
+          : (current + (e.key === "ArrowDown" ? 1 : buttons.length - 1)) % buttons.length;
+        buttons[next]?.focus({ preventScroll: true });
+      }
+    };
+    const onViewport = (e: Event) => {
+      if (e.target instanceof Element && e.target.closest(".context-menu")) return;
+      onClose();
     };
     // Defer so the opening contextmenu / click does not immediately dismiss.
     const timer = window.setTimeout(() => {
       document.addEventListener("mousedown", onDoc, true);
     }, 0);
-    document.addEventListener("keydown", onKey);
+    document.addEventListener("keydown", onKey, true);
+    document.addEventListener("contextmenu", onDoc, true);
+    document.addEventListener("scroll", onViewport, true);
+    window.addEventListener("resize", onViewport);
     return () => {
       window.clearTimeout(timer);
       document.removeEventListener("mousedown", onDoc, true);
-      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("keydown", onKey, true);
+      document.removeEventListener("contextmenu", onDoc, true);
+      document.removeEventListener("scroll", onViewport, true);
+      window.removeEventListener("resize", onViewport);
     };
   }, [open, onClose]);
 

@@ -1665,7 +1665,7 @@ pub fn upsert_custom_provider(input: UpsertProviderInput) -> Result<ProvidersLis
     if !(user_base.starts_with("http://") || user_base.starts_with("https://")) {
         return Err("base_url must start with http:// or https://".into());
     }
-    // OpenCode Zen Go etc.: CLI talks to loopback sanitize proxy; real host in
+    // Generic Responses / OpenCode: CLI talks to loopback compatibility proxy; real host in
     // app_upstream_base_url (ignored by Grok Build).
     let (base_url, app_upstream) = if provider_mode == PROVIDER_MODE_GROK_BUILD_PROXY {
         // Native catalog/proxy mode talks straight to the configured endpoint;

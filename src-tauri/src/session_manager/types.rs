@@ -237,6 +237,8 @@ pub(crate) struct LiveSession {
     pub(super) stall_soft_emits: u32,
     /// Throttle mid-stream assistant journal upserts (I04).
     pub(super) journal_throttle: JournalWriteThrottle,
+    /// Bounded snapshots; shared when this shell moves live/background.
+    pub(super) journal_writer: Arc<super::journal_writer::StreamJournalWriter>,
     /// Tool calls still pending/in_progress this turn (#52 early prompt_complete).
     pub(super) open_tool_ids: HashSet<String>,
     /// Last tool event time per open id (orphan leak recovery).

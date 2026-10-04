@@ -1,5 +1,7 @@
 /** pt-BR messages — domain: errors */
 export const ptBRErrors = {
+  "error.deck.concurrency.problem": "Limite de solicitações simultâneas atingido",
+  "error.deck.concurrency.cause": "Aguarde a conclusão das solicitações em andamento ou reduza as tarefas simultâneas antes de tentar novamente.",
   "error.deck.model.problem": "Modelo indisponível",
   "error.deck.model.cause": "O provedor rejeitou este modelo. Abra Provedores e escolha um modelo compatível com o serviço.",
   "error.details": "Detalhes",

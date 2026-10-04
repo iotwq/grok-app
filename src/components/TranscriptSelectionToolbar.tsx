@@ -1,50 +1,33 @@
-/**
- * Floating toolbar after selecting transcript text.
- * Comment is always available on the selection; Add-to-chat stores the excerpt
- * as its own note (no extra comment box in the composer).
- */
-
-import { useEffect, useRef } from "react";
+/** Compact actions for selected transcript text. */
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { IconBlockquote, IconCopy } from "@/components/icons";
-import {
-  shouldSendOnKeydown,
-  type ComposerSendKeyPref,
-} from "@/lib/composerSendKey";
+import { IconPlus, IconChat } from "@/components/icons";
 
 export type TranscriptSelectionToolbarProps = {
   x: number;
   y: number;
-  text: string;
-  comment: string;
-  onCommentChange: (value: string) => void;
-  onCopy: () => void;
   onAddQuote: () => void;
+  onAskSideChat?: () => void;
   onClose: () => void;
-  sendPref: ComposerSendKeyPref;
-  labels: {
-    copy: string;
-    addQuote: string;
-    commentPlaceholder: string;
-    commentSubmit: string;
-    enterHint: string;
-    modEnterHint: string;
-  };
+  labels: { addQuote: string; askSideChat: string; selection: string };
 };
 
 export function TranscriptSelectionToolbar({
   x,
   y,
-  text,
-  comment,
-  onCommentChange,
-  onCopy,
   onAddQuote,
+  onAskSideChat,
   onClose,
-  sendPref,
   labels,
 }: TranscriptSelectionToolbarProps) {
   const rootRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    el.style.left = `${Math.max(8, Math.min(x - rect.width / 2, window.innerWidth - rect.width - 8))}px`;
+    el.style.top = `${Math.max(8, Math.min(y, window.innerHeight - rect.height - 8))}px`;
+  }, [x, y, labels]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -57,70 +40,32 @@ export function TranscriptSelectionToolbar({
     return () => window.removeEventListener("keydown", onKey, true);
   }, [onClose]);
 
-  if (typeof document === "undefined") return null;
-
-  const left = Math.max(8, Math.min(x, window.innerWidth - 320));
-  const top = Math.max(8, y);
-
   return createPortal(
     <div
       ref={rootRef}
-      className="sel-toolbar sel-toolbar--comment"
-      style={{ left, top }}
+      className="sel-toolbar"
+      style={{ left: x, top: y }}
       role="toolbar"
-      aria-label={labels.addQuote}
-      onMouseDown={(e) => {
-        const t = e.target as HTMLElement | null;
-        if (t?.closest("textarea, input")) return;
-        e.preventDefault();
-      }}
+      aria-label={labels.selection}
+      onMouseDown={(e) => e.preventDefault()}
     >
-      <div className="sel-toolbar__preview" title={text}>
-        {text.length > 72 ? `${text.slice(0, 72)}…` : text}
-      </div>
-      <textarea
-        className="sel-toolbar__textarea"
-        rows={3}
-        value={comment}
-        placeholder={labels.commentPlaceholder}
-        onChange={(e) => onCommentChange(e.target.value)}
-        onKeyDown={(e) => {
-          if (
-            shouldSendOnKeydown(
-              {
-                key: e.key,
-                shiftKey: e.shiftKey,
-                metaKey: e.metaKey,
-                ctrlKey: e.ctrlKey,
-                altKey: e.altKey,
-              },
-              sendPref,
-            )
-          ) {
-            e.preventDefault();
-            onAddQuote();
-          }
-        }}
-      />
-      <div className="sel-toolbar__row">
-        <div className="sel-toolbar__actions">
-          <button type="button" className="sel-toolbar__btn" onClick={onCopy}>
-            <IconCopy size={14} />
-            {labels.copy}
-          </button>
+      <button type="button" className="sel-toolbar__btn" onClick={onAddQuote}>
+        <IconPlus size={14} />
+        {labels.addQuote}
+      </button>
+      {onAskSideChat && (
+        <>
+          <span className="sel-toolbar__divider" aria-hidden="true" />
           <button
             type="button"
-            className="sel-toolbar__btn sel-toolbar__btn--primary"
-            onClick={onAddQuote}
+            className="sel-toolbar__btn"
+            onClick={onAskSideChat}
           >
-            <IconBlockquote size={14} />
-            {labels.addQuote}
+            <IconChat size={14} />
+            {labels.askSideChat}
           </button>
-        </div>
-        <span className="sel-toolbar__enter-hint">
-          {sendPref === "mod-enter" ? labels.modEnterHint : labels.enterHint}
-        </span>
-      </div>
+        </>
+      )}
     </div>,
     document.body,
   );

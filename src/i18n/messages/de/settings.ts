@@ -1,5 +1,13 @@
 /** de messages — domain: settings */
 export const deSettings = {
+  "settings.updateNoCompatibleInstaller": "Für dieses System und diesen Prozessor wurde kein passendes Installationspaket gefunden.",
+  "settings.updateSourceUnconfigured": "Für diesen Build ist keine Update-Quelle eingerichtet. Installieren Sie Updates des Herausgebers.",
+  "runtime.bundled.updateRecovery": "Das Update konnte nicht abgeschlossen werden. Starten Sie Grok App neu, um Hintergrunddienste wiederherzustellen, und versuchen Sie es erneut.",
+  "runtime.bundled.restart": "Grok App neu starten",
+  "runtime.bundled.title": "Integriertes Grok Build",
+  "runtime.bundled.description": "Grok Build ist enthalten und wird mit Grok App aktualisiert. CLI-Installationen im Terminal werden separat verwaltet.",
+  "runtime.bundled.missing": "Die integrierte Laufzeit fehlt oder startet nicht. Installieren Sie Grok App erneut und versuchen Sie es noch einmal.",
+  "runtime.bundled.download": "Grok App herunterladen",
   "settings.sessionMuteSummary": "Stummgeschaltete Sitzungen",
   "settings.sessionMuteSummaryDesc": "Desktop-Benachrichtigungen sind für diese Chats stumm. Seitenleisten-Ungelesen-Punkte erscheinen weiter, wenn eine Hintergrund-Antwort endet.",
   "settings.sessionMuteCount": "{n} stumm",
@@ -345,7 +353,7 @@ export const deSettings = {
   "settings.backBottomAlways": "Zurück-nach-unten immer zeigen",
   "settings.backBottomAlwaysDesc": "Zum-Neuesten-scrollen-Steuerung sichtbar halten, auch wenn du schon unten bist. Standard aus (nur nach Hochscrollen).",
   "settings.selectionToolbar": "Auswahl-Werkzeugleiste",
-  "settings.selectionToolbarDesc": "Beim Markieren von Chat-Text eine Leiste zum Kopieren / Übernehmen anzeigen. Rechtsklick bleibt an, wenn das aus ist.",
+  "settings.selectionToolbarDesc": "Zeigt „Zum Chat hinzufügen“ und „Im Seitenchat fragen“ bei markiertem Text. Per Rechtsklick sind die Aktionen auch bei deaktivierter Leiste verfügbar.",
   "settings.confirmExternalLinks": "Vor dem Öffnen von Links bestätigen",
   "settings.confirmExternalLinksDesc": "Fragen, bevor http(s)-Links aus dem Chat im Browser geöffnet werden. Standard aus.",
   "settings.messageActions": "Nachrichtenaktionen",

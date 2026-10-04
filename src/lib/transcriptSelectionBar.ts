@@ -54,7 +54,7 @@ export function isSelectionInsideTranscript(
 ): boolean {
   if (!root) return false;
   return (
-    (anchor != null && root.contains(anchor)) ||
+    (anchor != null && root.contains(anchor)) &&
     (focus != null && root.contains(focus))
   );
 }
@@ -62,7 +62,7 @@ export function isSelectionInsideTranscript(
 export function selectionBarFromRead(
   next: TranscriptSelectionRead,
 ): TranscriptSelectionBar {
-  const x = next.rect ? next.rect.left + next.rect.width / 2 - 140 : 24;
+  const x = next.rect ? next.rect.left + next.rect.width / 2 : 24;
   const y = next.rect ? next.rect.bottom + 8 : 24;
   return {
     x,
@@ -87,7 +87,7 @@ export function selectionBarsEqual(
 }
 
 /**
- * Focusing the comment box collapses the native selection — keep the bar.
+ * Keep the captured excerpt while keyboard focus moves into its actions.
  * Equal placement/text keeps the previous object so React can skip.
  */
 export function reduceSelectionBar(

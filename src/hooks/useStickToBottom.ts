@@ -462,18 +462,11 @@ export function useStickToBottom(
         e.preventDefault();
         return;
       }
-      // Small ticks at the locked bottom (trackpad / elastic) — stay pinned.
+      // Trackpads often emit 2–8px ticks. Release on upward input before
+      // stream growth can overwrite that movement; rebound is a scroll
+      // event without a new upward wheel gesture.
       if (
-        isPinnedRef.current &&
-        !escapedRef.current &&
-        Math.abs(e.deltaY) < STICK_ESCAPE_WHEEL_DELTA
-      ) {
-        return;
-      }
-      // deltaY < 0 → user reading history. Escape only on a clear gesture
-      // so concurrent content-growth follow cannot yank the viewport back.
-      if (
-        e.deltaY <= -STICK_ESCAPE_WHEEL_DELTA &&
+        e.deltaY < 0 &&
         el.scrollHeight > el.clientHeight
       ) {
         clearBottomRebound();
@@ -603,7 +596,7 @@ export function useStickToBottom(
     let cancelled = false;
     let raf2 = 0;
     const raf1 = requestAnimationFrame(() => {
-      if (cancelled) return;
+      if (cancelled || escapedRef.current) return;
       scrollToBottom("instant");
       raf2 = requestAnimationFrame(() => {
         if (!cancelled && !escapedRef.current) scrollToBottom("instant");
@@ -626,7 +619,9 @@ export function useStickToBottom(
     isPinnedRef.current = true;
     userIntentDownRef.current = false;
     scrollToBottom("instant");
-    const raf = requestAnimationFrame(() => scrollToBottom("instant"));
+    const raf = requestAnimationFrame(() => {
+      if (!escapedRef.current) scrollToBottom("instant");
+    });
     return () => cancelAnimationFrame(raf);
   }, [forceStickKey, enabled, scrollToBottom]);
 

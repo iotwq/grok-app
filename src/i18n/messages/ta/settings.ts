@@ -1,5 +1,13 @@
 /** ta messages — domain: settings */
 export const taSettings = {
+  "settings.updateNoCompatibleInstaller": "இந்த வெளியீட்டில் இந்த அமைப்பு மற்றும் செயலிக்குப் பொருந்தும் நிறுவி கிடைக்கவில்லை.",
+  "settings.updateSourceUnconfigured": "இந்தப் பதிப்பிற்கு புதுப்பிப்பு மூலம் அமைக்கப்படவில்லை. இதன் விநியோகஸ்தர் வழங்கும் புதுப்பிப்புகளை நிறுவவும்.",
+  "runtime.bundled.updateRecovery": "புதுப்பிப்பை முடிக்க முடியவில்லை. பின்னணிச் சேவைகளை மீட்டமைக்க Grok App ஐ மறுதொடக்கம் செய்து, மீண்டும் புதுப்பிக்கவும்.",
+  "runtime.bundled.restart": "Grok App ஐ மறுதொடக்கம் செய்",
+  "runtime.bundled.title": "உள்ளமைந்த Grok Build",
+  "runtime.bundled.description": "Grok Build இணைக்கப்பட்டுள்ளது; Grok App உடன் புதுப்பிக்கப்படும். முனையத்தில் நிறுவப்பட்ட CLI தனியாக நிர்வகிக்கப்படும்.",
+  "runtime.bundled.missing": "உள்ளமைந்த இயக்கச் சூழல் இல்லை அல்லது தொடங்க முடியவில்லை. Grok App ஐ மீண்டும் நிறுவி முயற்சிக்கவும்.",
+  "runtime.bundled.download": "Grok App ஐப் பதிவிறக்கு",
   "settings.sessionMuteSummary": "அமைதிப்படுத்தப்பட்ட அமர்வுகள்",
   "settings.sessionMuteSummaryDesc": "இந்த உரையாடல்களுக்கு டெஸ்க்டாப் அறிவிப்புகள் அமைதி. பின்னணிப் பதில் முடிந்தாலும் பக்கப்பட்டியில் படிக்காத புள்ளிகள் தோன்றும்.",
   "settings.sessionMuteCount": "{n} அமைதி",
@@ -345,7 +353,7 @@ export const taSettings = {
   "settings.backBottomAlways": "எப்பொழுதும் பின்னிருந்து கீழே காட்டவும்",
   "settings.backBottomAlwaysDesc": "ஸ்க்ரோல்-டு-லேட்டஸ்ட் கட்டுப்பாட்டை ஏற்கனவே கீழே இருக்கும் போது கூட தெரியும். முன்னிருப்பாக ஆஃப் (நீங்கள் மேலே ஸ்க்ரோல் செய்த பிறகுதான் காண்பிக்கப்படும்).",
   "settings.selectionToolbar": "தேர்வு கருவிப்பட்டி",
-  "settings.selectionToolbarDesc": "உரையைத் தேர்ந்தெடுத்தால் நகலெடு / அரட்டையில் சேர் பட்டி. அணைத்தாலும் வலது கிளிக் இருக்கும்.",
+  "settings.selectionToolbarDesc": "உரையைத் தேர்ந்தெடுக்கும்போது “அரட்டையில் சேர்” மற்றும் “பக்க அரட்டையில் கேளுங்கள்” காட்டப்படும். முடக்கினாலும் வலது கிளிக் மூலம் அணுகலாம்.",
   "settings.confirmExternalLinks": "இணைப்புகளைத் திறப்பதற்கு முன் உறுதிப்படுத்து",
   "settings.confirmExternalLinksDesc": "உங்கள் உலாவியில் உரையாடல்யிலிருந்து http(கள்) இணைப்புகளைத் திறப்பதற்கு முன் கேளுங்கள். இயல்பாக ஆஃப்.",
   "settings.messageActions": "செய்தி நடவடிக்கைகள்",

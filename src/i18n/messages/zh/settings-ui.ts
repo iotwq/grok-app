@@ -477,7 +477,7 @@ export const zhSettingsUi = {
   "settings.autoUpdateReady": "更新已下载 — 请确认「安装并重启」后再安装。",
   "settings.autoUpdateInstall": "安装并重启",
   "settings.autoUpdateConfirm.title": "安装更新并重启？",
-  "settings.autoUpdateConfirm.message": "将安装版本 {version}，应用会随后重启。",
+  "settings.autoUpdateConfirm.message": "将安装 {version} 及其内置 Grok Build。正在运行的任务会停止，Grok App 将重启。",
   "settings.autoUpdateConfirm.confirm": "安装并重启",
   "settings.autoUpdateConfirm.cancel": "取消",
   "settings.autoUpdateInstalling": "正在安装…",

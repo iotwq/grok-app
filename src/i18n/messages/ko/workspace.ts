@@ -1,5 +1,7 @@
 /** ko messages — domain: workspace */
 export const koWorkspace = {
+  "side.browser.back": "뒤로",
+  "side.browser.forward": "앞으로",
   "resources.title": "리소스",
   "resources.files": "파일",
   "resources.preview": "파일 선택",

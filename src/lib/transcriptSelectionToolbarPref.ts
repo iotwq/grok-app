@@ -1,7 +1,7 @@
 /**
- * User preference: floating copy / add-to-chat bar after selecting
+ * User preference: floating add-to-chat / ask-in-side-chat bar after selecting
  * transcript text. localStorage-only — does not touch Host AppSettings.
- * Default: true (current behavior). Right-click context menu is independent.
+ * Default: true (current behavior). Right-click opens the same actions even when this is off.
  */
 
 export const TRANSCRIPT_SELECTION_TOOLBAR_STORAGE_KEY =

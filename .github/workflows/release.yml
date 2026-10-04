@@ -1,6 +1,6 @@
 # Build & publish desktop installers:
 #   macOS ARM / Intel (.dmg)
-#   Windows x64 NSIS setup + portable zip (绿色版)
+#   Windows x64 + ARM64 NSIS setup + portable zip (绿色版)
 #   Linux x64 AppImage / .deb / .rpm (Ubuntu/Debian + Fedora/RHEL family)
 # Trigger: push tag v*  (e.g. v0.1.1)  or manual workflow_dispatch.
 #
@@ -57,12 +57,23 @@ jobs:
           - platform: macos-latest
             args: "--target aarch64-apple-darwin"
             name: macOS-ARM64
+            target: aarch64-apple-darwin
+            arch: aarch64
           - platform: macos-latest
             args: "--target x86_64-apple-darwin"
             name: macOS-x64
+            target: x86_64-apple-darwin
+            arch: x64
           - platform: windows-latest
-            args: ""
+            args: "--target x86_64-pc-windows-msvc"
             name: Windows-x64
+            target: x86_64-pc-windows-msvc
+            arch: x64
+          - platform: windows-latest
+            args: "--target aarch64-pc-windows-msvc"
+            name: Windows-ARM64
+            target: aarch64-pc-windows-msvc
+            arch: arm64
           - platform: ubuntu-22.04
             args: ""
             name: Linux-x64
@@ -104,7 +115,7 @@ jobs:
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+          targets: ${{ matrix.target || '' }}
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
@@ -170,6 +181,8 @@ jobs:
         shell: bash
         env:
           GROK_UPDATER_PUBLIC_KEY: ${{ secrets.GROK_UPDATER_PUBLIC_KEY }}
+          GROK_APP_RELEASES_URL: https://api.github.com/repos/${{ github.repository }}/releases/latest
+          GROK_APP_RELEASES_HTML_URL: https://github.com/${{ github.repository }}/releases/latest
           GROK_UPDATER_ENDPOINT: https://github.com/${{ github.repository }}/releases/download/grok-desktop-latest/latest.json
         run: node scripts/build-release-config.mjs
 
@@ -287,6 +300,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GROK_UPDATER_PUBLIC_KEY: ${{ secrets.GROK_UPDATER_PUBLIC_KEY }}
+          GROK_APP_RELEASES_URL: https://api.github.com/repos/${{ github.repository }}/releases/latest
+          GROK_APP_RELEASES_HTML_URL: https://github.com/${{ github.repository }}/releases/latest
           GROK_UPDATER_ENDPOINT: https://github.com/${{ github.repository }}/releases/download/grok-desktop-latest/latest.json
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
@@ -368,7 +383,7 @@ jobs:
           else
             TAG="v$(python3 -c 'import json; print(json.load(open("package.json"))["version"])')"
           fi
-          bash scripts/package-windows-portable.sh "$TAG"
+          bash scripts/package-windows-portable.sh "$TAG" "${{ matrix.arch }}" "${{ matrix.target }}"
 
   # Hard gate: every matrix leg must succeed AND the Release must list every
   # required installer. Without this, fail-fast:false lets mac/linux publish a
@@ -396,7 +411,7 @@ jobs:
             TAG="v$(python3 -c 'import json; print(json.load(open("package.json"))["version"])')"
           fi
           if [[ "$PUBLISH_RESULT" != "success" ]]; then
-            echo "::error::Platform matrix result=$PUBLISH_RESULT (need success). One of macOS-ARM64 / macOS-x64 / Windows-x64 / Linux-x64 failed — do not treat this Release as complete."
+            echo "::error::Platform matrix result=$PUBLISH_RESULT (need success). One of macOS-ARM64 / macOS-x64 / Windows-ARM64 / Windows-x64 / Linux-x64 failed — do not treat this Release as complete."
             # Still list what landed so the missing platform is obvious.
             gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets \
               --jq '.assets[].name' 2>/dev/null | sort || true

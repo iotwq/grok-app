@@ -109,3 +109,7 @@ Grok App **启动时**读系统代理，子进程继承 App 环境。命令行�
 - 外部创建新会话
 - interrupt 模式
 - 回执 / 完整 transcript 拉取
+
+## 内置浏览器桥接（2026-09-19）
+
+`POST /v1/browser/action` 供随应用打包的 `grok-browser` MCP 使用，复用本节 API 的 loopback 监听与 token 校验。请求体为 `{ "tabId": "agent-<uuid>", "action": "browser_snapshot", "args": {} }`；动作与范围见 [browser-automation.md](browser-automation.md)。鉴权失败返回 401，浏览器动作失败返回 `{ "error": "…" }`，MCP 将其转换成 `isError: true`。接口调用不会代替 Grok Build 的工具审批；不要把本机 token 提供给网页或远程 MCP。

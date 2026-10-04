@@ -1,5 +1,7 @@
 /** id messages — domain: workspace */
 export const idWorkspace = {
+  "side.browser.back": "Kembali",
+  "side.browser.forward": "Maju",
   "resources.title": "Sumber daya",
   "resources.files": "Berkas",
   "resources.preview": "Pilih berkas",

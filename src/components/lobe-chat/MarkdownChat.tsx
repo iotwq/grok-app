@@ -22,6 +22,7 @@ import {
 import { createT } from "@/i18n";
 import { ImageUi, imageUiLabels } from "@/components/ImageUi";
 import { VideoUi, videoUiLabels } from "@/components/VideoUi";
+import { OutputLink } from "@/components/OutputLink";
 import { FilePathCard, type FilePathCardLabels } from "@/components/FilePathCard";
 import type { ResourceOpenTarget } from "@/components/resource-viewer/types";
 import { HighlightedText } from "@/components/HighlightedText";
@@ -130,12 +131,11 @@ export const MARKDOWN_CHAT_REHYPE_PLUGINS_NO_MATH =
   MARKDOWN_REHYPE_PLUGINS_NO_MATH;
 
 /**
- * Streaming prefix view — memoized on the source string so the already-
- * painted markdown prefix is not re-parsed (and rehype-katex not re-run) on
- * every ~110ms tail flush. ReactMarkdown itself is synchronous and unmemoized,
- * so the memo boundary must live one level up.
+ * Memoize both stable blocks and the live tail: incoming chunks may re-render
+ * the parent before the next paint deadline without changing this source.
+ * ReactMarkdown is synchronous and unmemoized, so cache one level up.
  */
-const MarkdownStablePrefix = memo(function MarkdownStablePrefix({
+const MarkdownSegment = memo(function MarkdownSegment({
   source,
   components,
 }: {
@@ -253,6 +253,7 @@ export function getMarkdownFileLabels(locale: Locale): FilePathCardLabels {
   if (!cached) {
     const tr = createT(locale);
     cached = {
+      locale,
       open: tr("attach.open"),
       reveal: revealInOsLabel(tr),
       copyPath: tr("attach.copyPath"),
@@ -347,7 +348,7 @@ export const MarkdownChat = memo(function MarkdownChat({
     return Array.from(new Set(Object.values(imagePathMap))).filter(isImagePath);
   }, [imagePathMap]);
 
-  // Soft first-paint buffer (pure text) then adaptive drip reveal.
+  // Soft first-paint buffer; subsequent chunks pass through immediately.
   const softStateRef = useRef<SoftBufferState>(createSoftBufferState());
   const [softDisplayed, setSoftDisplayed] = useState(children || "");
   useEffect(() => {
@@ -389,8 +390,8 @@ export const MarkdownChat = memo(function MarkdownChat({
   const parseMs = resolveStreamMarkdownParseMs(source.length, streaming);
 
   /**
-   * Throttle ReactMarkdown input while streaming so we re-parse ~4–8×/s instead
-   * of every soft-buffer tick. Longer bodies use a slower cadence; final
+   * Throttle ReactMarkdown input while streaming so we re-parse at most ~9×/s
+   * instead of every soft-buffer tick. Long bodies use the same deadline; final
    * (non-streaming) content always syncs immediately. Always keep markdown
    * rendering (no plain-pre bare-syntax fallback).
    */
@@ -460,19 +461,11 @@ export const MarkdownChat = memo(function MarkdownChat({
     if (isHttpUrl(rawIn) || isHttpUrl(raw)) {
       const url = isHttpUrl(rawIn) ? rawIn : raw;
       return (
-        <FilePathCard
-          path={url}
-          kind="url"
-          projectPath={projectPath}
-          sshAlias={sshAlias}
-          labels={fileLabels}
-          onOpenError={onOpenError}
-          onOpenInPanel={(t) => {
-            if (t.type === "url" && t.url) {
-              onOpenResource?.({ type: "url", url: t.url, title: t.title });
-            }
-          }}
-        />
+        <OutputLink
+          href={url} locale={locale} className="chat-md__link"
+          onOpen={onOpenExternalLink}
+          onOpenInPanel={onOpenResource ? (value) => onOpenResource({ type: "url", url: value }) : undefined}
+        >{linkText || url}</OutputLink>
       );
     }
 
@@ -673,19 +666,13 @@ export const MarkdownChat = memo(function MarkdownChat({
       a: ({ href, children: c }) => {
         const text = textFromChildren(c).trim();
         const hrefStr = typeof href === "string" ? href : "";
-        if (onOpenExternalLink && isExternalHttpUrl(hrefStr)) {
+        if (isExternalHttpUrl(hrefStr)) {
           return (
-            <a
-              className="chat-md__link"
-              href={hrefStr}
-              rel="noreferrer noopener"
-              onClick={(e) => {
-                e.preventDefault();
-                onOpenExternalLink(hrefStr);
-              }}
-            >
-              {paint(c)}
-            </a>
+            <OutputLink
+              className="chat-md__link" href={hrefStr} locale={locale}
+              onOpen={onOpenExternalLink}
+              onOpenInPanel={onOpenResource ? (value) => onOpenResource({ type: "url", url: value }) : undefined}
+            >{paint(c)}</OutputLink>
           );
         }
         const card =
@@ -743,7 +730,8 @@ export const MarkdownChat = memo(function MarkdownChat({
       },
       img: ({ src, alt }) => {
         if (!src || typeof src !== "string") return null;
-        const card = renderPathOrUrl(
+        // A Markdown image URL is an image, not a normal website link.
+        const card = !isHttpUrl(src) && renderPathOrUrl(
           src,
           typeof alt === "string" ? alt : undefined,
         );
@@ -819,19 +807,16 @@ export const MarkdownChat = memo(function MarkdownChat({
         <p>{painted}</p>
       ) : tailSplit.prefix ? (
         <>
-          <MarkdownStablePrefix
+          <MarkdownSegment
             source={tailSplit.prefix}
             components={components}
           />
-          <ReactMarkdown
-            remarkPlugins={remarkPlugins}
-            rehypePlugins={rehypePlugins}
+          <MarkdownSegment
+            source={tailSplit.tail}
             components={components}
-          >
-            {tailSplit.tail}
-          </ReactMarkdown>
+          />
         </>
-      ) : (
+      ) : qFind ? (
         <ReactMarkdown
           remarkPlugins={remarkPlugins}
           rehypePlugins={rehypePlugins}
@@ -839,6 +824,8 @@ export const MarkdownChat = memo(function MarkdownChat({
         >
           {painted}
         </ReactMarkdown>
+      ) : (
+        <MarkdownSegment source={painted} components={components} />
       )}
     </div>
   );

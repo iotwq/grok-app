@@ -75,6 +75,7 @@ pub fn windows_process_group_flags() -> u32 {
 
 /// Hide console window when spawning CLI tools from a GUI app (Windows).
 pub fn apply_no_window_std(cmd: &mut StdCommand) {
+    crate::bundled_runtime::configure_std(cmd);
     #[cfg(target_os = "windows")]
     {
         use std::os::windows::process::CommandExt;
@@ -85,6 +86,7 @@ pub fn apply_no_window_std(cmd: &mut StdCommand) {
 
 /// Same as [`apply_no_window_std`] for `tokio::process::Command`.
 pub fn apply_no_window_tokio(cmd: &mut tokio::process::Command) {
+    crate::bundled_runtime::configure_tokio(cmd);
     #[cfg(target_os = "windows")]
     {
         cmd.creation_flags(CREATE_NO_WINDOW);
@@ -100,6 +102,7 @@ pub fn apply_no_window_tokio(cmd: &mut tokio::process::Command) {
 /// process-group / taskkill semantics blindly.
 #[allow(dead_code)]
 pub fn apply_process_group_no_window_std(cmd: &mut StdCommand) {
+    crate::bundled_runtime::configure_std(cmd);
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
@@ -113,6 +116,7 @@ pub fn apply_process_group_no_window_std(cmd: &mut StdCommand) {
 
 /// Same as [`apply_process_group_no_window_std`] for `tokio::process::Command`.
 pub fn apply_process_group_no_window_tokio(cmd: &mut tokio::process::Command) {
+    crate::bundled_runtime::configure_tokio(cmd);
     #[cfg(windows)]
     {
         cmd.creation_flags(windows_process_group_flags());

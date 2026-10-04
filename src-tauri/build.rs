@@ -1,8 +1,24 @@
 fn main() {
+    // A release binary without Tauri's custom protocol still loads devUrl.
+    // Bundling that binary succeeds but leaves installed apps with a blank page.
+    if std::env::var("PROFILE").as_deref() == Ok("release") && tauri_build::is_dev() {
+        panic!(
+            "Release builds must embed the frontend: use `pnpm exec tauri build` \
+             (or enable `--features tauri/custom-protocol` for a manual Cargo build)."
+        );
+    }
+
     // Windows test STATUS_ENTRYPOINT_NOT_FOUND fix lives in CI (post-link mt.exe
     // Common Controls v6 on the test harness). Do NOT add /MANIFESTINPUT here:
     // tauri_build already embeds a Windows app manifest; a second one fails
     // link with CVT1100 "duplicate resource" (v0.1.9 release).
+
+    for name in ["GROK_APP_RELEASES_URL", "GROK_APP_RELEASES_HTML_URL"] {
+        println!("cargo:rerun-if-env-changed={name}");
+        if let Ok(value) = std::env::var(name) {
+            println!("cargo:rustc-env={name}={}", value.trim());
+        }
+    }
 
     println!("cargo:rerun-if-env-changed=GROK_UPDATER_PUBLIC_KEY");
     println!("cargo:rerun-if-env-changed=GROK_UPDATER_ENDPOINT");
@@ -25,6 +41,11 @@ fn main() {
         // Expose non-secret endpoint URL to `option_env!` / status DTO.
         println!("cargo:rustc-env=GROK_UPDATER_ENDPOINT={endpoint}");
     }
+
+    println!(
+        "cargo:rustc-env=GROK_BUNDLED_TARGET={}",
+        std::env::var("TARGET").unwrap()
+    );
 
     tauri_build::build()
 }

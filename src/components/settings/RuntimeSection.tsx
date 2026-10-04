@@ -15,8 +15,6 @@ import { LeaderServePanel } from "@/components/LeaderServePanel";
 import { CliWorktreeDbPanel } from "@/components/CliWorktreeDbPanel";
 import { SdkConnectWizard } from "@/components/SdkConnectWizard";
 import { SessionApiPanel } from "@/components/SessionApiPanel";
-import { CliUpdateRow } from "@/components/CliUpdateRow";
-import { CliRepairPanel } from "@/components/CliRepairPanel";
 import { CostRollupPanel } from "@/components/CostRollupPanel";
 import { StreamingMessagesJsonPanel } from "@/components/StreamingMessagesJsonPanel";
 import { StreamingAcpNdjsonPanel } from "@/components/StreamingAcpNdjsonPanel";
@@ -33,16 +31,10 @@ import { SettingsTabStrip, UiCheck } from "./shared";
 import { IconArchive, IconDoctor } from "@/components/icons";
 import { NetworkProbeField } from "./NetworkProbeField";
 import { AcpServerField } from "./AcpServerField";
-import { WslBackendField } from "./WslBackendField";
 import { SshHostsPanel } from "./SshHostsPanel";
-import { detectAppPlatform } from "@/lib/appPlatform";
 import { resolveLocale, type MessageKey } from "@/i18n";
-import {
-  classifyCliVersionStatus,
-  cliVersionStatusHintClass,
-  cliVersionStatusMessageKey,
-  cliVersionStatusMessageParams,
-} from "@/lib/cliVersionStatus";
+import { BundledRuntimeInfo } from "@/components/BundledRuntimeInfo";
+import { AboutUpdateRow } from "./AboutUpdateRow";
 
 
 export function RuntimeSection() {
@@ -52,16 +44,11 @@ export function RuntimeSection() {
     acpServerAddr,
     activeTab,
     agentIdleMinutes,
-    allowUnverifiedCliInstall,
     auditLedgerRetentionDays,
     cliInfo,
-    cliAgentSkewRepairing,
-    onCliRepairAgentSidecar,
-    onCliInfoRefresh,
     costRollupProjects,
     costRollupSessions,
     includePartialMessages,
-    lastCliChecksumVerified,
     lastProcessLimit,
     locale,
     manualCliPath,
@@ -70,12 +57,9 @@ export function RuntimeSection() {
     onAcpServerAddr,
     onAcpServerBlur,
     onAgentIdleMinutes,
-    onAllowUnverifiedCliInstall,
     onAuditLedgerRetentionDays,
-    onCliBlur,
     onDoctor,
     onIncludePartialMessages,
-    onManualCliPath,
     onMaxConcurrentAgents,
     onOpenBatchAgents,
     onOpenReliability,
@@ -112,200 +96,10 @@ export function RuntimeSection() {
               t={(k) => t(k)}
             />
             {activeTab === "cli" && (
-              <div
-                className={"settings-card" + rowHighlight("settings-anchor-cliPath")}
-                id="settings-anchor-cliPath"
-              >
-                <div className="settings-row settings-row--stack">
-                  <div className="settings-row__text">
-                    <div className="settings-row__label">
-                      {t("settings.cliPath")}{" "}
-                      {cliInfo.found
-                        ? `(${cliInfo.source || "ok"})`
-                        : t("settings.cliNotFound")}
-                    </div>
-                    <div className="settings-row__desc">
-                      {t("settings.cliPathDesc")}
-                    </div>
-                  </div>
-                  <input
-                    className="settings-input"
-                    value={manualCliPath}
-                    placeholder={cliInfo.path || "e.g. ~/.grok/bin/grok"}
-                    onChange={(e) => onManualCliPath(e.target.value)}
-                    onBlur={(e) => onCliBlur(e.target.value.trim())}
-                  />
-                  {cliInfo.version && (
-                    <div className="settings-row__hint">
-                      {cliInfo.version}
-                      {cliInfo.path ? ` · ${cliInfo.path}` : ""}
-                      {cliInfo.cliAuthPresent
-                        ? ` · ${t("account.cliAuthOk")}`
-                        : ` · ${t("account.cliAuthMissing")}`}
-                      {lastCliChecksumVerified === true
-                        ? ` · ${t("settings.cliChecksumVerified")}`
-                        : lastCliChecksumVerified === false
-                          ? ` · ${t("settings.cliChecksumUnverified")}`
-                          : ""}
-                    </div>
-                  )}
-                  {(() => {
-                    const status = classifyCliVersionStatus(cliInfo);
-                    const tone = cliVersionStatusHintClass(status);
-                    return (
-                      <div
-                        className={
-                          "settings-row__hint" + (tone ? ` ${tone}` : "")
-                        }
-                        id="settings-anchor-cliVersionStatus"
-                        data-testid="settings-cli-version-status"
-                        data-status={status}
-                      >
-                        {t(
-                          cliVersionStatusMessageKey(status),
-                          cliVersionStatusMessageParams(cliInfo),
-                        )}
-                      </div>
-                    );
-                  })()}
-                  {cliInfo.agentBinarySkew ? (
-                    <div className="settings-row settings-row--stack settings-row--compact">
-                      <div className="settings-row__hint settings-row__hint--warn">
-                        {t("settings.cliAgentSkew", {
-                          version: cliInfo.version || "—",
-                          agentVersion: cliInfo.agentVersion || "—",
-                        })}
-                      </div>
-                      {onCliRepairAgentSidecar ? (
-                        <button
-                          type="button"
-                          className="btn btn--ghost btn--sm"
-                          disabled={!!cliAgentSkewRepairing}
-                          onClick={() => {
-                            void (async () => {
-                              try {
-                                const r = await onCliRepairAgentSidecar();
-                                if (!r) return;
-                                if (r.ok) {
-                                  showSettingsToast?.(
-                                    t("settings.cliAgentSkewRepaired", {
-                                      agentVersion: r.agentVersion || "—",
-                                    }),
-                                    3200,
-                                  );
-                                } else {
-                                  showSettingsToast?.(
-                                    t("settings.cliAgentSkewRepairFailed", {
-                                      error: r.error || "unknown",
-                                    }),
-                                    4500,
-                                  );
-                                }
-                              } catch (e) {
-                                showSettingsToast?.(
-                                  t("settings.cliAgentSkewRepairFailed", {
-                                    error:
-                                      e instanceof Error
-                                        ? e.message
-                                        : String(e),
-                                  }),
-                                  4500,
-                                );
-                              }
-                            })();
-                          }}
-                        >
-                          {cliAgentSkewRepairing
-                            ? t("settings.cliAgentSkewRepairing")
-                            : t("settings.cliAgentSkewRepair")}
-                        </button>
-                      ) : null}
-                    </div>
-                  ) : null}
-                  {cliInfo.acpAgentVersionSkew ? (
-                    <div
-                      className="settings-row__hint settings-row__hint--warn"
-                      id="settings-anchor-cliAcpVersionSkew"
-                    >
-                      {t("settings.cliAcpVersionSkew", {
-                        version: cliInfo.version || "—",
-                        acpVersion: cliInfo.acpAgentVersion || "—",
-                      })}
-                    </div>
-                  ) : null}
-                </div>
-                {!cliInfo.found ? (
-                  <CliRepairPanel
-                    allowUnverifiedCliInstall={allowUnverifiedCliInstall}
-                    onCliInfoRefresh={onCliInfoRefresh}
-                    showSettingsToast={showSettingsToast}
-                    t={t}
-                  />
-                ) : null}
-                {detectAppPlatform() === "win" ? (
-                  <div
-                    className={
-                      "settings-card" +
-                      rowHighlight("settings-anchor-wslBackend")
-                    }
-                  >
-                    <WslBackendField
-                      t={t}
-                      onSaved={() => {
-                        // Refresh the top CLI path card so source/version match backend.
-                        void (async () => {
-                          try {
-                            const mod = await import("@/lib/api");
-                            const probed = await mod.probeCli(
-                              manualCliPath || undefined,
-                            );
-                            onCliInfoRefresh?.(probed);
-                          } catch {
-                            /* soft-fail — WslBackendField still shows its own probe */
-                          }
-                        })();
-                      }}
-                    />
-                  </div>
-                ) : null}
-                {onAllowUnverifiedCliInstall ? (
-                  <div
-                    className={
-                      "settings-row" +
-                      rowHighlight("settings-anchor-allowUnverifiedCli")
-                    }
-                    id="settings-anchor-allowUnverifiedCli"
-                  >
-                    <div className="settings-row__text">
-                      <div className="settings-row__label">
-                        {t("settings.allowUnverifiedCli")}
-                      </div>
-                      <div className="settings-row__desc">
-                        {t("settings.allowUnverifiedCliDesc")}
-                      </div>
-                    </div>
-                    <UiCheck
-                      checked={!!allowUnverifiedCliInstall}
-                      onChange={() =>
-                        onAllowUnverifiedCliInstall(!allowUnverifiedCliInstall)
-                      }
-                      ariaLabel={t("settings.allowUnverifiedCli")}
-                    />
-                  </div>
-                ) : null}
-                <div
-                  className={
-                    "settings-row settings-row--stack" +
-                    rowHighlight("settings-anchor-cliUpdate")
-                  }
-                  id="settings-anchor-cliUpdate"
-                >
-                  <CliUpdateRow
-                    t={t}
-                    cliFound={cliInfo.found}
-                    autoCheck
-                  />
-                </div>
+              <div className={"settings-card" + rowHighlight("settings-anchor-cliPath")}
+                id="settings-anchor-cliPath">
+                <BundledRuntimeInfo t={t} cliInfo={cliInfo} />
+                <AboutUpdateRow t={t} />
               </div>
             )}
             {activeTab === "cli" && (

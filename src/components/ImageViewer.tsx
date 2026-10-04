@@ -13,6 +13,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { ContextMenu } from "./ContextMenu";
+import { useImageResourceActions } from "@/hooks/useImageResourceActions";
 import { createT, type Locale } from "@/i18n";
 import { copyImageFromPath, copyImageFromSrc } from "@/lib/copyImage";
 import {
@@ -89,6 +91,13 @@ export function ImageViewerProvider({
   const [isOpen, setIsOpen] = useState(false);
   const [index, setIndex] = useState(0);
   const [slides, setSlides] = useState<ResolvedSlide[]>([]);
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+  const imageActions = useImageResourceActions({
+    source: slides[index]?.origin || "",
+    locale,
+    disabled: !isOpen || slides[index]?.kind !== "image" || !!slides[index]?.originalStatus,
+  });
+  useEffect(() => setMenu(null), [isOpen, index]);
   const isOpenRef = useRef(false);
   const slidesRef = useRef(slides);
   const generationRef = useRef(0);
@@ -378,7 +387,7 @@ export function ImageViewerProvider({
       if (!src) return;
       event.preventDefault();
       event.stopPropagation();
-      void copyImageFromSrc(src);
+      setMenu({ x: event.clientX, y: event.clientY });
     };
     document.addEventListener("contextmenu", onContextMenu, true);
     return () => document.removeEventListener("contextmenu", onContextMenu, true);
@@ -405,6 +414,11 @@ export function ImageViewerProvider({
   return (
     <ImageViewerContext.Provider value={api}>
       {children}
+      <ContextMenu
+        open={isOpen && !!menu} x={menu?.x ?? 0} y={menu?.y ?? 0}
+        items={imageActions.items} onClose={() => setMenu(null)} className="resource-image-menu"
+      />
+      {imageActions.notice}
       {slides.length > 0 ? (
         <Suspense fallback={null}>
           <ImageLightbox

@@ -688,6 +688,7 @@ pub async fn install_cli_latest(
     app: AppHandle,
     allow_unverified: bool,
 ) -> Result<CliInstallResult, String> {
+    crate::bundled_runtime::reject_separate_update()?;
     let client = http_client()?;
     let (version, preferred) = resolve_version(&app, &client).await?;
 

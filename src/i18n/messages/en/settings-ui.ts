@@ -477,7 +477,7 @@ export const enSettingsUi = {
   "settings.autoUpdateReady": "Update downloaded — confirm Install and restart when you are ready.",
   "settings.autoUpdateInstall": "Install and restart",
   "settings.autoUpdateConfirm.title": "Install update and restart?",
-  "settings.autoUpdateConfirm.message": "Version {version} will be installed and the app will restart.",
+  "settings.autoUpdateConfirm.message": "Version {version} will be installed with its bundled Grok Build. Running tasks will stop and Grok App will restart.",
   "settings.autoUpdateConfirm.confirm": "Install and restart",
   "settings.autoUpdateConfirm.cancel": "Cancel",
   "settings.autoUpdateInstalling": "Installing…",

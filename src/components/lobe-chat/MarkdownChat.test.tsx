@@ -6,6 +6,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { act, cleanup, render } from "@testing-library/react";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
+import ReactMarkdown from "react-markdown";
 import {
   MARKDOWN_CHAT_LEAF_COMPONENTS,
   MARKDOWN_CHAT_REHYPE_PLUGINS,
@@ -14,12 +15,59 @@ import {
 } from "./MarkdownChat";
 import { MARKDOWN_REHYPE_PLUGINS, MARKDOWN_REMARK_PLUGINS } from "@/lib/markdownMath";
 
+vi.mock("react-markdown", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react-markdown")>();
+  return { ...actual, default: vi.fn(actual.default) };
+});
+
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
+  vi.clearAllMocks();
 });
 
 describe("streaming MarkdownChat", () => {
+  it("does not re-parse unchanged paint while buffering incoming chunks", () => {
+    vi.useFakeTimers();
+    const view = render(<MarkdownChat streaming>{"**hello**"}</MarkdownChat>);
+    const parses = vi.mocked(ReactMarkdown).mock.calls.length;
+    for (let i = 0; i < 3; i++) {
+      view.rerender(<MarkdownChat streaming>{`**hello** ${i}`}</MarkdownChat>);
+      act(() => { vi.advanceTimersByTime(30); });
+    }
+    expect(vi.mocked(ReactMarkdown).mock.calls.length).toBe(parses);
+    act(() => { vi.advanceTimersByTime(30); });
+    expect(vi.mocked(ReactMarkdown).mock.calls.length).toBe(parses + 1);
+    expect(view.container.textContent).toBe("hello 2");
+  });
+
+  it.each([
+    { name: "long prose", prefix: "a".repeat(12_100) },
+    { name: "an open code fence", prefix: "```html\n" + "<p>pelican</p>\n".repeat(1_000) },
+  ])("paints $name within 120 ms while chunks keep arriving", ({ prefix }) => {
+    vi.useFakeTimers();
+    let text = prefix;
+    const view = render(<MarkdownChat streaming>{text}</MarkdownChat>);
+    for (let batch = 0; batch < 4; batch++) {
+      for (let chunk = 0; chunk < 4; chunk++) {
+        text += ` batch${batch}chunk${chunk}`;
+        view.rerender(<MarkdownChat streaming>{text}</MarkdownChat>);
+        act(() => {
+          vi.advanceTimersByTime(30);
+        });
+      }
+      expect(view.container.textContent).toContain(`batch${batch}chunk0`);
+    }
+    act(() => {
+      vi.advanceTimersByTime(120);
+    });
+    expect(view.container.textContent).toContain("batch3chunk3");
+    if (prefix.startsWith("```")) {
+      expect(view.container.querySelector("pre")).not.toBeNull();
+      expect(view.container.textContent).not.toContain("```");
+    }
+  });
+
   it.each([
     { length: 0, interval: 60 },
     { length: 2100, interval: 128 },
@@ -78,16 +126,24 @@ describe("MarkdownChat", () => {
     expect(MARKDOWN_CHAT_LEAF_COMPONENTS.hr).toBeDefined();
   });
 
-  it("turns http links into path cards and keeps inline code", () => {
+  it("keeps http links readable and preserves non-URL inline code", () => {
     const html = renderToStaticMarkup(
       <MarkdownChat>
         {"See [docs](https://example.com/path) and `code`."}
       </MarkdownChat>,
     );
-    expect(html).toContain("file-path-card--url");
+    expect(html).toContain('data-output-resource="link"');
     expect(html).toContain("example.com");
     expect(html).toContain("chat-md__inline-code");
     expect(html).toContain("code");
+  });
+
+  it("renders remote Markdown images as image previews instead of URL cards", () => {
+    const html = renderToStaticMarkup(
+      <MarkdownChat>{"![Output](https://example.com/result.png)"}</MarkdownChat>,
+    );
+    expect(html).toContain('data-output-resource="image"');
+    expect(html).not.toContain('data-output-resource="link"');
   });
 
   it("highlights find hits in string leaves", () => {

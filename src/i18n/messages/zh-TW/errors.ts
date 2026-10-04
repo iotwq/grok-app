@@ -1,5 +1,7 @@
 /** Traditional Chinese messages — domain: errors */
 export const zhTWErrors = {
+  "error.deck.concurrency.problem": "帳號並行請求已達上限",
+  "error.deck.concurrency.cause": "請等待執行中的請求完成，或減少同時進行的任務後重試。",
   "error.deck.model.problem": "模型無法使用",
   "error.deck.model.cause": "服務商不支援此模型。請開啟供應商設定，選擇該服務支援的模型。",
   "error.details": "詳情",

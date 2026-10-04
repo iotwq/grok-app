@@ -1,5 +1,7 @@
 /** ko messages — domain: errors */
 export const koErrors = {
+  "error.deck.concurrency.problem": "계정의 동시 요청 한도에 도달했습니다",
+  "error.deck.concurrency.cause": "진행 중인 요청이 끝날 때까지 기다리거나 동시 작업 수를 줄인 후 다시 시도하세요.",
   "error.deck.model.problem": "모델을 사용할 수 없습니다",
   "error.deck.model.cause": "공급자가 이 모델을 거부했습니다. 공급자 설정에서 해당 서비스가 지원하는 모델을 선택하세요.",
   "error.details": "자세히",

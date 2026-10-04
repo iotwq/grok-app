@@ -477,7 +477,7 @@ export const taSettingsUi = {
   "settings.autoUpdateReady": "புதுப்பிப்பு பதிவிறக்கப்பட்டது — தயாரானதும் «நிறுவி மறுதொடக்கம் செய்யுங்கள்» என்பதை உறுதிப்படுத்தவும்.",
   "settings.autoUpdateInstall": "நிறுவி மறுதொடக்கம் செய்யுங்கள்",
   "settings.autoUpdateConfirm.title": "புதுப்பிப்பை நிறுவி மறுதொடக்கம் செய்யவா?",
-  "settings.autoUpdateConfirm.message": "பதிப்பு {version} நிறுவப்பட்டு பயன்பாடு மறுதொடக்கம் ஆகும்.",
+  "settings.autoUpdateConfirm.message": "பதிப்பு {version} உள்ளமைந்த Grok Build உடன் நிறுவப்படும். இயங்கும் பணிகள் நிறுத்தப்பட்டு Grok App மறுதொடக்கம் செய்யப்படும்.",
   "settings.autoUpdateConfirm.confirm": "நிறுவி மறுதொடக்கம் செய்யுங்கள்",
   "settings.autoUpdateConfirm.cancel": "ரத்து",
   "settings.autoUpdateInstalling": "நிறுவுகிறது…",

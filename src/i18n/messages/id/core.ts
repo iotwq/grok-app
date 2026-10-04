@@ -1,5 +1,13 @@
 /** id messages — domain: core */
 export const idCore = {
+  "resource.openLink": "Buka tautan",
+  "resource.openSide": "Buka di browser samping",
+  "resource.copyAddress": "Salin alamat gambar",
+  "resource.copyFailed": "Tidak dapat menyalin. Coba lagi.",
+  "resource.openFailed": "Tidak dapat membuka sumber ini. Coba lagi.",
+  "resource.working": "Memproses…",
+  "image.saveAs": "Simpan gambar sebagai…",
+  "image.saveFailed": "Tidak dapat menyimpan gambar. Coba lagi.",
   "app.name": "Grok",
   "image.loadingOriginal": "Memuat berkas asli…",
   "image.originalFailed": "Berkas asli tidak dapat dimuat. Pratinjau tetap tersedia.",
@@ -36,7 +44,7 @@ export const idCore = {
   "office.pageOf": "{page} / {total}",
   "image.view": "Lihat gambar",
   "image.copy": "Salin gambar",
-  "image.copyHint": "Klik kanan untuk menyalin gambar",
+  "image.copyHint": "Klik kanan untuk tindakan gambar",
   "image.next": "Gambar berikutnya",
   "image.prev": "Gambar sebelumnya",
   "image.close": "Tutup",
