@@ -1574,3 +1574,28 @@
 - `progress.md`：仅追加最终证据与回滚入口；其他改动文件已在各任务 Notes 中逐一记录。
 - `dist/`、`src-tauri/target/`：验证生成的构建缓存，不是新安装包。
 - 本轮整体回滚（无后续修改时）：在仓库根目录先执行 `git apply --reverse --check /tmp/grok-fixes-20261004/changes.patch`，成功后执行 `git apply --reverse /tmp/grok-fixes-20261004/changes.patch`。该补丁只包含本轮 61 个范围内文件，保留之前的未提交改动和完整 progress.md 历史；不执行全仓库 reset。
+
+## 2026-10-04 - Task: 发布 0.2.36 跨平台安装包并启用 Windows ARM64
+
+### What was done
+- 将当前累计的桌面端修复、浏览器自动化、资源交互、升级流程和内置运行时改动提交为 `97af9422`。
+- 将发布矩阵扩展为 macOS ARM64/Intel 与 Windows ARM64/x64；Windows 两种架构均生成 NSIS 安装版和 portable 绿色版。
+- 将内置 Grok Build 运行时扩展为 Windows ARM64，并刷新官方 stable 版本 1.0.46、六个平台校验清单及许可证快照。
+- 更新下载契约、发布校验、稳定别名、仓库地址和 0.2.36 双语变更记录。
+
+### Testing
+- `pnpm test`：679 个测试文件、7684 项全部通过。
+- `pnpm typecheck`、`pnpm lint`、`pnpm build:ui` 通过。
+- `node --test scripts/prepare-bundled-runtime.test.mjs`：9/9 通过；网站下载契约自测 3/3 通过。
+- `python3 scripts/check-code-quality-gates.py --mode final`：全部门禁通过；`git diff --check` 除上游第三方许可原文的既有尾随空格外通过。
+- Windows ARM64、Windows x64 与 Rust 原生编译未在当前 macOS 工作区执行；交由推送后的 GitHub Actions release 矩阵验证。
+
+### Notes
+- `.github/workflows/release.yml`：新增 Windows ARM64 构建并统一传递目标架构。
+- `scripts/prepare-bundled-runtime.mjs`：加入 `aarch64-pc-windows-msvc` 运行时。
+- `scripts/package-windows-portable.sh`：按目标架构打包 Windows portable。
+- `scripts/assert-release-assets.sh`：发布门禁要求 Windows ARM64/x64 安装版和 portable。
+- `scripts/publish-website-downloads.py`：增加 Windows ARM64 稳定别名和下载清单。
+- `src-tauri/resources/grok-build/`：记录 Grok Build 1.0.46 及许可证快照。
+- `CHANGELOG.md`、`README*.md`、`docs/BUILD.md`、`docs/llm-wiki/release.md`、`docs/llm-wiki/website-downloads.md`：同步 0.2.36 发布说明、架构和下载地址。
+- 回滚方式：代码准备提交为 `97af9422`；如需撤回本轮提交，执行 `git revert 97af9422`，再重新运行验证。
