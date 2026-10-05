@@ -200,7 +200,7 @@ Release job 关键：
 GitHub → **Settings → Actions → General → Workflow permissions**  
 → **Read and write permissions**（否则无法创建/更新 Release）。
 
-macOS 正式 Release 必须配置完整的 `APPLE_CERTIFICATE`、签名身份和 App Store Connect API secrets。`release.yml` 会在构建前拒绝缺失或不完整的配置，并在上传前验证 Developer ID 签名、DMG 完整性和公证票据；这样不会再把 Gatekeeper 判定为「已损坏」的包发布出去。`xattr` 仅用于旧包、fork 或本地未签名构建。
+macOS 正式 Release 必须配置完整的 `APPLE_CERTIFICATE`、签名身份和 App Store Connect API secrets。`release.yml` 会在构建前拒绝缺失或不完整的配置，并在上传前验证 Developer ID 签名、DMG 完整性和公证票据；这样不会再把 Gatekeeper 判定为「已损坏」的包发布出去。应用内更新在 macOS 上固定走 Releases 页面和完整 DMG 手动安装，不依赖 `latest.json` 或 Tauri updater 签名；`xattr` 仅用于旧包、fork 或本地未签名构建。
 
 ## 官网下载契约（grok-app.com）
 

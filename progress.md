@@ -1656,3 +1656,19 @@
 - `package.json`、`src-tauri/tauri.conf.json`、`src-tauri/Cargo.toml`、`src-tauri/Cargo.lock`：统一版本为 0.2.37。
 - `progress.md`：记录本次发布结果和门禁状态。
 - 回滚代码：在确认没有后续提交依赖时执行 `git revert 9e61170f 8c4796d1`；Release 草稿可用 `gh release delete v0.2.37 --repo iotwq/grok-app --yes` 删除。
+
+## 2026-10-05 - Task: 按平台调整更新流程
+### What was done
+- macOS 构建固定使用 GitHub Releases 的完整 DMG 手动下载路径，不再调用 Tauri 静默更新或要求 updater archive 签名。
+- Windows 继续使用安装器接管退出后的直接更新和重启；Linux 继续仅对 AppImage 使用应用内更新。
+- 同步更新自动更新文档，并补充 macOS 手动下载回归覆盖。
+### Testing
+- `pnpm exec vitest run src/hooks/useUpdater.bundled.test.tsx src/lib/appUpdateHonesty.test.ts`：47/47 通过。
+- `cargo test --manifest-path src-tauri/Cargo.toml updater::`：5/5 通过，包含当前 macOS 手动通道断言。
+- `rustfmt --check --edition 2021 src-tauri/src/updater.rs`、`git diff --check`、`pnpm typecheck` 通过。
+### Notes
+- `src-tauri/src/updater.rs`：macOS 返回手动更新通道并关闭 updater 能力，保留 Windows/Linux 自动路径。
+- `src/hooks/useUpdater.bundled.test.tsx`：验证 macOS 直接提供匹配架构 DMG，不调用 Tauri updater。
+- `docs/desktop-auto-update.md`、`docs/llm-wiki/release.md`：记录平台更新策略和 Apple 凭据边界。
+- `progress.md`：追加本轮变更与验证证据。
+- 回滚方式：执行 `git revert <本轮提交>`，即可恢复 macOS 的静默更新判定和文档改动。

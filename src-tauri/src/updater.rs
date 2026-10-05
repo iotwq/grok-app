@@ -10,10 +10,11 @@
 //!
 //! ## Teardown ordering (P0)
 //!
-//! macOS/Linux call prepare after successful install and before relaunch.
+//! Linux calls prepare after successful install and before relaunch.
 //! Windows calls it before install: the updater exits immediately after starting
 //! NSIS/MSI, and a running bundled .exe would block replacement. On a failed
 //! Windows handoff the UI requires restarting the existing App to restore services.
+//! macOS uses the GitHub DMG manual-download path and does not enter this flow.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -42,16 +43,26 @@ pub fn shutdown_started() -> bool {
 /// runtime sets `APPIMAGE` when the binary is executed from an AppImage.
 /// `.deb` / `.rpm` packages surface a manual-download path instead.
 ///
-/// On macOS and Windows every supported install format is auto-updatable.
+/// macOS uses the manual DMG path until signed/notarized updater archives are
+/// available. Windows keeps the in-app installer handoff; Linux remains
+/// AppImage-only.
 #[tauri::command]
 pub fn is_auto_update_supported() -> bool {
     #[cfg(target_os = "linux")]
     {
         std::env::var("APPIMAGE").is_ok()
     }
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(target_os = "macos")]
+    {
+        false
+    }
+    #[cfg(target_os = "windows")]
     {
         true
+    }
+    #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
+    {
+        false
     }
 }
 
@@ -59,14 +70,14 @@ pub fn is_auto_update_supported() -> bool {
 /// (`GROK_UPDATER_*` at compile time) and is not a debug build.
 #[tauri::command]
 pub fn is_updater_plugin_enabled() -> bool {
-    cfg!(grok_updater_enabled) && !cfg!(debug_assertions)
+    cfg!(grok_updater_enabled) && !cfg!(debug_assertions) && !cfg!(target_os = "macos")
 }
 
 /// Snapshot for About / Doctor: which update path this binary can use.
 #[derive(Debug, Clone, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdaterStatusDto {
-    /// Platform packaging supports silent install (e.g. not Linux .deb).
+    /// Platform packaging supports silent install (Windows or Linux AppImage).
     pub platform_supported: bool,
     /// Release binary built with signing pubkey + endpoint.
     pub plugin_enabled: bool,
@@ -107,13 +118,16 @@ pub fn updater_status() -> UpdaterStatusDto {
         channel,
         endpoint,
         manual_configured: crate::app_update::release_urls().is_some(),
-        release_url: crate::app_update::release_urls().map(|(_, page)| page).unwrap_or("").to_string(),
+        release_url: crate::app_update::release_urls()
+            .map(|(_, page)| page)
+            .unwrap_or("")
+            .to_string(),
     }
 }
 
 /// Stop managed agent children / hosts before process relaunch after a staged install.
 ///
-/// After install on macOS/Linux; before the exiting installer on Windows.
+/// After install on Linux; before the exiting installer on Windows.
 /// See module documentation for Windows failure recovery.
 ///
 /// `remote_im.inner` is held only for the duration of `stop_async`. That method
@@ -196,6 +210,14 @@ mod tests {
         if cfg!(debug_assertions) {
             assert!(!is_updater_plugin_enabled());
         }
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn macos_uses_manual_update_path() {
+        assert!(!is_auto_update_supported());
+        assert!(!is_updater_plugin_enabled());
+        assert_eq!(updater_status().channel, "github_manual");
     }
 
     #[test]

@@ -64,19 +64,40 @@ describe("bundled runtime update lifecycle", () => {
     expect(install).not.toHaveBeenCalled();
     expect(result.current.status).toMatchObject({ state: "error", restartRequired: true });
   });
-  it("macOS installation failure leaves sessions running", async () => {
-    vi.mocked(detectAppPlatform).mockReturnValue("mac");
-    const { result } = await ready();
-    install.mockRejectedValueOnce(new Error("installer failed"));
-    await act(async () => { await result.current.installAndRelaunch(); });
-    expect(events).toEqual(["download"]);
-    expect(result.current.status).toMatchObject({ state: "error", restartRequired: false });
+});
+
+it("macOS uses the complete DMG manual-download path", async () => {
+  vi.mocked(detectAppPlatform).mockReturnValue("mac");
+  vi.mocked(invoke).mockImplementation(async (command) => {
+    if (command === "updater_status") {
+      return {
+        platformSupported: false,
+        pluginEnabled: false,
+        channel: "github_manual",
+        endpoint: "",
+        manualConfigured: true,
+        releaseUrl: "https://example.com/releases",
+      };
+    }
+    if (command === "is_updater_plugin_enabled") return false;
+    if (command === "app_check_update") {
+      return {
+        currentVersion: "0.2.36",
+        latestVersion: "0.2.37",
+        updateAvailable: true,
+        htmlUrl: "https://example.com/releases/0.2.37",
+        downloadUrl: "https://example.com/Grok_mac_aarch64.dmg",
+        assetNames: ["Grok_mac_aarch64.dmg"],
+      };
+    }
+    throw new Error(`Unexpected command: ${command}`);
   });
-  it("macOS installs before stopping sessions and restarting", async () => {
-    vi.mocked(detectAppPlatform).mockReturnValue("mac");
-    const { result } = await ready();
-    await act(async () => { await result.current.installAndRelaunch(); });
-    expect(events).toEqual(["download", "install", "stop", "restart"]);
+  const { result } = renderHook(() => useUpdater());
+  await waitFor(() => expect(result.current.status.state).toBe("manual-required"));
+  expect(check).not.toHaveBeenCalled();
+  expect(result.current.status).toMatchObject({
+    version: "0.2.37",
+    downloadUrl: "https://example.com/Grok_mac_aarch64.dmg",
   });
 });
 

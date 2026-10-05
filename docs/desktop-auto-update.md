@@ -1,14 +1,17 @@
 # Desktop auto-update
 
 Grok App uses the same **Tauri 2 updater** shape as Minos / Buzz: signed release
-artifacts, a rolling `latest.json` endpoint, in-app check/download/install, and
-a platform-specific stop of managed agent / mirror / voice / IM processes during installation and restart.
+artifacts, a rolling `latest.json` endpoint, in-app check/download/install on
+Windows and Linux AppImage, and a platform-specific stop of managed agent /
+mirror / voice / IM processes during installation and restart. macOS uses the
+GitHub Releases DMG download and a manual replacement until Apple signing and
+notarization are available.
 
 ## Bundled runtime update (2026-09-20)
 
 App updates include the pinned Grok Build executable and its license notices.
 Terminal CLI installations are independent; no separate CLI update prompt is shown.
-macOS/Linux keep install → stop services → relaunch. On Windows, stop services and
+Linux keeps install → stop services → relaunch. On Windows, stop services and
 release all processes using this App's exact bundled executable path **before**
 `install()`, because Tauri starts NSIS/MSI and exits without returning to JavaScript.
 If stopping or installation fails after teardown begins, About requires restarting
@@ -44,8 +47,8 @@ sets both from its own `github.repository`. There is no upstream fallback.
 | Build-time gate | `build.rs` → `cfg(grok_updater_enabled)` when both `GROK_UPDATER_*` env vars are set (crate always linked for ACL) |
 | Release conf delta | `scripts/build-release-config.mjs` → `src-tauri/tauri.release.conf.json` (gitignored — always regenerate) |
 | Plugin register | `src-tauri/src/lib.rs` (cfg + non-debug only) |
-| Platform support | `is_auto_update_supported` — Linux requires AppImage (`APPIMAGE` env) |
-| Pre-relaunch teardown | `prepare_for_app_update` — after install on macOS/Linux; before installer handoff on Windows |
+| Platform support | `is_auto_update_supported` — Windows and Linux AppImage only; macOS is manual DMG |
+| Pre-relaunch teardown | `prepare_for_app_update` — after install on Linux; before installer handoff on Windows |
 | Frontend state machine | `src/hooks/useUpdater.ts` + `UpdaterProvider` (single path: plugin or GitHub) |
 | Path honesty (copy / channel) | `src/lib/appUpdateHonesty.ts` — signed auto vs GitHub manual vs unsupported vs host-only; soft-fail error classes; platform-specific service teardown boundary |
 | UI | Settings → About (`AboutUpdateRow`) |
@@ -57,11 +60,12 @@ feature, no env), so dev binaries never hit a production endpoint.
 ### Install / teardown order (P0)
 
 ```
-macOS/Linux: download → install() → prepare_for_app_update() → relaunch()
+Linux: download → install() → prepare_for_app_update() → relaunch()
 Windows: download → prepare_for_app_update() → install() → installer owns exit/relaunch
+macOS: open matching DMG download → user replaces the app manually
 ```
 
-If `install()` fails on macOS/Linux, agents / voice / IM / mirror stay running.
+If `install()` fails on Linux, agents / voice / IM / mirror stay running.
 On Windows, restart the existing App to restore services before another attempt.
 
 ## Secrets (GitHub Actions)
@@ -93,7 +97,7 @@ Before treating silent update as “on” for users:
    ```
 3. **Release cut:** tag `vX.Y.Z` so CI builds installers **and** refreshes `grok-desktop-latest` + `latest.json` + `.sig`.
 4. **Smoke on a prior signed build:** Settings → About shows **Update channel: in-app (signed release)** → Check → Download → Install and restart → version matches tag.
-5. **Failure path:** on macOS/Linux, installation failure must keep agents / Remote IM / mirror running. On Windows, preparation failure must prevent installer launch; a handoff failure after teardown must offer restarting the current App and block another update attempt until restart.
+5. **Failure path:** on Linux, installation failure must keep agents / Remote IM / mirror running. macOS manual replacement leaves the current app untouched until the user completes installation. On Windows, preparation failure must prevent installer launch; a handoff failure after teardown must offer restarting the current App and block another update attempt until restart.
 6. **Unsigned / local builds:** with no source configured, About explains that updates must come from the distributor and does not offer checks or downloads. With an explicit source, verify that manual downloads stay within that distribution.
 7. **Linux non-AppImage:** About shows **unsupported** package-type channel + AppImage-only note when the plugin is compiled in.
 
@@ -148,18 +152,21 @@ open GitHub Releases.
 
 ## macOS note
 
-Codesign + notarize the `.app` / DMG in CI when Apple secrets are present.
-After notarization, rebuild the updater `.tar.gz` from the signed app and
-re-sign with the Tauri updater key (same pattern as Buzz) if you notarize
-post-build.
+The desktop app deliberately reports macOS as `github_manual`: Settings → About
+checks the distributor's Releases API and offers the matching ARM64 or Intel DMG
+for manual installation. This path does not require `latest.json`, updater
+archive signatures, or an Apple Developer account. Apple codesigning and
+notarization are still required before publishing a Gatekeeper-friendly DMG;
+manual update behavior does not make an unsigned first install trusted by macOS.
 
 ## Manual verification
 
 1. `pnpm typecheck` / `pnpm test` — UI unit tests
 2. `cargo test --manifest-path src-tauri/Cargo.toml updater::` — Rust helpers
 3. Settings → About shows **manual GitHub check** on local builds (expected)
-4. Release smoke: build with both env vars, confirm `is_updater_plugin_enabled`
-   is true in a release binary, and that check hits `latest.json`
+4. Release smoke: Windows and Linux AppImage builds with both env vars should
+   confirm `is_updater_plugin_enabled` is true and that check hits `latest.json`.
+   macOS builds should report `github_manual` and offer the matching DMG.
 
 ## Compatible manual installers (2026-10-04)
 
