@@ -1641,3 +1641,18 @@
 - `docs/llm-wiki/session-continuity.md`：记录 350ms 流式收尾窗口及代际保护。
 - `progress.md`：追加本轮记录。
 - 回滚：执行 `git apply --reverse /tmp/grok-app-20261005-stream-effort-fix.patch` 可撤回本轮代码与文档改动；进度日志保留审计记录。
+
+## 2026-10-05 - Task: 发布 0.2.37 源码与跨平台安装包
+### What was done
+- 将本轮 Grok 4.7 推理、重复请求和流式收尾修复推送到 `main` 与发布分支，并创建远程标签 `v0.2.37`。
+- 触发 GitHub Actions 发布矩阵；Windows x64/ARM64 和 Linux x64 安装包已构建并上传到 Release 草稿。
+- 因仓库尚未配置 Apple Developer 签名与公证凭据，macOS 两个平台在构建前安全失败；将不完整 Release 保留为草稿，避免被用户误用。
+### Testing
+- GitHub Actions run `37319909499`：Windows x64、Windows ARM64、Linux x64 构建成功；macOS ARM64/x64 在 Apple signing env 门禁失败；Release asset gate 按设计失败。
+- 已确认 `v0.2.37` 草稿资产包含 Windows 两架构 setup/portable 和 Linux AppImage/deb/rpm；未发布未签名 macOS 安装包。
+### Notes
+- `CHANGELOG.md`：新增 0.2.37 双语发布说明。
+- `README.md`、`README_EN.md`、`README_ZH.md`、`README_RU.md`：刷新贡献者头像画廊。
+- `package.json`、`src-tauri/tauri.conf.json`、`src-tauri/Cargo.toml`、`src-tauri/Cargo.lock`：统一版本为 0.2.37。
+- `progress.md`：记录本次发布结果和门禁状态。
+- 回滚代码：在确认没有后续提交依赖时执行 `git revert 9e61170f 8c4796d1`；Release 草稿可用 `gh release delete v0.2.37 --repo iotwq/grok-app --yes` 删除。
