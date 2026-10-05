@@ -135,8 +135,8 @@ impl SessionManager {
                 authoritative,
             } => {
                 let mut pending_emits = Vec::new();
-                let mut pending_persists = Vec::new();
-                let finished = {
+                let pending_persists = Vec::new();
+                let deferred_turn_id = {
                     let mut bg = self.background.lock();
                     if let Some(s) = bg.get_mut(app_session_id) {
                         if let Some(p) = Self::take_pending_stream_emit(s) {
@@ -147,63 +147,43 @@ impl SessionManager {
                             s.prompt_in_flight = false;
                         }
                         if !Self::should_rearm_deferred_prompt_complete(s) {
-                            false
+                            None
                         } else {
-                            s.deferred_prompt_complete = Some(stop_reason.clone());
-                            // Keep turn open while tools still running (long find / subagent).
-                            match Self::try_finish_deferred_prompt_complete(
-                                s,
-                                Some(&mut pending_emits),
-                                Some(&mut pending_persists),
-                            ) {
-                                None => {
-                                    tracing::info!(
-                                        "background prompt_complete deferred sid={} tools={}",
-                                        app_session_id,
-                                        s.open_tool_ids.len()
-                                    );
-                                    false
-                                }
-                                Some(_) => true,
-                            }
+                            Self::defer_prompt_complete(s, stop_reason.clone());
+                            // Keep turn open while tools still running (long find / subagent),
+                            // and allow late stream chunks after the prompt RPC result.
+                            tracing::info!(
+                                "background prompt_complete deferred sid={} tools={}",
+                                app_session_id,
+                                s.open_tool_ids.len()
+                            );
+                            s.active_turn_id.clone()
                         }
                     } else {
-                        false
+                        None
                     }
                 };
                 Self::emit_stream_payloads(app, pending_emits);
                 Self::commit_session_persists(Some(app), pending_persists);
-                if finished {
-                    self.promote_background_ready_to_parked(app_session_id);
-                    Self::emit_runtime(
-                        app,
-                        &SessionSnapshot {
-                            session_id: Some(app_session_id.to_string()),
-                            agent_session_id: None,
-                            state: SessionState::Ready,
-                            last_error: None,
-                            streaming_message_id: None,
-                            backend: Self::backend_name(),
-                            model_id: None,
-                            project_path: None,
-                            title: String::new(),
-                        },
-                    );
-                } else {
-                    // Still busy in background — keep liveMap streaming.
-                    Self::emit_runtime(
-                        app,
-                        &SessionSnapshot {
-                            session_id: Some(app_session_id.to_string()),
-                            agent_session_id: None,
-                            state: SessionState::Streaming,
-                            last_error: None,
-                            streaming_message_id: None,
-                            backend: Self::backend_name(),
-                            model_id: None,
-                            project_path: None,
-                            title: String::new(),
-                        },
+                Self::emit_runtime(
+                    app,
+                    &SessionSnapshot {
+                        session_id: Some(app_session_id.to_string()),
+                        agent_session_id: None,
+                        state: SessionState::Streaming,
+                        last_error: None,
+                        streaming_message_id: None,
+                        backend: Self::backend_name(),
+                        model_id: None,
+                        project_path: None,
+                        title: String::new(),
+                    },
+                );
+                if let Some(turn_id) = deferred_turn_id {
+                    self.schedule_deferred_prompt_complete_flush(
+                        app.clone(),
+                        app_session_id.to_string(),
+                        turn_id,
                     );
                 }
                 Self::emit_state(app, &self.snapshot());
@@ -650,6 +630,7 @@ impl SessionManager {
                         s.active_turn_id = None;
                         s.stream_message_id_locked = false;
                         s.deferred_prompt_complete = None;
+                        s.deferred_prompt_complete_at = None;
                         s.prompt_in_flight = false;
                         let mut snap = Self::snapshot_from_live(&s);
                         snap.state = SessionState::Disconnected;

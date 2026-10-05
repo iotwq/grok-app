@@ -1619,3 +1619,25 @@
 - `README.md`、`README_EN.md`、`README_ZH.md`、`README_RU.md`：修正 macOS 安装说明。
 - `progress.md`：追加本轮施工与验证记录。
 - 回滚：提交后执行 `git revert <本轮提交>`；未提交前可用 `git diff` 保存补丁后恢复这 9 个文件。不要删除或轮换现有 updater secrets。
+
+## 2026-10-05 - Task: 修复 Grok 4.7 推理强度、重复请求和流式完成卡住
+### What was done
+- 将旧配置中的 Grok 4.x `max` 推理档迁移为 CLI 真实接受的 `xhigh`，并让自定义通道按当前模型解析 effort，避免选择 Grok 4.7 时被降级为 low。
+- 对简单问候跳过后台自动标题请求；标题请求显式沿用当前会话模型，避免一次 hello 触发隐藏请求或误用 Grok 4.6。
+- 修复 ACP `session/prompt` 成功响应早于最后流式 token 的竞态：live/background 会话都保留 350ms 安静窗口，迟到 chunk 会重置窗口，延迟任务绑定原 turn id，完成后再安全切 Ready 并执行已有 journal reconcile。
+- 补充 effort、问候、迟到流尾和 turn 代际保护的回归覆盖，并同步会话连续性文档。
+### Testing
+- `pnpm test`：679 个测试文件、7685 项全部通过。
+- `pnpm typecheck`、`pnpm lint`、`pnpm build:ui` 通过。
+- `cargo test session_manager::stall_tests`：13/13 通过；`cargo test clamp_effort`：2/2 通过；`cargo test trivial_greetings`：1/1 通过。
+- 本轮修改 Rust 文件逐文件 `rustfmt --check --edition 2021` 通过；仓库级 `cargo fmt --check` 仍只报告既有的 `acp_client.rs`、`app_update.rs`、`browser_automation.rs`、`updater.rs` 以及测试文件首空行格式差异，未在本轮扩大清理范围。
+- `git diff --check` 通过。
+### Notes
+- `src-tauri/src/session_manager/stream.rs`：增加 post-prompt grace、turn id 保护和完成调度。
+- `src-tauri/src/session_manager/events.rs`、`events_bg.rs`、`turn.rs`：live/background/成功 RPC 路径统一延迟收尾。
+- `src-tauri/src/session_manager/types.rs`、`connect.rs`、`process.rs`、`control.rs`、`routing_tests.rs`、`routing_tests_p2.rs`、`stall_tests.rs`：维护完成时间戳字段及测试初始化/清理。
+- `src-tauri/src/session_title.rs`：问候短路和当前模型传递。
+- `src-tauri/src/store.rs`、`src/lib/providerModelConfig.ts`、`src/lib/providerModelConfig.test.ts`、`src/app/AppWorkbench.tsx`：Grok 4.x effort 规范化与按模型读取配置。
+- `docs/llm-wiki/session-continuity.md`：记录 350ms 流式收尾窗口及代际保护。
+- `progress.md`：追加本轮记录。
+- 回滚：执行 `git apply --reverse /tmp/grok-app-20261005-stream-effort-fix.patch` 可撤回本轮代码与文档改动；进度日志保留审计记录。

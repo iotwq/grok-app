@@ -157,6 +157,7 @@ impl SessionManager {
             s.open_tool_seen_at.clear();
             s.terminal_tool_ids.clear();
             s.deferred_prompt_complete = None;
+            s.deferred_prompt_complete_at = None;
             s.stall_soft_emits = 0;
             s.saw_model_output = false;
             s.provider_retry_attempt = 0;
@@ -208,6 +209,7 @@ impl SessionManager {
                 s.open_tool_seen_at.clear();
                 s.terminal_tool_ids.clear();
                 s.deferred_prompt_complete = None;
+                s.deferred_prompt_complete_at = None;
                 s.saw_model_output = false;
                 return Err(format!("JOURNAL_WRITE_FAILED: {e}"));
             }
@@ -559,9 +561,9 @@ impl SessionManager {
                     // already cleared (dropped PromptComplete / partial finish)
                     // but FSM never left Streaming — UI shows "thinking" forever
                     // while the agent turn already ended (journal may hold body).
-                    let mut need_emit = false;
-                    let mut pending_emits = Vec::new();
-                    let mut pending_persists = Vec::new();
+                    let pending_emits = Vec::new();
+                    let pending_persists = Vec::new();
+                    let mut deferred_turn_id = None;
                     mgr.with_session_mut(&turn_sid, |s| {
                         // Only heal sticky *Streaming* here — leave
                         // AwaitingPermission alone (user gate still live).
@@ -574,60 +576,29 @@ impl SessionManager {
                             );
                             s.prompt_in_flight = false;
                             if s.deferred_prompt_complete.is_none() {
-                                s.deferred_prompt_complete = Some("end_turn".into());
+                                SessionManager::defer_prompt_complete(s, "end_turn".into());
                             }
-                            need_emit = SessionManager::try_finish_deferred_prompt_complete(
-                            s,
-                            Some(&mut pending_emits),
-                            Some(&mut pending_persists),
-                        )
-                            .is_some();
+                            deferred_turn_id = s.active_turn_id.clone();
                         } else if sticky_streaming {
                             tracing::warn!(
                                 target: "session",
                                 session = %turn_sid,
-                                "prompt RPC Ok but FSM still Streaming with prompt_in_flight=false — force-finish sticky stream"
+                                "prompt RPC Ok but FSM still Streaming with prompt_in_flight=false — defer finish for stream grace"
                             );
                             if s.deferred_prompt_complete.is_none() {
-                                s.deferred_prompt_complete = Some("end_turn".into());
+                                SessionManager::defer_prompt_complete(s, "end_turn".into());
                             }
-                            need_emit = SessionManager::try_finish_deferred_prompt_complete(
-                            s,
-                            Some(&mut pending_emits),
-                            Some(&mut pending_persists),
-                        )
-                            .is_some();
-                            // If gates still block finish, at least drop busy so
-                            // reconnect/send are not wedged forever.
-                            if !need_emit
-                                && s.open_tool_ids.is_empty()
-                                && s.pending_plan_rpc_id.is_none()
-                                && s.pending_ask_user_rpc_id.is_none()
-                            {
-                                // Best-effort take so partial stream_buf is not lost
-                                // when we force-end without try_finish.
-                                if let Some(p) =
-                                    SessionManager::take_pending_stream_emit_done(s)
-                                {
-                                    pending_emits.push(p);
-                                }
-                                SessionManager::maybe_flush_stream_journal(s, true, false);
-                                s.stream_buf.clear();
-                                s.stream_thought.clear();
-                                s.stream_last_was_assistant = false;
-                                let _ = s.fsm.end_stream();
-                                s.streaming_message_id = None;
-                                s.active_turn_id = None;
-                                s.stream_message_id_locked = false;
-                                s.deferred_prompt_complete = None;
-                                need_emit = true;
-                            }
+                            deferred_turn_id = s.active_turn_id.clone();
                         }
                     });
                     SessionManager::emit_stream_payloads(&app2, pending_emits);
                     SessionManager::commit_session_persists(Some(&app2), pending_persists);
-                    if need_emit {
-                        mgr.emit_for_session(&app2, &turn_sid);
+                    if let Some(turn_id) = deferred_turn_id {
+                        mgr.schedule_deferred_prompt_complete_flush(
+                            app2.clone(),
+                            turn_sid.clone(),
+                            turn_id,
+                        );
                     }
                     // Always best-effort pull missing assistant/tool rows from
                     // agent chat_history after the prompt RPC completes. The
@@ -933,6 +904,7 @@ impl SessionManager {
                 s.terminal_tool_ids.clear();
                 s.open_tool_seen_at.clear();
                 s.deferred_prompt_complete = None;
+                s.deferred_prompt_complete_at = None;
                 // Cancelled: the prompt RPC resolves as cancelled, so release the
                 // turn here too — otherwise the chat can never be parked again.
                 s.prompt_in_flight = false;

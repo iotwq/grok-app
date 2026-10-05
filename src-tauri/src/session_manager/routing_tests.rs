@@ -162,6 +162,7 @@ fn sample_live_for_empty_run(body: &str, thought: &str, tools: u32, mode: &str) 
         open_tool_seen_at: HashMap::new(),
         terminal_tool_ids: HashSet::new(),
         deferred_prompt_complete: None,
+        deferred_prompt_complete_at: None,
         tools_this_turn: tools,
         saw_model_output: false,
         prompt_in_flight: false,

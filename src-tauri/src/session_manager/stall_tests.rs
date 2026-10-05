@@ -112,6 +112,7 @@ fn streaming_session(now: Instant, mut patch: impl FnMut(&mut LiveSession)) -> L
         open_tool_seen_at: HashMap::new(),
         terminal_tool_ids: HashSet::new(),
         deferred_prompt_complete: None,
+        deferred_prompt_complete_at: None,
         tools_this_turn: 0,
         saw_model_output: false,
         prompt_in_flight: true,
@@ -280,6 +281,30 @@ fn deferred_prompt_complete_keeps_recent_open_tools() {
         assert!(s.open_tool_ids.contains("live_silent_tool"));
         assert_eq!(s.deferred_prompt_complete.as_deref(), Some("end_turn"));
         assert_eq!(s.fsm.state(), SessionState::Streaming);
+    });
+}
+
+#[test]
+fn deferred_prompt_complete_grace_accepts_late_stream_tail() {
+    with_temp_app_home(|| {
+        let t0 = Instant::now();
+        let mut s = streaming_session(t0, |s| {
+            s.prompt_in_flight = false;
+            s.saw_model_output = true;
+        });
+        SessionManager::defer_prompt_complete(&mut s, "end_turn".into());
+        assert!(
+            SessionManager::try_finish_deferred_prompt_complete(&mut s, None, None).is_none(),
+            "a prompt result must leave a short window for trailing stream chunks"
+        );
+        s.deferred_prompt_complete_at = Some(
+            Instant::now()
+                - Duration::from_millis(super::stream::POST_PROMPT_COMPLETE_GRACE_MS + 1),
+        );
+        assert!(
+            SessionManager::try_finish_deferred_prompt_complete(&mut s, None, None).is_some(),
+            "the turn should finish after the quiet grace window"
+        );
     });
 }
 

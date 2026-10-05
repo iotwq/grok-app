@@ -53,12 +53,27 @@ export function resolveProviderEfforts(
     model?.efforts && model.efforts.length > 0
       ? model.efforts
       : provider.efforts;
+  // Older Grok relay entries used `max` for the fourth UI slot. Grok 4.x
+  // accepts the canonical `xhigh` value; passing the legacy alias can make
+  // the CLI silently fall back to the lowest tier. Normalize only Grok model
+  // ids so other providers that legitimately use `max` keep their protocol.
+  const modelName = (model?.id ?? modelId ?? provider.model).trim().toLowerCase();
+  const hasXhigh = raw?.some((e) => e.id.trim().toLowerCase() === "xhigh");
+  const isGrokReasoningModel = /^grok-4(?:\.\d+)?(?:-|$)/.test(modelName);
+  const normalizedRaw =
+    isGrokReasoningModel && !hasXhigh
+      ? raw?.map((e) =>
+          e.id.trim().toLowerCase() === "max"
+            ? { ...e, id: "xhigh", name: e.name || "xhigh" }
+            : e,
+        )
+      : raw;
   const aligned = alignGrokPresetEfforts({
     providerId: provider.id,
     baseUrl: provider.baseUrl,
-    efforts: raw,
+    efforts: normalizedRaw,
   });
-  return aligned ?? raw;
+  return aligned ?? normalizedRaw;
 }
 
 export function resolveProviderContextWindow(

@@ -9210,9 +9210,9 @@ export function AppWorkbench() {
       return null;
     }
     return effortOptionsFromProvider(
-      resolveProviderEfforts(activeCustomProvider),
+      resolveProviderEfforts(activeCustomProvider, modelId),
     );
-  }, [providerActiveSource, activeCustomProvider]);
+  }, [providerActiveSource, activeCustomProvider, modelId]);
 
   /**
    * Active effort catalog for the composer: custom channel efforts, else the

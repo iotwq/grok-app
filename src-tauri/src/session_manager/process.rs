@@ -410,6 +410,7 @@ impl SessionManager {
         s.open_tool_seen_at.clear();
         s.terminal_tool_ids.clear();
         s.deferred_prompt_complete = None;
+        s.deferred_prompt_complete_at = None;
         s.pending_plan_rpc_id = None;
         s.pending_ask_user_rpc_id = None;
         s.pending_stream_emit = None;
@@ -696,6 +697,7 @@ impl SessionManager {
             open_tool_seen_at: HashMap::new(),
             terminal_tool_ids: HashSet::new(),
             deferred_prompt_complete: None,
+            deferred_prompt_complete_at: None,
             tools_this_turn: 0,
             saw_model_output: false,
             prompt_in_flight: false,

@@ -315,13 +315,14 @@ Windows（可选）：双击 [`install-latest.cmd`](./install-latest.cmd) 会把
 ## 👥 贡献者
 
 <!-- CONTRIBUTORS:START -->
-感谢所有为 Grok App 做出贡献的人！以下为 GitHub 仓库全部人类贡献者（按 commits 降序，2026-10-04 更新）。
+感谢所有为 Grok App 做出贡献的人！以下为 GitHub 仓库全部人类贡献者（按 commits 降序，2026-10-05 更新）。
 
 <p align="center">
   <a href="https://github.com/RongleCat" title="RongleCat"><img src="https://github.com/RongleCat.png?size=96" width="72" height="72" alt="RongleCat" style="border-radius:50%" /></a>
   <a href="https://github.com/sonnemusk" title="sonnemusk"><img src="https://github.com/sonnemusk.png?size=96" width="72" height="72" alt="sonnemusk" style="border-radius:50%" /></a>
   <a href="https://github.com/zhangxaochen" title="zhangxaochen"><img src="https://github.com/zhangxaochen.png?size=96" width="72" height="72" alt="zhangxaochen" style="border-radius:50%" /></a>
   <a href="https://github.com/shiaho777" title="shiaho777"><img src="https://github.com/shiaho777.png?size=96" width="72" height="72" alt="shiaho777" style="border-radius:50%" /></a>
+  <a href="https://github.com/iotwq" title="iotwq"><img src="https://github.com/iotwq.png?size=96" width="72" height="72" alt="iotwq" style="border-radius:50%" /></a>
   <a href="https://github.com/yclenove" title="yclenove"><img src="https://github.com/yclenove.png?size=96" width="72" height="72" alt="yclenove" style="border-radius:50%" /></a>
   <a href="https://github.com/AlexZander85" title="AlexZander85"><img src="https://github.com/AlexZander85.png?size=96" width="72" height="72" alt="AlexZander85" style="border-radius:50%" /></a>
   <a href="https://github.com/Dmao233" title="Dmao233"><img src="https://github.com/Dmao233.png?size=96" width="72" height="72" alt="Dmao233" style="border-radius:50%" /></a>

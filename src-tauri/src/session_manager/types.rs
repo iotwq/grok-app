@@ -249,6 +249,9 @@ pub(crate) struct LiveSession {
     pub(super) terminal_tool_ids: HashSet<String>,
     /// `prompt_complete` arrived while tools/gates still open; finish when clear.
     pub(super) deferred_prompt_complete: Option<String>,
+    /// When the deferred completion was observed. A short quiet window after
+    /// this instant accepts stream chunks that trail the prompt RPC result.
+    pub(super) deferred_prompt_complete_at: Option<Instant>,
     /// Tool events observed during the current turn (empty-run soft signal).
     pub(super) tools_this_turn: u32,
     /// Non-empty assistant body observed this turn (sticky until turn ends).

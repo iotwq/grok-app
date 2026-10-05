@@ -494,6 +494,7 @@ impl SessionManager {
                 s.terminal_tool_ids.clear();
                 s.open_tool_seen_at.clear();
                 s.deferred_prompt_complete = None;
+                s.deferred_prompt_complete_at = None;
                 s.tools_this_turn = 0;
                 s.pending_plan_rpc_id = None;
                 s.pending_ask_user_rpc_id = None;

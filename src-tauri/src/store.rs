@@ -1301,7 +1301,7 @@ fn migrate_official_effort_xhigh_rows(global_model_id: Option<&str>) {
 }
 
 /// Clamp a remembered effort to the catalog of the resolved model.
-/// grok-4.5 has no xhigh → high. Unknown / custom catalogs are left alone.
+/// grok-4.5 has no xhigh → high; legacy Grok 4.x `max` is migrated to xhigh.
 pub fn clamp_effort_for_model(model_id: &str, effort: &str) -> String {
     let allowed: &[&str] = match model_id.trim() {
         "grok-4.5" => &["low", "medium", "high"],
@@ -1316,11 +1316,19 @@ pub fn clamp_effort_for_model(model_id: &str, effort: &str) -> String {
         return effort.to_string();
     }
     // Only clamp the official overflow: 4.5 has no xhigh → high.
-    // Leave custom / unknown ids (e.g. max) untouched.
     if effort.trim().eq_ignore_ascii_case("xhigh")
         && allowed.iter().any(|a| a.eq_ignore_ascii_case("high"))
     {
         return "high".to_string();
+    }
+    // Legacy custom Grok channels stored the fourth tier as `max`. Grok 4.x
+    // advertises and consumes the canonical `xhigh` id; keeping `max` here
+    // makes the bundled CLI silently downgrade the request (often to `low`).
+    if effort.trim().eq_ignore_ascii_case("max")
+        && model_id.trim().to_ascii_lowercase().starts_with("grok-4")
+        && allowed.iter().any(|a| a.eq_ignore_ascii_case("xhigh"))
+    {
+        return "xhigh".to_string();
     }
     effort.to_string()
 }
@@ -3769,6 +3777,13 @@ mod tests {
         assert_eq!(clamp_effort_for_model("grok-4.5", "xhigh"), "high");
         assert_eq!(clamp_effort_for_model("grok-4.6", "xhigh"), "xhigh");
         assert_eq!(clamp_effort_for_model("custom-relay", "xhigh"), "xhigh");
+    }
+
+    #[test]
+    fn clamp_effort_migrates_legacy_grok_max_to_xhigh() {
+        assert_eq!(clamp_effort_for_model("grok-4.7", "max"), "xhigh");
+        assert_eq!(clamp_effort_for_model("grok-4.6", "max"), "xhigh");
+        assert_eq!(clamp_effort_for_model("custom-relay", "max"), "max");
     }
 
     #[test]

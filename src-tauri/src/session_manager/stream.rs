@@ -43,6 +43,11 @@ use crate::turn_complete::{
 
 use super::*;
 
+/// ACP can resolve `session/prompt` just before its final stream chunks reach
+/// the Host. Keep the turn live for a short quiet window so those chunks are
+/// accepted instead of being mistaken for session/load replay.
+pub(super) const POST_PROMPT_COMPLETE_GRACE_MS: u64 = 350;
+
 /// Snapshot used by pure multi-session event routing (no locks).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct SessionRouteHint {
@@ -380,6 +385,87 @@ impl SessionManager {
         )
     }
 
+    pub(super) fn defer_prompt_complete(s: &mut LiveSession, stop_reason: String) {
+        s.deferred_prompt_complete = Some(stop_reason);
+        s.deferred_prompt_complete_at = Some(Instant::now());
+    }
+
+    /// Finish an ACP turn after the stream has been quiet for the post-result
+    /// grace window. The captured turn id prevents a delayed task from closing
+    /// a newer prompt in the same chat.
+    pub(super) fn schedule_deferred_prompt_complete_flush(
+        self: &Arc<Self>,
+        app: AppHandle,
+        session_id: String,
+        turn_id: String,
+    ) {
+        enum DeferredFlush {
+            Stop,
+            Wait(Duration),
+            Finished(Option<(String, String, String)>),
+        }
+
+        let manager = Arc::clone(self);
+        tauri::async_runtime::spawn(async move {
+            let grace = Duration::from_millis(POST_PROMPT_COMPLETE_GRACE_MS);
+            let mut delay = grace;
+            loop {
+                tokio::time::sleep(delay).await;
+                let now = Instant::now();
+                let mut pending_emits = Vec::new();
+                let mut pending_persists = Vec::new();
+                let decision = manager.with_session_mut(&session_id, |s| {
+                    if s.active_turn_id.as_deref() != Some(turn_id.as_str())
+                        || s.deferred_prompt_complete.is_none()
+                    {
+                        return DeferredFlush::Stop;
+                    }
+                    let elapsed = now.saturating_duration_since(s.last_stream_progress);
+                    if elapsed < grace {
+                        return DeferredFlush::Wait(grace - elapsed);
+                    }
+                    match Self::try_finish_deferred_prompt_complete(
+                        s,
+                        Some(&mut pending_emits),
+                        Some(&mut pending_persists),
+                    ) {
+                        Some(empty) => DeferredFlush::Finished(empty),
+                        None => DeferredFlush::Wait(grace),
+                    }
+                });
+
+                let Some(decision) = decision else {
+                    return;
+                };
+                Self::emit_stream_payloads(&app, pending_emits);
+                Self::commit_session_persists(Some(&app), pending_persists);
+                match decision {
+                    DeferredFlush::Stop => return,
+                    DeferredFlush::Wait(next) => {
+                        delay = next.max(Duration::from_millis(1));
+                    }
+                    DeferredFlush::Finished(empty) => {
+                        Self::emit_empty_run_if_any(&app, empty);
+                        if manager.is_live_session(&session_id) {
+                            manager.emit_for_session(&app, &session_id);
+                        } else {
+                            let snapshot = manager
+                                .background
+                                .lock()
+                                .get(&session_id)
+                                .map(Self::snapshot_from_live);
+                            manager.promote_background_ready_to_parked(&session_id);
+                            if let Some(snapshot) = snapshot {
+                                Self::emit_runtime(&app, &snapshot);
+                            }
+                        }
+                        return;
+                    }
+                }
+            }
+        });
+    }
+
     /// Finish turn when a deferred `prompt_complete` is safe (#52).
     /// Returns `Some(empty_run)` if finished (`None` inside = finished, not empty);
     /// returns `None` if still deferred.
@@ -393,6 +479,12 @@ impl SessionManager {
         pending_persists: Option<&mut Vec<PendingSessionPersist>>,
     ) -> Option<Option<(String, String, String)>> {
         let stop_reason = s.deferred_prompt_complete.clone()?;
+        if let Some(at) = s.deferred_prompt_complete_at {
+            let grace = Duration::from_millis(POST_PROMPT_COMPLETE_GRACE_MS);
+            if Instant::now().saturating_duration_since(at) < grace {
+                return None;
+            }
+        }
         // The `session/prompt` RPC has not resolved → the agent may still emit
         // more text (it fires `prompt_complete` early). Ending the turn here is
         // what truncated answers mid-sentence and made the chat look stuck.
@@ -406,6 +498,7 @@ impl SessionManager {
         // re-armed deferred flag and do not flush/emit/journal again.
         if s.active_turn_id.is_none() && s.fsm.state() == SessionState::Ready {
             s.deferred_prompt_complete = None;
+            s.deferred_prompt_complete_at = None;
             return None;
         }
         // Drop journal-terminal / aged open tools first so bg handoff leftovers
@@ -430,6 +523,7 @@ impl SessionManager {
         }
         let empty = Self::empty_run_signal_from_live(s, &stop_reason);
         s.deferred_prompt_complete = None;
+        s.deferred_prompt_complete_at = None;
         // UI first (pending IPC), then journal — both must see the full tail.
         // Stream emit happens after the caller drops session locks.
         Self::take_pending_stream_emit_done_into(s, pending_emits);
@@ -693,6 +787,7 @@ impl SessionManager {
         s.open_tool_seen_at.clear();
         s.terminal_tool_ids.clear();
         s.deferred_prompt_complete = None;
+        s.deferred_prompt_complete_at = None;
         s.tools_this_turn = 0;
         s.prompt_in_flight = false;
         if s.fsm.state() == SessionState::Streaming
@@ -1655,6 +1750,7 @@ mod stream_emit_lock_tests {
             open_tool_seen_at: HashMap::new(),
             terminal_tool_ids: HashSet::new(),
             deferred_prompt_complete: None,
+            deferred_prompt_complete_at: None,
             tools_this_turn: 0,
             saw_model_output: false,
             prompt_in_flight: true,

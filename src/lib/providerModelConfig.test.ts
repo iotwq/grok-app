@@ -86,6 +86,25 @@ describe("resolveProviderEfforts", () => {
       "high",
     ]);
   });
+
+  it("normalizes legacy max to xhigh for Grok 4.x models", () => {
+    const p = provider({
+      model: "grok-4.7",
+      efforts: [
+        { id: "low", name: "low" },
+        { id: "medium", name: "medium" },
+        { id: "high", name: "high" },
+        { id: "max", name: "max", isDefault: true },
+      ],
+      models: [{ id: "grok-4.7", name: "Grok 4.7" }],
+    });
+    expect(resolveProviderEfforts(p)?.map((e) => e.id)).toEqual([
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+    ]);
+  });
 });
 
 describe("resolveProviderContextWindow / vision", () => {

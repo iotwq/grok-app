@@ -88,7 +88,8 @@ must not treat pure sticky Streaming (no `prompt_in_flight` / tools / deferred
 gates) as forever-busy, or demote/focus for other chats stays blocked.
 
 **Turn end journal heal (P0):** after every successful `session/prompt` Ok, Host
-force-finishes sticky Streaming (#522) **and** runs
+allows a short post-result stream grace before finishing sticky Streaming (#522)
+**and** runs
 `try_reconcile_linked_session` over a short bounded retry window to pull missing
 assistant/tool rows from agent `chat_history`. Filesystem reads run off the async
 executor; every idempotent pass is aggregated before one
@@ -97,6 +98,8 @@ a CLI history flush that becomes visible just after the prompt RPC returns
 (user saw endless thinking while CLI already had the full answer). A per-session
 journal lock prevents read-modify-write loss against an immediate next send; if
 that newer turn is already running, the previous turn's remaining retries stop.
+The grace is 350ms of quiet per turn; late chunks reset it and remain attached to
+the captured turn id, so a delayed completion task cannot finish a newer prompt.
 
 **UI transcript ownership (P0, #529):** `openSession` points `viewingSessionId`
 at the target **before** disk journal load. Until messages swap, stream /
@@ -278,7 +281,7 @@ It is set when `session/prompt` is dispatched and cleared **only** by:
 
 | Signal | Note |
 |--------|------|
-| `PromptComplete { authoritative: true }` | The `session/prompt` RPC result — ordered *after* every chunk the agent sent, so clearing here cannot truncate output. |
+| `PromptComplete { authoritative: true }` | The `session/prompt` RPC result — clears the RPC wait, then the Host keeps the turn open for the short quiet grace so trailing chunks cannot be dropped as replay. |
 | prompt RPC error / timeout | Cleared against the **session id**, not the live slot (the chat may have been demoted mid-turn). |
 | `stop` / `ProcessExited` / recorded turn error | Turn is over either way. |
 | mock backend terminal chunk | Mock has no prompt RPC. |

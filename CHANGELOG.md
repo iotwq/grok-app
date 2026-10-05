@@ -25,6 +25,22 @@ See `docs/llm-wiki/release.md`.
 
 **中文 · 修复**
 
+## [0.2.37] - 2026-10-05
+
+> **Highlight:** Grok 4.7 reasoning and streaming turns are more reliable.
+>
+> **中文 · 亮点：** Grok 4.7 推理强度和流式对话更加稳定。
+
+### Fixed
+- Grok 4.7 now preserves the selected xhigh reasoning effort.
+- Simple greetings no longer trigger duplicate hidden model requests.
+- Late streaming output no longer leaves a turn stuck waiting for the first token.
+
+**中文 · 修复**
+- Grok 4.7 现在会保留用户选择的 xhigh 推理强度。
+- 简单问候不再触发重复的隐藏模型请求。
+- 迟到的流式输出不再让回合卡在等待首个 token。
+
 ## [0.2.36] - 2026-10-04
 
 > **Highlight:** Bundled runtime updates and a complete ARM64/x64 desktop release matrix.

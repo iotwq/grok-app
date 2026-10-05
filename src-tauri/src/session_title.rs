@@ -60,6 +60,34 @@ pub fn heuristic_title(message: &str) -> String {
     truncate_chars(&collapsed, 28)
 }
 
+/// Greetings do not contain enough intent to benefit from an LLM-generated
+/// title. Skipping the refine call also keeps a simple "hello" turn to one
+/// model request instead of creating a hidden second request with the CLI's
+/// default model/effort.
+pub fn is_trivial_greeting(message: &str) -> bool {
+    let normalized = message
+        .trim()
+        .trim_matches(|c: char| c.is_ascii_punctuation() || c == '。' || c == '！' || c == '？')
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .to_ascii_lowercase();
+    matches!(
+        normalized.as_str(),
+        "hi" | "hello"
+            | "hey"
+            | "hiya"
+            | "hola"
+            | "你好"
+            | "您好"
+            | "嗨"
+            | "哈喽"
+            | "早上好"
+            | "早安"
+            | "晚安"
+    )
+}
+
 fn truncate_chars(s: &str, max: usize) -> String {
     let count = s.chars().count();
     if count <= max {
@@ -164,7 +192,7 @@ fn title_prompt(snippet: &str, locale: Locale) -> String {
 }
 
 /// Call Grok CLI headless with low effort.
-fn llm_title_via_cli(message: &str) -> Option<String> {
+fn llm_title_via_cli(message: &str, model_id: Option<&str>) -> Option<String> {
     // Same settings path as other CLI call sites (doctor, session spawn, etc.).
     let settings = store::load_settings();
     let probe = cli_probe::probe_cli(settings.manual_cli_path.as_deref());
@@ -178,6 +206,10 @@ fn llm_title_via_cli(message: &str) -> Option<String> {
     let mut cmd = Command::new(&path);
     cmd.arg("-p")
         .arg(&prompt)
+        // The title request is intentionally cheap, but it must use the same
+        // model route as the chat so it cannot silently fall back to the CLI
+        // default (for example grok-4.6 while the chat uses grok-4.7).
+        .args(model_id.filter(|m| !m.trim().is_empty()).map(|m| ["--model", m]).into_iter().flatten())
         .arg("--effort")
         .arg("low")
         .arg("--max-turns")
@@ -239,11 +271,16 @@ pub fn refine_title_in_background(
     id: String,
     first_message: String,
 ) {
+    if is_trivial_greeting(&first_message) {
+        return;
+    }
     crate::process_util::spawn_named_catch("session-title-refine", move || {
+        let title_model = store::resolve_composer_prefs(None, Some(&id)).model_id;
+        let title_model = crate::providers::agent_spawn_model_id(&title_model);
         let (tx, rx) = std::sync::mpsc::channel();
         let msg = first_message.clone();
         crate::process_util::spawn_named_catch("session-title-cli", move || {
-            let _ = tx.send(llm_title_via_cli(&msg));
+            let _ = tx.send(llm_title_via_cli(&msg, Some(&title_model)));
         });
         // Headless title often needs ~2 model turns (~10–25s); 20s was racing the CLI.
         let refined = rx.recv_timeout(Duration::from_secs(45)).ok().flatten();
@@ -287,6 +324,14 @@ mod tests {
         assert!(!is_placeholder_title("修权限条 bug"));
         assert!(!is_placeholder_title("Исправить панель разрешений"));
         assert!(!is_placeholder_title("馬斯克最近有發什麼貼文"));
+    }
+
+    #[test]
+    fn trivial_greetings_skip_llm_refine() {
+        assert!(is_trivial_greeting("hello"));
+        assert!(is_trivial_greeting("  你好！  "));
+        assert!(is_trivial_greeting("Hey?"));
+        assert!(!is_trivial_greeting("hello, can you help me fix this"));
     }
 
     /// `t[1..t.len() - 1]` panicked here: 「」 and “” are three bytes each, so

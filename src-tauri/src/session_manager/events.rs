@@ -268,8 +268,8 @@ impl SessionManager {
                 authoritative,
             } => {
                 let mut pending_emits = Vec::new();
-                let mut pending_persists = Vec::new();
-                let empty_run = {
+                let pending_persists = Vec::new();
+                let deferred_turn_id = {
                     let mut guard = self.inner.lock();
                     if let Some(s) = guard.as_mut() {
                         // Take any buffered stream before turn-end signals.
@@ -285,26 +285,21 @@ impl SessionManager {
                         if !Self::should_rearm_deferred_prompt_complete(s) {
                             None
                         } else {
-                            s.deferred_prompt_complete = Some(stop_reason.clone());
+                            Self::defer_prompt_complete(s, stop_reason.clone());
                             // #52: do not Ready the UI while tools / permission / ask_user / plan
-                            // are still open — agent often fires prompt_complete early.
-                            match Self::try_finish_deferred_prompt_complete(
-                                s,
-                                Some(&mut pending_emits),
-                                Some(&mut pending_persists),
-                            ) {
-                                None => {
-                                    tracing::info!(
-                                        "acp prompt_complete deferred stop={stop_reason} tools={} perm={} plan={} ask={}",
-                                        s.open_tool_ids.len(),
-                                        s.fsm.state() == SessionState::AwaitingPermission,
-                                        s.pending_plan_rpc_id.is_some(),
-                                        s.pending_ask_user_rpc_id.is_some(),
-                                    );
-                                    None
-                                }
-                                Some(empty) => empty,
-                            }
+                            // are still open — agent often fires prompt_complete early. The
+                            // post-result grace also accepts final chunks that arrive after the
+                            // RPC response.
+                            tracing::info!(
+                                "acp prompt_complete deferred stop={stop_reason} tools={} perm={} plan={} ask={}",
+                                s.open_tool_ids.len(),
+                                s.fsm.state() == SessionState::AwaitingPermission,
+                                s.pending_plan_rpc_id.is_some(),
+                                s.pending_ask_user_rpc_id.is_some(),
+                            );
+                            s.active_turn_id
+                                .clone()
+                                .map(|turn_id| (s.app_session_id.clone(), turn_id))
                         }
                     } else {
                         None
@@ -313,7 +308,9 @@ impl SessionManager {
                 Self::emit_stream_payloads(app, pending_emits);
                 Self::commit_session_persists(Some(app), pending_persists);
                 Self::emit_state(app, &self.snapshot());
-                Self::emit_empty_run_if_any(app, empty_run);
+                if let Some((session_id, turn_id)) = deferred_turn_id {
+                    self.schedule_deferred_prompt_complete_flush(app.clone(), session_id, turn_id);
+                }
             }
             AcpEvent::PermissionRequest {
                 rpc_id,
@@ -1003,6 +1000,7 @@ impl SessionManager {
                         s.terminal_tool_ids.clear();
                         s.open_tool_seen_at.clear();
                         s.deferred_prompt_complete = None;
+                        s.deferred_prompt_complete_at = None;
                         s.streaming_message_id = None;
                         s.active_turn_id = None;
                         s.stream_message_id_locked = false;
